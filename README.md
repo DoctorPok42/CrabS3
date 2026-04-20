@@ -48,3 +48,5 @@ A detailed documentation of the API endpoints is available in the [Bruno collect
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+<p style="text-align: center;">No cloud. No bill. Just S3 buckets full of crabs. 🦀</p>
