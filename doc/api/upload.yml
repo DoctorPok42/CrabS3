@@ -1,0 +1,27 @@
+info:
+  name: upload
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{host}}/api/upload"
+  headers:
+    - name: Content-Type
+      value: application/octet-stream
+    - name: X-Filename
+      value: ""
+    - name: X-Max-Downloads
+      value: ""
+      disabled: true
+    - name: X-Notify-Email
+      value: ""
+      disabled: true
+  body:
+    type: file
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

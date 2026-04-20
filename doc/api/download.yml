@@ -1,0 +1,14 @@
+info:
+  name: download
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{host}}/api/download/ef06c246-2326-40d2-9ad3-f03d32a93ca4"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
