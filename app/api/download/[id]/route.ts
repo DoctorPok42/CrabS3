@@ -1,21 +1,15 @@
 import { s3Hot, s3Cold, HOT_BUCKET, COLD_BUCKET, META_BUCKET } from "@/services/s3.service";
 import { DeleteObjectsCommand, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const getFileData = async (fileId: string) => {
+const getFileData = async (fileId: string): Promise<string | null> => {
   try {
-    const response = await s3Hot.send(new GetObjectCommand({
+    const url = await getSignedUrl(s3Hot, new GetObjectCommand({
       Bucket: HOT_BUCKET,
       Key: fileId,
-    }))
+    }), { expiresIn: 3600 });
 
-    const chunks: Buffer[] = [];
-    for await (const chunk of response.Body as AsyncIterable<Buffer>) {
-      chunks.push(chunk);
-    }
-
-    const data = Buffer.concat(chunks);
-
-    return data;
+    return url;
   } catch (err: any) {
     if (err?.name !== "NotFound" && err?.name !== "NoSuchKey") {
       throw err;
@@ -23,24 +17,19 @@ const getFileData = async (fileId: string) => {
   }
 
   try {
-    const response = await s3Cold.send(new GetObjectCommand({
+    const url = await getSignedUrl(s3Cold, new GetObjectCommand({
       Bucket: COLD_BUCKET,
       Key: fileId,
-    }));
+    }), { expiresIn: 3600 });
 
-    const chunks: Buffer[] = [];
-    for await (const chunk of response.Body as AsyncIterable<Buffer>) {
-      chunks.push(chunk);
-    }
-
-    const data = Buffer.concat(chunks);
-
-    return data;
+    return url;
   } catch (err: any) {
     if (err?.name !== "NotFound" && err?.name !== "NoSuchKey") {
       throw err;
     }
   }
+
+  return null;
 };
 
 export async function GET(
@@ -77,7 +66,19 @@ export async function GET(
       return Response.json({ error: "File metadata not found" }, { status: 404 });
     }
 
-    const fileData = await getFileData(fileId);
+    const urlFile = await getFileData(fileId);
+    console.log("File URL:", urlFile);
+
+    if (!urlFile) {
+      return Response.json({ error: "File not found" }, { status: 404 });
+    }
+
+    const fileResponse = await fetch(urlFile);
+    if (!fileResponse.ok) {
+      return Response.json({ error: "Failed to fetch file" }, { status: 500 });
+    }
+
+    const fileBuffer = await fileResponse.arrayBuffer();
 
     if (metadata.maxDownloads) {
       const maxDownloads = Number.parseInt(metadata.maxDownloads);
@@ -118,11 +119,11 @@ export async function GET(
       }
     }
 
-    return new Response(fileData, {
-      status: 200,
+    return new Response(fileBuffer, {
       headers: {
         "Content-Type": metadata.contentType || "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${metadata.filename || "download"}"`,
+        "Content-Disposition": `attachment; filename="${metadata.filename || fileId}"`,
+        "Content-Length": fileBuffer.byteLength.toString(),
       },
     });
   } catch (error) {
