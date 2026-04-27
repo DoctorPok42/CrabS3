@@ -11,6 +11,7 @@ CrabS3 is compatible with any S3 compatible storage backend, making it a versati
 ## Features
 
 - 🚀 **Fast**: Built with RustFS and optimized for performance.
+- 🔥 **Hot and Cold Storage**: Supports both hot and cold storage options for efficient file management.
 - 📁 **Multipart Uploads**: Supports large file uploads with resumable multipart uploads.
 - 📊 **Progress Tracking**: Real-time upload progress tracking for better user experience.
 - 📦 **S3 Compatible**: Works with any S3 compatible storage backend.
@@ -26,12 +27,29 @@ CrabS3 is compatible with any S3 compatible storage backend, making it a versati
 CrabS3 can be configured using environment variables:
 
 ```env
-S3_ENDPOINT=https://your-s3-endpoint.com
+# AWS S3 Configuration
+# Hot storage configuration
+S3_HOT_ENDPOINT=http://192.168.1.100:9000
+S3_HOT_ACCESS_KEY_ID=changeme
+S3_HOT_SECRET_ACCESS_KEY=changeme
+S3_HOT_BUCKET_NAME=mybucket
+
+# Cold storage configuration
+S3_COLD_ENDPOINT=http://192.168.1.101:9000
+S3_COLD_ACCESS_KEY_ID=changeme
+S3_COLD_SECRET_ACCESS_KEY=changeme
+S3_COLD_BUCKET_NAME=mybucket-cold
+
 S3_REGION=us-east-1
-S3_ACCESS_KEY_ID=your-access-key-id
-S3_SECRET_ACCESS_KEY=your-secret-access-key
-S3_BUCKET_NAME=your-bucket-name
+S3_META_BUCKET_NAME=mybucket-metadata
 ```
+
+If the cold storage configuration is not provided, CrabS3 will default to using the hot storage for all operations.
+If you want to use the same storage for both hot and cold, simply set the same configuration for both.
+
+It use 3 buckets: one for hot storage, one for cold storage and one for metadata. The metadata bucket is used to store information about the files, such as the number of downloads remaining.
+
+File is automatically copied from hot storage to cold storage with rustfs **replication feature**, so you don't have to worry about it.
 
 ## API
 

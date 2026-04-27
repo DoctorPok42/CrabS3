@@ -1,4 +1,4 @@
-import s3 from "@/services/s3.service";
+import { s3Hot, HOT_BUCKET } from "@/services/s3.service";
 import { AbortMultipartUploadCommand } from "@aws-sdk/client-s3";
 
 export async function POST(request: Request) {
@@ -9,8 +9,8 @@ export async function POST(request: Request) {
       return Response.json({ error: "Missing fileId or uploadId" }, { status: 400 });
     }
 
-    await s3.send(new AbortMultipartUploadCommand({
-      Bucket: process.env.S3_BUCKET_NAME!,
+    await s3Hot.send(new AbortMultipartUploadCommand({
+      Bucket: HOT_BUCKET,
       Key: fileId,
       UploadId: uploadId,
     }));

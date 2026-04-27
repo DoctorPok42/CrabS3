@@ -1,4 +1,4 @@
-import s3 from "@/services/s3.service";
+import { s3Hot, HOT_BUCKET } from "@/services/s3.service";
 import { UploadPartCommand } from "@aws-sdk/client-s3";
 
 export const maxDuration = 300;
@@ -26,9 +26,9 @@ export async function POST(request: Request) {
       return Response.json({ error: "Empty part" }, { status: 400 });
     }
 
-    const response = await s3.send(
+    const response = await s3Hot.send(
       new UploadPartCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
+        Bucket: HOT_BUCKET,
         Key: fileId,
         UploadId: uploadId,
         PartNumber: Number.parseInt(partNumber),

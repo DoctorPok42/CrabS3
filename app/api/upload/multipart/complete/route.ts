@@ -1,4 +1,4 @@
-import s3 from "@/services/s3.service";
+import { s3Hot, HOT_BUCKET, META_BUCKET } from "@/services/s3.service";
 import {
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
@@ -11,9 +11,9 @@ export async function POST(request: Request) {
   try {
     const sortedParts = [...parts].sort((a, b) => a.PartNumber - b.PartNumber);
 
-    const response = await s3.send(
+    const response = await s3Hot.send(
       new CompleteMultipartUploadCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
+        Bucket: HOT_BUCKET,
         Key: fileId,
         UploadId: uploadId,
         MultipartUpload: { Parts: sortedParts },
@@ -21,17 +21,17 @@ export async function POST(request: Request) {
     );
 
     if (!response.ETag) {
-      await s3.send(new AbortMultipartUploadCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
+      await s3Hot.send(new AbortMultipartUploadCommand({
+        Bucket: HOT_BUCKET,
         Key: fileId,
         UploadId: uploadId,
       }));
       return Response.json({ error: "Failed to complete upload" }, { status: 500 });
     }
 
-    await s3.send(
+    await s3Hot.send(
       new PutObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
+        Bucket: META_BUCKET,
         Key: `${fileId}.metadata.json`,
         Body: JSON.stringify(metadata),
         ContentType: "application/json",
@@ -47,8 +47,8 @@ export async function POST(request: Request) {
     console.error("Complete error:", error);
 
     try {
-      await s3.send(new AbortMultipartUploadCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
+      await s3Hot.send(new AbortMultipartUploadCommand({
+        Bucket: HOT_BUCKET,
         Key: fileId,
         UploadId: uploadId,
       }));

@@ -1,30 +1,45 @@
-import s3 from "@/services/s3.service";
+import { s3Hot, s3Cold, HOT_BUCKET, COLD_BUCKET, META_BUCKET } from "@/services/s3.service";
 import { DeleteObjectsCommand, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const getFileData = async (fileId: string) => {
   try {
-    const response = await s3.send(new GetObjectCommand({
-      Bucket: process.env.S3_BUCKET_NAME!,
+    const response = await s3Hot.send(new GetObjectCommand({
+      Bucket: HOT_BUCKET,
       Key: fileId,
-    }));
-
-    if (!response.Body) {
-      throw new Error("File not found");
-    }
+    }))
 
     const chunks: Buffer[] = [];
-      for await (const chunk of response.Body as AsyncIterable<Buffer>) {
-        chunks.push(chunk);
-      }
+    for await (const chunk of response.Body as AsyncIterable<Buffer>) {
+      chunks.push(chunk);
+    }
 
     const data = Buffer.concat(chunks);
 
     return data;
-  } catch (error) {
-    if (error instanceof Error && error.name === "NoSuchKey") {
-      throw new Error("File not found");
+  } catch (err: any) {
+    if (err?.name !== "NotFound" && err?.name !== "NoSuchKey") {
+      throw err;
     }
-    throw error;
+  }
+
+  try {
+    const response = await s3Cold.send(new GetObjectCommand({
+      Bucket: COLD_BUCKET,
+      Key: fileId,
+    }));
+
+    const chunks: Buffer[] = [];
+    for await (const chunk of response.Body as AsyncIterable<Buffer>) {
+      chunks.push(chunk);
+    }
+
+    const data = Buffer.concat(chunks);
+
+    return data;
+  } catch (err: any) {
+    if (err?.name !== "NotFound" && err?.name !== "NoSuchKey") {
+      throw err;
+    }
   }
 };
 
@@ -37,8 +52,8 @@ export async function GET(
 
     let metadata: { filename?: string; contentType?: string; maxDownloads?: string };
     try {
-      const metadataResponse = await s3.send(new GetObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
+      const metadataResponse = await s3Hot.send(new GetObjectCommand({
+        Bucket: META_BUCKET,
         Key: fileId + ".metadata.json",
       }));
 
@@ -73,18 +88,26 @@ export async function GET(
       const newMaxDownloads = maxDownloads - 1;
 
       if (newMaxDownloads === 0) {
-        await s3.send(new DeleteObjectsCommand({
-          Bucket: process.env.S3_BUCKET_NAME!,
+        await s3Hot.send(new DeleteObjectsCommand({
+          Bucket: HOT_BUCKET,
           Delete: {
             Objects: [
               { Key: fileId },
+            ],
+          },
+        }));
+
+        await s3Hot.send(new DeleteObjectsCommand({
+          Bucket: META_BUCKET,
+          Delete: {
+            Objects: [
               { Key: fileId + ".metadata.json" },
             ],
           },
         }));
       } else {
-        await s3.send(new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET_NAME!,
+        await s3Hot.send(new PutObjectCommand({
+          Bucket: META_BUCKET,
           Key: fileId + ".metadata.json",
           Body: JSON.stringify({
             ...metadata,

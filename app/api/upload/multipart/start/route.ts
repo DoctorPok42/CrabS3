@@ -1,4 +1,4 @@
-import s3 from "@/services/s3.service";
+import { s3Hot, HOT_BUCKET } from "@/services/s3.service";
 import { CreateMultipartUploadCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 
@@ -13,9 +13,9 @@ export async function POST(request: Request) {
 
     const fileId = randomUUID();
 
-    const { UploadId } = await s3.send(
+    const { UploadId } = await s3Hot.send(
       new CreateMultipartUploadCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
+        Bucket: HOT_BUCKET,
         Key: fileId,
         ContentType: contentType,
       })
