@@ -67,7 +67,6 @@ export async function GET(
     }
 
     const urlFile = await getFileData(fileId);
-    console.log("File URL:", urlFile);
 
     if (!urlFile) {
       return Response.json({ error: "File not found" }, { status: 404 });

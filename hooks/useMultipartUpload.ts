@@ -10,6 +10,8 @@ function getChunkSize(fileSize: number): number {
 interface UploadOptions {
   maxDownloads?: number | null;
   notifyEmail?: string;
+  expireAfter?: "1" | "7" | "14" | "21" | "30";
+  filename?: string;
 }
 
 interface UploadResult {
@@ -33,12 +35,13 @@ export function useMultipartUpload() {
 
     let uploadId: string | null = null;
     let fileId: string | null = null;
+    const filename = options.filename?.trim() || file.name;
 
     try {
       const startRes = await fetch("/api/upload/multipart/start", {
         method: "POST",
         headers: {
-          "X-Filename": file.name,
+          "X-Filename": filename,
           "Content-Type": file.type || "application/octet-stream",
         },
       });
@@ -74,11 +77,12 @@ export function useMultipartUpload() {
       }
 
       const metadata = {
-        filename: file.name,
+        filename,
         contentType: file.type || "application/octet-stream",
         size: file.size.toString(),
         ...(options.maxDownloads && { maxDownloads: options.maxDownloads.toString() }),
         ...(options.notifyEmail && { notifyEmail: options.notifyEmail }),
+        ...(options.expireAfter && { expireAfter: options.expireAfter || "30" }),
       };
 
       const completeRes = await fetch("/api/upload/multipart/complete", {

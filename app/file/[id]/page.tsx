@@ -35,6 +35,7 @@ export default function Id() {
       link.remove()
       globalThis.URL.revokeObjectURL(objectUrl)
     } catch (err) {
+      setIsDownloaded(false)
       console.error('Error downloading file:', err)
       setError(err instanceof Error ? err.message : "Failed to download file")
       setTimeout(() => setError(null), 3000)
