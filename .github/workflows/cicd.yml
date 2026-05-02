@@ -25,7 +25,7 @@ jobs:
           context: .
           push: true
           tags: ${{ vars.DOCKERHUB_USERNAME }}/crabs3:${{ github.sha }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
 
   update_latest:
     needs: build
