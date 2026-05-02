@@ -11,6 +11,7 @@ interface UploadOptions {
   maxDownloads?: number | null;
   notifyEmail?: string;
   expireAfter?: "1" | "7" | "14" | "21" | "30";
+  password?: string;
   filename?: string;
 }
 
@@ -83,6 +84,7 @@ export function useMultipartUpload() {
         ...(options.maxDownloads && { maxDownloads: options.maxDownloads.toString() }),
         ...(options.notifyEmail && { notifyEmail: options.notifyEmail }),
         ...(options.expireAfter && { expireAfter: options.expireAfter || "30" }),
+        ...(options.password && { password: options.password }),
       };
 
       const completeRes = await fetch("/api/upload/multipart/complete", {

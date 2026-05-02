@@ -11,7 +11,9 @@ import { useDropzone } from 'react-dropzone'
 export default function Home() {
   const [maxDownloads, setMaxDownloads] = useState<number | null>(null)
   const [notifyEmail, setNotifyEmail] = useState<string>("")
+  const [emailRecipient, setEmailRecipient] = useState<string>("")
   const [expireAfter, setExpireAfter] = useState<"1" | "7" | "14" | "21" | "30">("30")
+  const [password, setPassword] = useState<string>("")
   const [fileMeta, setFileMeta] = useState<{ name: string, size: number, img?: string } | null>(null)
   const [isEditingFile, setIsEditingFile] = useState<boolean>(false)
   const [file, setFile] = useState<File | null>(null)
@@ -29,6 +31,8 @@ export default function Home() {
 
     acceptedFiles.forEach(async (file) => {
       reset();
+      setStatus(null)
+      setIsEditingFile(false)
       setFileMeta({ name: file.name, size: file.size, img: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined });
       setFile(file);
     })
@@ -47,6 +51,7 @@ export default function Home() {
       maxDownloads: maxDownloads ?? undefined,
       notifyEmail: notifyEmail || undefined,
       expireAfter,
+      password: password || undefined,
     }).catch((e) => {
       console.error("Upload failed", e)
     })
@@ -81,7 +86,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col flex-1 items-center bg-white dark:bg-black">
-      <main className="flex flex-col w-full max-w-7xl items-center py-32 px-16">
+      <main className="flex flex-col w-full max-w-7xl items-center pt-28 pb-2 px-16">
         {(status || uploading) && (
           <div className={`lg:w-150 w-full -mt-20 mb-5 p-4 flex flex-col rounded-xl ${status?.type === 'success' ? 'bg-green-100 text-green-700' : status?.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
             <p>{status?.message}</p>
@@ -111,10 +116,10 @@ export default function Home() {
           </div>
         )}
 
-        <div className="z-10 lg:w-150 w-full h-40 md:h-40 flex items-center justify-center p-1 border-zinc-300 dark:border-zinc-700 border-2 rounded-2xl cursor-pointer group hover:border-blue-500 bg-zinc-50 dark:bg-zinc-900 transition duration-300">
-          <div className='w-full h-full flex items-center justify-center border-dashed border-zinc-300 dark:border-zinc-700 border-2 rounded-xl group-hover:border-blue-300 dark:group-hover:border-blue-800 transition duration-300' {...getRootProps()}>
+        <div className="lg:w-150 w-full h-40 md:h-40 flex items-center justify-center p-1 border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl cursor-pointer group hover:border-blue-500 bg-zinc-50 dark:bg-zinc-900 transition duration-300">
+          <div className='w-full h-full flex items-center justify-center border-dashed border-zinc-200 dark:border-zinc-700 border-2 rounded-xl group-hover:border-blue-300 dark:group-hover:border-blue-800 transition duration-300' {...getRootProps()}>
             <input {...getInputProps()} />
-            <p className="p-8 text-xl text-center text-zinc-700 dark:text-zinc-300">
+            <div className="p-8 text-xl text-center text-zinc-700 dark:text-zinc-300">
               {fileMeta ? <div>
                 <div className='flex justify-center'>
                   <FontAwesomeIcon icon={faFileText} size='3x' className='-rotate-45 -mr-9 mt-3 text-zinc-400 dark:text-zinc-700' />
@@ -125,39 +130,28 @@ export default function Home() {
                   <p className='text-sm font-bold text-zinc-700 dark:text-zinc-300'>{fileMeta.name}</p>
                 </div>
               </div> : "Drag and drop some files here, or click to select files"}
-            </p>
+            </div>
           </div>
         </div>
 
-        <div className="lg:w-150 w-full mt-5 flex flex-col border-zinc-300 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-zinc-50 dark:bg-zinc-900 transition duration-300">
+        <div className="lg:w-150 w-full mt-5 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-zinc-50 dark:bg-zinc-900 transition duration-300">
           <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Options</h2>
 
-          <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 grid-rows-auto">
+          <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-4 grid-rows-auto">
             <div className="flex flex-col gap-1">
               <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Max downloads</label>
               <input
                 type="number"
                 id="option1"
                 name="option1"
+                placeholder='e.g. 5'
                 className="h-8 text-lg outline-none bg-neutral-200 dark:bg-zinc-800 hover:border-blue-500 rounded-md px-2 text-zinc-700 dark:text-zinc-300 transition duration-300"
                 value={maxDownloads ?? ''}
                 onChange={(e) => setMaxDownloads(e.target.value ? Number.parseInt(e.target.value) : null)}
               />
             </div>
 
-            <div className="flex flex-col col-span-2 gap-1">
-              <label htmlFor="option2" className="text-zinc-700 dark:text-zinc-300">Notify me when file is downloaded</label>
-              <input
-                type="email"
-                id="option2"
-                name="option2"
-                className="h-8 text-lg outline-none bg-neutral-200 dark:bg-zinc-800 hover:border-blue-500 rounded-md px-2 text-zinc-700 dark:text-zinc-300 transition duration-300"
-                value={notifyEmail}
-                onChange={(e) => setNotifyEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 col-span-2">
               <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Expire after (days)</label>
               <select
                 id="option1"
@@ -175,22 +169,46 @@ export default function Home() {
               </select>
             </div>
 
-            {fileMeta && <div className='col-span-3 flex flex-wrap justify-between border-t-2 border-zinc-300 dark:border-zinc-700 pt-4 mt-2'>
+            <div className="flex flex-col col-span-2 gap-1">
+              <label htmlFor="option2" className="text-zinc-700 dark:text-zinc-300">Notify me by email (optional)</label>
+              <input
+                type="email"
+                id="emailSender"
+                name="emailSender"
+                className="h-8 text-md outline-none bg-neutral-200 dark:bg-zinc-800 hover:border-blue-500 rounded-md px-2 text-zinc-700 dark:text-zinc-300 transition duration-300"
+                value={notifyEmail}
+                onChange={(e) => setNotifyEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col col-span-2 gap-1">
+              <label htmlFor="option2" className="text-zinc-700 dark:text-zinc-300">Email of recipient (optional)</label>
+              <input
+                type="email"
+                id="emailRecipient"
+                name="emailRecipient"
+                className="h-8 text-md outline-none bg-neutral-200 dark:bg-zinc-800 hover:border-blue-500 rounded-md px-2 text-zinc-700 dark:text-zinc-300 transition duration-300"
+                value={emailRecipient}
+                onChange={(e) => setEmailRecipient(e.target.value)}
+              />
+            </div>
+
+            {fileMeta && <div className='col-span-4 flex flex-wrap justify-between border-t-2 border-zinc-300 dark:border-zinc-700 pt-4 mt-2'>
               <div className='flex flex-col'>
                 <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Selected File</h3>
-                <div className='flex gap-2 items-center justify-center'>
+                <div className='flex gap-2'>
                   {isEditingFile ? (
                     <input
                       type="text"
                       autoFocus
                       className="h-8 text-lg outline-none bg-neutral-200 dark:bg-zinc-800 hover:border-blue-500 rounded-md px-2 text-zinc-700 dark:text-zinc-300 transition duration-300"
-                      value={fileMeta.name}
-                      onChange={(e) => setFileMeta(prev => prev ? { ...prev, name: e.target.value } : null)}
+                      value={fileMeta.name.replace(/\.[^/.]+$/, "")}
+                      onChange={(e) => setFileMeta(prev => prev ? { ...prev, name: e.target.value + fileMeta.name.slice(fileMeta.name.lastIndexOf('.')) } : null)}
                       onBlur={() => setIsEditingFile(false)}
                       onKeyDown={(e) => e.key === 'Enter' && setIsEditingFile(false)}
                     />
                   ) : (
-                    <p onClick={() => setIsEditingFile(true)} className="text-lg font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer">{fileMeta.name}</p>
+                    <button onClick={() => setIsEditingFile(true)} className="text-lg text-zinc-700 dark:text-zinc-300 cursor-pointer">{fileMeta.name}</button>
                   )}
 
                   <FontAwesomeIcon icon={faPen} color='gray' className='text-sm cursor-pointer' onClick={() => setIsEditingFile(true)} />
@@ -203,16 +221,32 @@ export default function Home() {
                 </Link>
               )}
 
+              <div className="flex flex-col w-full gap-1 mt-4">
+                <label htmlFor="password" className="text-zinc-700 dark:text-zinc-300">Password (optional)</label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  className="h-8 text-lg outline-none bg-neutral-200 dark:bg-zinc-800 hover:border-blue-500 rounded-md px-2 text-zinc-700 dark:text-zinc-300 transition duration-300"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
               <div className='w-full mt-4'>
-                <button onClick={() => file && uploadFile()} className="w-full bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 cursor-pointer rounded-lg transition">
-                  Update file
+                <button
+                  onClick={() => file && uploadFile()}
+                  className={`w-full bg-blue-500 text-white font-semibold py-2 px-4 cursor-pointer rounded-lg transition ${uploading ? 'opacity-50 cursor-not-allowed!' : 'hover:bg-blue-700'}`}
+                  disabled={uploading}
+                >
+                  {uploading ? "Uploading..." : "Upload File"}
                 </button>
               </div>
             </div>}
           </div>
         </div>
 
-        <div className='mt-4 text-center text-zinc-500 dark:text-zinc-400 z-0'>
+        <div className='mt-6 mb-4 text-center text-zinc-500 dark:text-zinc-400 z-0'>
           <h1 className="text-xl font-bold">CrabS3</h1>
           <p className="text-sm">No cloud. No bill. Just S3 buckets full of crabs. 🦀</p>
         </div>
