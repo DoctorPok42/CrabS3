@@ -1,18 +1,49 @@
 services:
+  db:
+    image: postgres:latest
+    container_name: crabs3-db
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: crabs3
+    volumes:
+      - db-data:/var/lib/postgresql
+    networks:
+      - crabs3-network
+
   web:
+    depends_on:
+      - db
     build: .
     ports:
       - "5000:3000"
     container_name: crabs3
+    restart: unless-stopped
     environment:
-      - S3_ENDPOINT=http://192.168.1.100:9000
+      - S3_HOT_ENDPOINT=http://192.168.1.100:9000
+      - S3_HOT_ACCESS_KEY_ID=changeme
+      - S3_HOT_SECRET_ACCESS_KEY=changeme
+      - S3_HOT_BUCKET_NAME=crabs3
+
+      - S3_COLD_ENDPOINT=http://192.168.1.101:9000
+      - S3_COLD_ACCESS_KEY_ID=changeme
+      - S3_COLD_SECRET_ACCESS_KEY=changeme
+      - S3_COLD_BUCKET_NAME=crabs3-cold
+
       - S3_REGION=us-east-1
-      - S3_ACCESS_KEY_ID=changeme
-      - S3_SECRET_ACCESS_KEY=changeme
-      - S3_BUCKET_NAME=transfer
+
+      - DATABASE_URL=postgresql://user:password@db:5432/crabs3
+      - NEXTAUTH_URL=http://localhost:5000
     networks:
       - crabs3-network
 
 networks:
   crabs3-network:
     driver: bridge
+
+volumes:
+  db-data:
+    driver: local

@@ -41,7 +41,10 @@ S3_COLD_SECRET_ACCESS_KEY=changeme
 S3_COLD_BUCKET_NAME=mybucket-cold
 
 S3_REGION=us-east-1
-S3_META_BUCKET_NAME=mybucket-metadata
+
+DATABASE_URL="postgresql://postgres:password@localhost:5432/mydatabase"
+
+NEXTAUTH_URL=http://localhost:3000
 ```
 
 If the cold storage configuration is not provided, CrabS3 will default to using the hot storage for all operations.

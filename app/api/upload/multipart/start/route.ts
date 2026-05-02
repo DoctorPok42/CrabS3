@@ -1,6 +1,7 @@
 import { s3Hot, HOT_BUCKET } from "@/services/s3.service";
 import { CreateMultipartUploadCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
+import prisma from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
@@ -24,6 +25,15 @@ export async function POST(request: Request) {
     if (!UploadId) {
       return Response.json({ error: "Failed to create multipart upload" }, { status: 500 });
     }
+
+    await prisma.files.create({
+      data: {
+        id: fileId,
+        filename,
+        size: 0,
+        content_type: contentType,
+      },
+    }).catch(console.error);
 
     return Response.json({ fileId, uploadId: UploadId });
   } catch (error) {

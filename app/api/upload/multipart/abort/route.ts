@@ -1,5 +1,6 @@
 import { s3Hot, HOT_BUCKET } from "@/services/s3.service";
 import { AbortMultipartUploadCommand } from "@aws-sdk/client-s3";
+import prisma from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
@@ -14,6 +15,10 @@ export async function POST(request: Request) {
       Key: fileId,
       UploadId: uploadId,
     }));
+
+    await prisma.files.delete({
+      where: { id: fileId },
+    }).catch(console.error);
 
     return Response.json({ success: true });
   } catch (error) {

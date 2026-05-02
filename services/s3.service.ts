@@ -9,7 +9,6 @@ const handlerConfig = {
 
 export const HOT_BUCKET = process.env.S3_HOT_BUCKET_NAME || "hot-bucket";
 export const COLD_BUCKET = process.env.S3_COLD_BUCKET_NAME || "cold-bucket";
-export const META_BUCKET = process.env.S3_META_BUCKET_NAME || "metadata-bucket";
 
 export const s3Hot = new S3Client({
   endpoint: process.env.S3_HOT_ENDPOINT || "http://localhost:9000",
@@ -33,4 +32,3 @@ export const s3Cold = process.env.S3_COLD_ENDPOINT ? new S3Client({
   forcePathStyle: true,
   requestHandler: new NodeHttpHandler(handlerConfig),
 }) : s3Hot;
-
