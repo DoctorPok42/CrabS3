@@ -1,0 +1,32 @@
+# Build artifacts
+node_modules
+.next
+build
+dist
+
+# Version control
+.git
+.gitignore
+.github
+
+# Documentation
+README.md
+LICENSE
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Logs
+npm-debug.log
+yarn-error.log
+
+# IDE
+.DS_Store
+.idea
+.vscode
+
+# Testing
+.pytest_cache
+coverage
