@@ -43,13 +43,19 @@ export async function POST(
     const { id: fileId } = await params;
     const password = await request.json().then(data => data.password).catch(() => null);
 
-    const metadata: { filename?: string; contentType?: string; maxDownloads?: string; notifyEmail?: string } = {};
+    let file;
     try {
-      const file = await prisma.files.findUnique({
+      file = await prisma.files.findUnique({
         where: { id: fileId },
         select: { password_hash: true, filename: true, size: true, email_sender: true },
       });
-      if (file?.password_hash) {
+
+      if (!file) {
+        return Response.json({ error: "File not found" }, { status: 404 });
+      }
+
+      // Check password if file is protected
+      if (file.password_hash) {
         if (!password) {
           return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -58,14 +64,6 @@ export async function POST(
         if (!isPasswordValid) {
           return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
-
-        metadata.filename = file.filename;
-        metadata.contentType = "application/octet-stream";
-        metadata.maxDownloads = file.size.toString();
-        metadata.notifyEmail = file.email_sender!;
-      }
-      if (!file) {
-        return Response.json({ error: "File not found" }, { status: 404 });
       }
     } catch (error) {
       if (error instanceof Error && error.name === "NoSuchKey") {
@@ -73,6 +71,13 @@ export async function POST(
       }
       throw error;
     }
+
+    const metadata: { filename?: string; contentType?: string; maxDownloads?: string; email_sender?: string } = {
+      filename: file.filename,
+      contentType: "application/octet-stream",
+      maxDownloads: file.size.toString(),
+      email_sender: file.email_sender || undefined,
+    };
 
     if (!metadata) {
       return Response.json({ error: "File metadata not found" }, { status: 404 });
@@ -117,8 +122,7 @@ export async function POST(
         download_count: { increment: 1 },
       },
     }).catch(console.error);
-
-    await sendDownloadNotificationEmail(metadata.notifyEmail || "", fileId);
+    await sendDownloadNotificationEmail(metadata.email_sender || "", fileId);
 
     return new Response(fileBuffer, {
       headers: {
