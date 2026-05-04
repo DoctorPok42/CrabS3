@@ -9,7 +9,8 @@ function getChunkSize(fileSize: number): number {
 
 interface UploadOptions {
   maxDownloads?: number | null;
-  notifyEmail?: string;
+  emailSender?: string;
+  emailRecipient?: string;
   expireAfter?: "1" | "7" | "14" | "21" | "30";
   password?: string;
   filename?: string;
@@ -81,8 +82,9 @@ export function useMultipartUpload() {
         filename,
         contentType: file.type || "application/octet-stream",
         size: file.size.toString(),
-        ...(options.maxDownloads && { maxDownloads: options.maxDownloads.toString() }),
-        ...(options.notifyEmail && { notifyEmail: options.notifyEmail }),
+        ...(options.maxDownloads ? { maxDownloads: options.maxDownloads.toString() } : { maxDownloads: null }),
+        ...(options.emailSender && { emailSender: options.emailSender }),
+        ...(options.emailRecipient && { emailRecipient: options.emailRecipient }),
         ...(options.expireAfter && { expireAfter: options.expireAfter || "30" }),
         ...(options.password && { password: options.password }),
       };

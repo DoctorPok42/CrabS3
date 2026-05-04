@@ -129,7 +129,7 @@ export default function Id() {
               </div>
             </div>
             {fileInfo.hasPassword && (
-              <div className="w-full flex flex-wrap items-center justify-between">
+              <div className="w-full flex flex-wrap items-center justify-between mt-2 gap-1">
                 <p className="font-semibold">This file is password protected.</p>
                 <input
                   type="password"

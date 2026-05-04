@@ -27,7 +27,8 @@ model files {
   max_downloads  Int?
   download_count Int?        @default(0)
   password_hash  String?
-  notify_email   String?
+  email_sender   String?
+  email_recipient String?
   upload_token   String?     @unique
   download_token String?     @unique
   downloads      downloads[]

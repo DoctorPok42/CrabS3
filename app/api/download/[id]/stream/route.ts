@@ -3,6 +3,7 @@ import { DeleteObjectsCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { sendDownloadNotificationEmail } from "@/services/mail.service";
 
 const getFileData = async (fileId: string): Promise<string | null> => {
   try {
@@ -42,11 +43,11 @@ export async function POST(
     const { id: fileId } = await params;
     const password = await request.json().then(data => data.password).catch(() => null);
 
-    const metadata: { filename?: string; contentType?: string; maxDownloads?: string } = {};
+    const metadata: { filename?: string; contentType?: string; maxDownloads?: string; notifyEmail?: string } = {};
     try {
       const file = await prisma.files.findUnique({
         where: { id: fileId },
-        select: { password_hash: true, filename: true, size: true },
+        select: { password_hash: true, filename: true, size: true, email_sender: true },
       });
       if (file?.password_hash) {
         if (!password) {
@@ -61,6 +62,7 @@ export async function POST(
         metadata.filename = file.filename;
         metadata.contentType = "application/octet-stream";
         metadata.maxDownloads = file.size.toString();
+        metadata.notifyEmail = file.email_sender!;
       }
       if (!file) {
         return Response.json({ error: "File not found" }, { status: 404 });
@@ -115,6 +117,8 @@ export async function POST(
         download_count: { increment: 1 },
       },
     }).catch(console.error);
+
+    await sendDownloadNotificationEmail(metadata.notifyEmail || "", fileId);
 
     return new Response(fileBuffer, {
       headers: {

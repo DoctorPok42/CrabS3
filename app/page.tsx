@@ -48,8 +48,9 @@ export default function Home() {
 
     const result = await upload(file, {
       filename: fileMeta.name,
-      maxDownloads: maxDownloads ?? undefined,
-      notifyEmail: notifyEmail || undefined,
+      maxDownloads: maxDownloads ?? null,
+      emailSender: notifyEmail || undefined,
+      emailRecipient: emailRecipient || undefined,
       expireAfter,
       password: password || undefined,
     }).catch((e) => {
