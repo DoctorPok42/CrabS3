@@ -36,13 +36,20 @@ services:
       - S3_REGION=us-east-1
 
       - DATABASE_URL=postgresql://user:password@db:5432/crabs3
-      - NEXTAUTH_URL=http://localhost:5000
+      - BASE_URL=http://localhost:5000
+      - SMTP_HOST=your.smtp.host
+      - SMTP_USER=your_smtp_user
+      - SMTP_PASS=your_smtp_password
+      - SMTP_FROM=CrabS3 Notifications <your_smtp_user>
     networks:
       - crabs3-network
+      - mail-network
 
 networks:
   crabs3-network:
     driver: bridge
+  mail-network:
+    external: true
 
 volumes:
   db-data:

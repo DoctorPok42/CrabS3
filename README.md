@@ -13,14 +13,22 @@ CrabS3 is compatible with any S3 compatible storage backend, making it a versati
 - 🚀 **Fast**: Built with RustFS and optimized for performance.
 - 🔥 **Hot and Cold Storage**: Supports both hot and cold storage options for efficient file management.
 - 📁 **Multipart Uploads**: Supports large file uploads with resumable multipart uploads.
+- 🔒 **Secure**: Generate secure, time-limited links for sharing files
+- 📧 **Email Notifications**: Notify users when their files are uploaded or downloaded.
 - 📊 **Progress Tracking**: Real-time upload progress tracking for better user experience.
 - 📦 **S3 Compatible**: Works with any S3 compatible storage backend.
-- 🔗 **Shareable Links**: Generate secure, time-limited links for sharing files.
+- 🗑️ **Automatic Deletion**: Automatically deletes files after reaching the maximum number of downloads.
 
 ## Usage
 
-1. **Upload a File**: Use the web interface or API to upload files. For large files, multipart uploads are automatically handled.
-2. **Track Progress**: Monitor upload progress in real-time through the UI.
+To run CrabS3, you can use the provided Docker Compose configuration. Make sure you have Docker and Docker Compose installed on your system. Then, simply run the following command in the root directory of the project:
+
+```bash
+docker-compose up -d
+```
+
+This will start the CrabS3 service along with a PostgreSQL database. The web interface will be accessible at `http://localhost:3000`.  
+You can upload files through the web interface or use the API endpoints for programmatic access.
 
 ## Configuration
 
@@ -43,8 +51,13 @@ S3_COLD_BUCKET_NAME=mybucket-cold
 S3_REGION=us-east-1
 
 DATABASE_URL="postgresql://postgres:password@localhost:5432/mydatabase"
+BASE_URL=http://localhost:3000
 
-NEXTAUTH_URL=http://localhost:3000
+# SMTP Configuration
+SMTP_HOST=your.smtp.host
+SMTP_USER=your_smtp_user
+SMTP_PASS="your_smtp_password"
+SMTP_FROM="CrabS3 Notifications <your_smtp_user>"
 ```
 
 If the cold storage configuration is not provided, CrabS3 will default to using the hot storage for all operations.
@@ -60,7 +73,9 @@ File is automatically copied from hot storage to cold storage with rustfs **repl
 - `POST /api/upload/multipart/part`: Upload a single part of the file.
 - `POST /api/upload/multipart/complete`: Complete the multipart upload with metadata.
 - `POST /api/upload/multipart/abort`: Abort an ongoing multipart upload.
-- `GET /api/download/:fileId`: Download a file by its ID.
+- `DELETE /api/checkfile`: Check if a file with the same hash already exists.
+- `GET /api/download/:id`: Check if a file exists and retrieve its metadata by its ID.
+- `GET /api/download/:id/stream`: Stream the file content for download.
 
 ## Documentation
 
@@ -70,4 +85,6 @@ A detailed documentation of the API endpoints is available in the [Bruno collect
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-<p style="text-align: center;">No cloud. No bill. Just S3 buckets full of crabs. 🦀</p>
+---
+
+No cloud. No bill. Just S3 buckets full of crabs. 🦀
