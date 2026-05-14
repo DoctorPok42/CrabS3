@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faFile, faEnvelope, faUser, faHdd, faDownload, faClock, faTrash, faShieldAlt, faShare } from "@fortawesome/free-solid-svg-icons"
+import { faFile, faEnvelope, faUser, faHdd, faDownload, faClock, faTrash, faShieldAlt, faShare, faDatabase, faLock, faRulerVertical } from "@fortawesome/free-solid-svg-icons"
+import { StorageMetricCard } from "@/components/StorageMetricCard"
 
 interface User {
   id: string
@@ -19,9 +20,25 @@ interface User {
   status: "active" | "pending"
 }
 
+interface AdminStats {
+  totalStorageUsed: number
+  expiredStorageSize: number
+  coldStorageActive: boolean
+  totalFiles: number
+  activeFiles: number
+  averageFileSize: number
+  filesWithPassword: number
+  totalUsers: number
+  usersWithFiles: number
+  totalSecrets: number
+  totalDownloads: number
+}
+
 const Admin = () => {
   const [users, setUsers] = useState<User[]>([])
+  const [stats, setStats] = useState<AdminStats | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
+  const [statsLoading, setStatsLoading] = useState<boolean>(true)
   const [emailInvite, setEmailInvite] = useState<string>("")
 
   useEffect(() => {
@@ -40,7 +57,23 @@ const Admin = () => {
       }
     }
 
+    const fetchStats = async () => {
+      setStatsLoading(true)
+      try {
+        const res = await fetch('/api/admin/stats')
+        if (res.ok) {
+          const data = await res.json()
+          setStats(data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error)
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+
     fetchUsersDash()
+    fetchStats()
   }, [])
 
   const formatBytes = (bytes: number) => {
@@ -78,20 +111,99 @@ const Admin = () => {
   }
 
   return (
-    <main className="flex flex-col w-full max-w-[100em] items-center px-4 sm:px-16 pt-10 mx-auto">
-      <div className="w-full mb-8 flex flex-col items-center">
+    <main className="flex flex-col w-full max-w-[100em] gap-8 items-center px-4 sm:px-16 pt-10 mx-auto">
+      <div className="w-full flex flex-col items-center">
         <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 mb-2">Admin Panel</h1>
         <p className="text-zinc-500 dark:text-zinc-400">Manage users and storage</p>
       </div>
 
-      <div className="lg:w-150 w-full mb-8 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+      <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900">
+        <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Storage Overview</h2>
+        {statsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {new Array(9).fill(0).map((_, i) => (
+              <div key={i} className="col-span-1 border-2 border-zinc-200 dark:border-zinc-700 rounded-lg p-4 animate-pulse bg-zinc-50 dark:bg-zinc-800">
+                <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4 mb-3"></div>
+                <div className="h-8 bg-zinc-200 dark:bg-zinc-700 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        ) : stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <StorageMetricCard
+              title="Total Storage Used (Hot + Cold)"
+              value={formatBytes(stats.totalStorageUsed)}
+              icon={faHdd}
+              color="blue"
+              subtitle="Total cross all users"
+            />
+            <StorageMetricCard
+              title="Expired Storage Size"
+              value={formatBytes(stats.expiredStorageSize)}
+              icon={faTrash}
+              color="red"
+              subtitle="Awaiting cleanup"
+            />
+            <StorageMetricCard
+              title="Cold Storage"
+              value={stats.coldStorageActive ? "Active" : "Inactive"}
+              icon={faDatabase}
+              color={stats.coldStorageActive ? "green" : "gray"}
+              subtitle="S3 bucket status"
+            />
+            <StorageMetricCard
+              title="Average File Size"
+              value={formatBytes(stats.averageFileSize)}
+              icon={faRulerVertical}
+              color="blue"
+              subtitle="Per file"
+            />
+            <StorageMetricCard
+              title="Total Downloads"
+              value={stats.totalDownloads}
+              icon={faDownload}
+              color="orange"
+              subtitle="All time"
+            />
+            <StorageMetricCard
+              title="Files Protected"
+              value={stats.filesWithPassword}
+              icon={faShieldAlt}
+              color="purple"
+              subtitle="With password"
+            />
+            <StorageMetricCard
+              title="Total Files"
+              value={stats.totalFiles}
+              icon={faFile}
+              color="purple"
+              subtitle={`${stats.activeFiles} active`}
+            />
+            <StorageMetricCard
+              title="Total Users"
+              value={stats.totalUsers}
+              icon={faUser}
+              color="green"
+              subtitle={`${stats.usersWithFiles} with files`}
+            />
+            <StorageMetricCard
+              title="Secrets Shared"
+              value={stats.totalSecrets}
+              icon={faLock}
+              color="orange"
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
         <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Admin Panel</h2>
         <p className="text-zinc-600 dark:text-zinc-400 mb-2">You have admin privileges. You can invite new users by email</p>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex flex-col w-full gap-1">
             <label htmlFor="emailInvite" className="text-zinc-700 dark:text-zinc-300">Email</label>
             <div className='inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-              <FontAwesomeIcon icon={faShare} className='text-zinc-700 dark:text-[#d2d5da]' size='2xs' />
+              <FontAwesomeIcon icon={faShare} className='text-zinc-700 dark:text-[#d2d5da] w-3' size='2xs' />
               <input
                 type="email"
                 id="emailInvite"
@@ -119,42 +231,57 @@ const Admin = () => {
       <div className="w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
         <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Users</h2>
 
-        {!loading && users.length > 0 ? (
-          <div className="overflow-x-auto w-full">
-            <table className="w-full text-xs sm:text-sm">
-              <thead>
-                <tr className="border-b border-zinc-200 dark:border-zinc-700 w-full">
-                  <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                    <FontAwesomeIcon icon={faEnvelope} className="mr-1 text-zinc-500 dark:text-zinc-400 hidden sm:inline" />
-                    Email</th>
-                  <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                    <FontAwesomeIcon icon={faUser} className="mr-1 text-zinc-500 dark:text-zinc-400 hidden sm:inline" />
-                    Name</th>
-                  <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                    <FontAwesomeIcon icon={faShieldAlt} className="mr-1 text-zinc-500 dark:text-zinc-400 hidden sm:inline" />
-                    Status</th>
-                  <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                    <FontAwesomeIcon icon={faClock} className="mr-1 text-zinc-500 dark:text-zinc-400 hidden sm:inline" />
-                    Created</th>
-                  <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                    <FontAwesomeIcon icon={faHdd} className="mr-1 text-zinc-500 dark:text-zinc-400 hidden sm:inline" />
-                    Storage</th>
-                  <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                    <FontAwesomeIcon icon={faTrash} className="mr-1 text-zinc-500 dark:text-zinc-400 hidden sm:inline" />
-                    Expired</th>
-                  <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                    <FontAwesomeIcon icon={faDownload} className="mr-1 text-zinc-500 dark:text-zinc-400 hidden sm:inline" />
-                    Downloads</th>
-                  <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                    <FontAwesomeIcon icon={faFile} className="mr-1 text-zinc-500 dark:text-zinc-400 hidden sm:inline" />
-                    Files</th>
-                  <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                    <FontAwesomeIcon icon={faClock} className="mr-1 text-zinc-500 dark:text-zinc-400 hidden sm:inline" />
-                    Last Upload</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u, index) => (
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b border-zinc-200 dark:border-zinc-700 w-full">
+                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                  {/* not displayed on small screens */}
+                  <FontAwesomeIcon icon={faEnvelope} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Email</th>
+                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                  <FontAwesomeIcon icon={faUser} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Name</th>
+                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                  <FontAwesomeIcon icon={faShieldAlt} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Status</th>
+                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                  <FontAwesomeIcon icon={faClock} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Created</th>
+                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                  <FontAwesomeIcon icon={faHdd} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Storage</th>
+                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                  <FontAwesomeIcon icon={faTrash} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Expired</th>
+                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                  <FontAwesomeIcon icon={faDownload} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Downloads</th>
+                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                  <FontAwesomeIcon icon={faFile} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Files</th>
+                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                  <FontAwesomeIcon icon={faClock} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Last Upload</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                new Array(6).fill(0).map((_, index) => (
+                  <tr key={index} className={`border-b border-zinc-200 dark:border-zinc-700 animate-pulse ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'}`}>
+                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4"></div></td>
+                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-2/3"></div></td>
+                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/2"></div></td>
+                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3"></div></td>
+                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-2/5"></div></td>
+                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/4"></div></td>
+                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3"></div></td>
+                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/4"></div></td>
+                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3"></div></td>
+                  </tr>
+                ))
+              ) : users.length > 0 && (
+                users.map((u, index) => (
                   <tr key={u.id} className={`border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'}`}>
                     <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs">{u.email}</td>
                     <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs">{u.name || '-'}</td>
@@ -182,15 +309,16 @@ const Admin = () => {
                     <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm">{u.activeFiles}/{u.totalFiles}</td>
                     <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm">{formatDate(u.lastUploadAt)}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : !loading ? (
-          <p className="text-center text-zinc-500 dark:text-zinc-400">No users found</p>
-        ) : (
-          <p className="text-center text-zinc-500 dark:text-zinc-400">Loading...</p>
-        )}
+                ))
+              )}
+              {!loading && users.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-2 sm:px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">No users found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
   )
