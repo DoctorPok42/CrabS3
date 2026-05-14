@@ -67,7 +67,7 @@ const Menu = () => {
                   className="absolute top-full right-0 mt-2 bg-white dark:bg-zinc-700 rounded-lg shadow-lg shadow-zinc-300 dark:shadow-zinc-900 border border-zinc-200 dark:border-zinc-600 py-2 min-w-max"
                 >
                   <div className="px-4 py-2 flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-600">
-                    <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex flex-col">
@@ -75,7 +75,7 @@ const Menu = () => {
                       <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{user.name}</span>
                     </div>
                   </div>
-                  {globalThis.location.pathname !== '/' && (
+                  {(globalThis.location.pathname !== '/' && globalThis.location.pathname !== '/secret') && (
                     <Link
                       href="/"
                       className="block px-4 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-600 transition"

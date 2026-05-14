@@ -140,6 +140,37 @@ const DashboardPage = () => {
     }
   }
 
+  const handleDeleteFile = async (fileId: string, folderId: string) => {
+    if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId, folderId })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Error deleting file')
+      }
+
+      setDashboardData(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          files: prev.files.filter(file => file.id !== fileId)
+        }
+      })
+      setProfileMessage({ type: 'success', text: 'File deleted successfully' })
+    } catch (error) {
+      console.error('Error deleting file:', error)
+      setProfileMessage({ type: 'error', text: 'Error deleting file' })
+    }
+  }
+
   return (
     <main className="flex flex-col w-full max-w-7xl items-center px-4 sm:px-16 pt-10">
       <div className="w-full mb-8 flex flex-col items-center">
@@ -284,7 +315,13 @@ const DashboardPage = () => {
                     </div>
                   )}
 
-                  <div className='flex gap-2 pt-2 flex-wrap justify-end'>
+                  <div className='flex gap-2 pt-2 flex-wrap justify-between'>
+                    <button
+                      onClick={() => handleDeleteFile(file.id, file.folder_id!)}
+                      className='bg-zinc-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer py-2 px-4 rounded-lg transition'
+                    >
+                      Delete
+                    </button>
                     <button
                       onClick={() => {
                         const link = `${globalThis.location.origin}/file/${file.folder_id}`
