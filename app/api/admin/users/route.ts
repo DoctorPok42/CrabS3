@@ -24,13 +24,18 @@ export async function GET() {
         name: true,
         isAdmin: true,
         createdAt: true,
+        quota: true,
         files: {
           select: {
             size: true,
             expires_at: true,
             download_count: true,
             max_downloads: true,
-            uploaded_at: true,
+          }
+        },
+        secrets: {
+          select: {
+            id: true,
           }
         }
       },
@@ -40,12 +45,15 @@ export async function GET() {
       name: string;
       isAdmin: boolean;
       createdAt: Date;
+      quota: number;
       files: {
         size: number;
         expires_at: Date;
         download_count: number;
         max_downloads: number | null;
-        uploaded_at: Date;
+      }[],
+      secrets: {
+        id: string;
       }[]
     }[];
 
@@ -60,33 +68,18 @@ export async function GET() {
         return isNotExpired && hasDownloadsAvailable;
       });
 
-      const expiredFiles = user.files.filter((file) => {
-        const isExpiredByDate = file.expires_at && new Date(file.expires_at) <= now;
-        const maxDownloadsReached = file.max_downloads !== null && file.download_count >= file.max_downloads;
-
-        return isExpiredByDate || maxDownloadsReached;
-      });
-
       const totalSize = activeFiles.reduce((sum, file) => sum + Number(file.size), 0);
-      const expiredStorageSize = expiredFiles.reduce((sum, file) => sum + Number(file.size), 0);
-      const totalDownloads = user.files.reduce((sum, file) => sum + file.download_count, 0);
-
-      const lastUploadAt = user.files.length > 0
-        ? new Date(Math.max(...user.files.map(f => new Date(f.uploaded_at).getTime())))
-        : null;
 
       return {
         id: user.id,
         email: user.email,
         name: user.name,
+        quota: JSON.parse(user.quota as unknown as string) || 0,
         isAdmin: user.isAdmin,
-        createdAt: user.createdAt,
         totalSize,
         activeFiles: activeFiles.length,
         totalFiles: user.files.length,
-        totalDownloads,
-        lastUploadAt,
-        expiredStorageSize,
+        totalSecrets: user.secrets.length,
         status: "active",
       };
     });
@@ -105,13 +98,11 @@ export async function GET() {
       email: invitation.email,
       name: null,
       isAdmin: false,
-      createdAt: invitation.createdAt,
       totalSize: 0,
       activeFiles: 0,
       totalFiles: 0,
-      totalDownloads: 0,
-      lastUploadAt: null,
-      expiredStorageSize: 0,
+      totalSecrets: 0,
+      quota: 0,
       status: "pending",
     }));
 

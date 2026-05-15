@@ -18,7 +18,55 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const existingFile = await prisma.files.findFirst({
+      where: { id: fileId, user_id: session.userId },
+    });
+
+    if (!existingFile) {
+      return Response.json({ error: "File not found or unauthorized" }, { status: 404 });
+    }
+
     const sortedParts = [...parts].sort((a, b) => a.PartNumber - b.PartNumber);
+
+    const user = await prisma.users.findUnique({
+      where: { id: session.userId },
+      select: { quota: true, id: true },
+    });
+    if (!user) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userFiles = await prisma.files.aggregate({
+      where: { user_id: session.userId },
+      _sum: { size: true },
+    });
+
+    const currentUsage = userFiles._sum.size || BigInt(0);
+    const totalUsage = currentUsage + BigInt(metadata.size);
+
+    if (user.quota !== BigInt(-1) && totalUsage > user.quota) {
+      const quotaGB = Number(user.quota) / (1024 * 1024 * 1024);
+      const usedGB = Number(currentUsage) / (1024 * 1024 * 1024);
+      const fileGB = Number(BigInt(metadata.size)) / (1024 * 1024 * 1024);
+
+      await s3Hot.send(new AbortMultipartUploadCommand({
+        Bucket: HOT_BUCKET,
+        Key: folderId + "/" + fileId,
+        UploadId: uploadId,
+      }));
+
+      await prisma.files.delete({
+        where: { id: fileId },
+      }).catch(console.error);
+
+      return Response.json(
+        {
+          error: `Exceeded quota. You have used ${usedGB.toFixed(2)} GB / ${quotaGB.toFixed(2)} GB. This file is ${fileGB.toFixed(2)} GB.`,
+        },
+        { status: 413 }
+      );
+    }
+
 
     response = await s3Hot.send(
       new CompleteMultipartUploadCommand({

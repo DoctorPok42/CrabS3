@@ -101,4 +101,5 @@ model users {
   invitesSent invitation[] @relation("InvitedBy")
   sessions    session[]
   isAdmin     Boolean      @default(false)
+  quota       BigInt       @default(10737418240) // 10 GB
 }

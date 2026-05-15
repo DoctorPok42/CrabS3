@@ -61,11 +61,15 @@ export function useMultipartUpload() {
         headers: {
           "X-Filename": filename,
           "X-Folder-Id": folderId,
+          "X-File-Size": file.size.toString(),
           "Content-Type": file.type || "application/octet-stream",
         },
       });
 
-      if (!startRes.ok) throw new Error("Failed to start upload");
+      if (!startRes.ok) {
+        const errorData = await startRes.json();
+        throw new Error(errorData.error || "Failed to start upload");
+      }
       ({ fileId, uploadId } = await startRes.json());
 
       uploads.set(fileId!, 0);

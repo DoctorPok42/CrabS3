@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN     "quota" BIGINT NOT NULL DEFAULT 10737418240;

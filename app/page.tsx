@@ -29,7 +29,7 @@ export default function Home() {
   } | null>(null)
   const uploadResultsRef = useRef<number>(0)
 
-  const { upload, progress, uploading, reset } = useMultipartUpload();
+  const { upload, progress, uploading, reset, error } = useMultipartUpload();
 
   useEffect(() => {
     if (!uploading && uploadResults > 0) {
@@ -68,6 +68,15 @@ export default function Home() {
       }
     }
   }, [uploading, uploadResults])
+
+  useEffect(() => {
+    if (error) {
+      setFolderId("")
+      setUploadResults(0)
+      uploadResultsRef.current = 0
+      setStatus({ message: error || "An error occurred during upload.", type: "error", data: null, fileId: undefined })
+    }
+  }, [error])
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (uploading) return;
@@ -129,22 +138,13 @@ export default function Home() {
     }
   }
 
-  useEffect(() => {
-    if (status?.type === 'error') {
-      const timer = setTimeout(() => {
-        setStatus(null)
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [status?.type])
-
   return (
     <main className={`flex flex-col ${fileMeta.length > 0 ? 'pt-10 pb-2' : 'my-auto justify-center'} w-full max-w-7xl items-center px-16`}>
       {(status || uploading) && (
         <PopupStatus message={status?.message || "Uploading..."}
           type={status?.type || "info"}
-          data={status?.data || (!uploading && folderId ? `${globalThis.location.origin}/file/${folderId}` : undefined)}
-          fileId={status?.fileId || (uploading ? folderId : undefined)}
+          data={status?.type === "error" ? undefined : (status?.data || (!uploading && folderId ? `${globalThis.location.origin}/file/${folderId}` : undefined))}
+          fileId={status?.type === "error" ? undefined : (status?.fileId || (uploading ? folderId : undefined))}
           uploading={uploading}
           fileMeta={fileMeta}
           progress={progress}
