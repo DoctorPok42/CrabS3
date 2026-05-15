@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma"
 import { COLD_BUCKET, HOT_BUCKET, s3Cold, s3Hot } from "@/services/s3.service"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
+import { getSession } from "@/lib/auth"
 
 export async function DELETE(request: Request) {
   try {
@@ -10,10 +11,16 @@ export async function DELETE(request: Request) {
       return new Response(JSON.stringify({ error: 'Missing folderId or fileId' }), { status: 400 })
     }
 
+    const session = await getSession()
+    if (!session) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+    }
+
     const file = await prisma.files.findFirst({
       where: {
         id: fileId,
-        folder_id: folderId
+        folder_id: folderId,
+        user_id: session.userId,
       }
     })
     if (!file) {

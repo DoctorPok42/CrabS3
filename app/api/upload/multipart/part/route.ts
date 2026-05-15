@@ -1,11 +1,18 @@
 import { s3Hot, HOT_BUCKET } from "@/services/s3.service";
 import { UploadPartCommand } from "@aws-sdk/client-s3";
+import { getSession } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const fileId = request.headers.get("X-File-Id");
     const folderId = request.headers.get("X-Folder-Id");
     const uploadId = request.headers.get("X-Upload-Id");
@@ -14,6 +21,14 @@ export async function POST(request: Request) {
 
     if (!fileId || !folderId || !uploadId || !partNumber) {
       return Response.json({ error: "Missing required headers" }, { status: 400 });
+    }
+
+    const file = await prisma.files.findFirst({
+      where: { id: fileId, user_id: session.userId },
+    });
+
+    if (!file) {
+      return Response.json({ error: "File not found or unauthorized" }, { status: 404 });
     }
 
     if (!request.body) {

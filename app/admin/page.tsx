@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faFile, faEnvelope, faUser, faHdd, faDownload, faClock, faTrash, faShieldAlt, faShare, faDatabase, faLock, faRulerVertical } from "@fortawesome/free-solid-svg-icons"
+import { faFile, faEnvelope, faUser, faHdd, faDownload, faClock, faTrash, faShieldAlt, faShare, faDatabase, faLock, faRulerVertical, faShield } from "@fortawesome/free-solid-svg-icons"
 import { StorageMetricCard } from "@/components/StorageMetricCard"
 
 interface User {
@@ -10,13 +10,11 @@ interface User {
   email: string
   name: string | null
   isAdmin: boolean
-  createdAt: string
   totalSize: number
   activeFiles: number
   totalFiles: number
-  totalDownloads: number
-  lastUploadAt: string | null
-  expiredStorageSize: number
+  totalSecrets: number
+  quota: number
   status: "active" | "pending"
 }
 
@@ -82,12 +80,6 @@ const Admin = () => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-  }
-
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return '-'
-    const date = new Date(dateString)
-    return date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'numeric', day: 'numeric' })
   }
 
   const sendInvite = async () => {
@@ -166,11 +158,11 @@ const Admin = () => {
               subtitle="All time"
             />
             <StorageMetricCard
-              title="Files Protected"
-              value={stats.filesWithPassword}
-              icon={faShieldAlt}
+              title="Total Users"
+              value={stats.totalUsers}
+              icon={faUser}
               color="purple"
-              subtitle="With password"
+              subtitle={`${stats.usersWithFiles} with files`}
             />
             <StorageMetricCard
               title="Total Files"
@@ -180,11 +172,11 @@ const Admin = () => {
               subtitle={`${stats.activeFiles} active`}
             />
             <StorageMetricCard
-              title="Total Users"
-              value={stats.totalUsers}
-              icon={faUser}
+              title="Files Protected"
+              value={stats.filesWithPassword}
+              icon={faShieldAlt}
               color="green"
-              subtitle={`${stats.usersWithFiles} with files`}
+              subtitle="With password"
             />
             <StorageMetricCard
               title="Secrets Shared"
@@ -228,7 +220,7 @@ const Admin = () => {
         </div>
       </div>
 
-      <div className="w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+      <div className="w-250 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
         <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Users</h2>
 
         <div className="overflow-x-auto w-full">
@@ -236,7 +228,6 @@ const Admin = () => {
             <thead>
               <tr className="border-b border-zinc-200 dark:border-zinc-700 w-full">
                 <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                  {/* not displayed on small screens */}
                   <FontAwesomeIcon icon={faEnvelope} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
                   Email</th>
                 <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
@@ -246,23 +237,14 @@ const Admin = () => {
                   <FontAwesomeIcon icon={faShieldAlt} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
                   Status</th>
                 <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                  <FontAwesomeIcon icon={faClock} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
-                  Created</th>
-                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                  <FontAwesomeIcon icon={faHdd} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
-                  Storage</th>
-                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                  <FontAwesomeIcon icon={faTrash} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
-                  Expired</th>
-                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                  <FontAwesomeIcon icon={faDownload} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
-                  Downloads</th>
-                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
                   <FontAwesomeIcon icon={faFile} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
                   Files</th>
                 <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
-                  <FontAwesomeIcon icon={faClock} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
-                  Last Upload</th>
+                  <FontAwesomeIcon icon={faShield} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Secrets</th>
+                <th className="text-left px-2 sm:px-4 py-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                  <FontAwesomeIcon icon={faHdd} className="mr-1 text-zinc-500 dark:text-zinc-400 flex sm:hidden w-4" />
+                  Storage</th>
               </tr>
             </thead>
             <tbody>
@@ -275,14 +257,15 @@ const Admin = () => {
                     <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3"></div></td>
                     <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-2/5"></div></td>
                     <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/4"></div></td>
-                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3"></div></td>
-                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/4"></div></td>
-                    <td className="px-2 sm:px-4 py-3"><div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3"></div></td>
                   </tr>
                 ))
               ) : users.length > 0 && (
                 users.map((u, index) => (
-                  <tr key={u.id} className={`border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'}`}>
+                  <tr
+                    key={u.id}
+                    onClick={() => globalThis.location.href = `/admin/users/${u.id}`}
+                    className={`border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 cursor-pointer ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'}`}
+                  >
                     <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs">{u.email}</td>
                     <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs">{u.name || '-'}</td>
                     <td className="px-2 sm:px-4 py-3">
@@ -302,12 +285,9 @@ const Admin = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm">{formatDate(u.createdAt)}</td>
-                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 font-semibold text-xs sm:text-sm">{formatBytes(u.totalSize)}</td>
-                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm">{formatBytes(u.expiredStorageSize)}</td>
-                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm">{u.totalDownloads}</td>
                     <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm">{u.activeFiles}/{u.totalFiles}</td>
-                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm">{formatDate(u.lastUploadAt)}</td>
+                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm">{u.totalSecrets || 0}</td>
+                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 font-semibold text-xs sm:text-sm">{formatBytes(u.totalSize) + " / " + formatBytes(u.quota)}</td>
                   </tr>
                 ))
               )}
