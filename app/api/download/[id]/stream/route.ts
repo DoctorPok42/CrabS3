@@ -3,6 +3,11 @@ import { DeleteObjectsCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { sendDownloadNotificationEmail } from "@/services/mail.service";
+import { ZipDeflate, Zip } from "fflate";
+import { PassThrough, Readable } from "node:stream";
+import os from "node:os";
+
+const ARCHIVE_TYPE = os.platform() === "win32" ? "zip" : "tar";
 
 const getFileData = async (folderId: string, fileId: string) => {
   const key = `${folderId}/${fileId}`;
@@ -44,7 +49,121 @@ export async function GET(
     const password = searchParams.get("password") || ""
     const folderId = (await params).id
     const fileId = searchParams.get("fileId")
+    const allFiles = searchParams.get("allFiles") === "true"
 
+    // Multiple files as ZIP
+    if (allFiles) {
+      try {
+        const files = await prisma.files.findMany({
+          where: { folder_id: folderId },
+          select: { id: true, folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true },
+        });
+
+        if (files.length === 0) {
+          return Response.json({ error: "No files found" }, { status: 404 });
+        }
+
+        const hasPassword = files.some(f => f.password_hash);
+        if (hasPassword) {
+          if (!password) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+          }
+
+          let isPasswordValid = false;
+          for (const file of files) {
+            if (file.password_hash) {
+              isPasswordValid = await bcrypt.compare(password, file.password_hash);
+              if (isPasswordValid) break;
+            }
+          }
+
+          if (!isPasswordValid) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+          }
+        }
+
+        const passThrough = new PassThrough();
+        const webStream = Readable.toWeb(passThrough) as ReadableStream<Uint8Array>;
+
+        const response = new Response(webStream, {
+          headers: {
+            "Content-Type": `application/${ARCHIVE_TYPE}`,
+            "Content-Disposition": `attachment; filename="${folderId}.${ARCHIVE_TYPE}"`,
+          },
+        });
+
+        (async () => {
+          const zip = new Zip((err, data, final) => {
+            if (err) {
+              passThrough.destroy(err);
+              return;
+            }
+            passThrough.write(data);
+            if (final) passThrough.end();
+          });
+
+          for (const file of files) {
+            try {
+              const fileData = await getFileData(folderId, file.id);
+              if (fileData?.Body) {
+                const deflate = new ZipDeflate(file.filename, { level: 9 });
+                zip.add(deflate);
+
+                const nodeStream = Readable.fromWeb(
+                  await fileData.Body.transformToWebStream() as any
+                );
+
+                await new Promise<void>((resolve, reject) => {
+                  nodeStream.on("data", (chunk: Buffer) => {
+                    deflate.push(chunk);
+                  });
+                  nodeStream.on("end", () => {
+                    deflate.push(new Uint8Array(0), true);
+                    resolve();
+                  });
+                  nodeStream.on("error", reject);
+                });
+              }
+            } catch (err) {
+              console.error(`Error adding ${file.filename}:`, err);
+              passThrough.destroy(err as Error);
+              return;
+            }
+          }
+
+          zip.end();
+
+          for (const file of files) {
+            await prisma.files.update({
+              where: { id: file.id },
+              data: { download_count: { increment: 1 } },
+            }).catch(console.error);
+
+            if (file.max_downloads && file.max_downloads - 1 <= 0) {
+              await s3Hot.send(new DeleteObjectsCommand({
+                Bucket: HOT_BUCKET,
+                Delete: { Objects: [{ Key: `${folderId}/${file.id}` }] },
+              })).catch(() => { });
+            }
+
+            if (file.email_sender) {
+              await sendDownloadNotificationEmail(file.email_sender, folderId).catch(console.error);
+            }
+          }
+        })();
+
+        return response;
+      } catch (error) {
+        console.error(error);
+        return Response.json(
+          { error: error instanceof Error ? error.message : "Internal Server Error" },
+          { status: 500 }
+        );
+      }
+    }
+
+
+    // Single file
     if (!fileId) {
       return Response.json({ error: "File ID required" }, { status: 400 });
     }

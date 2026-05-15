@@ -1,6 +1,6 @@
 "use client"
 
-import { faCloudArrowDown, faKey } from "@fortawesome/free-solid-svg-icons"
+import { faCloudArrowDown, faKey, faShieldAlt } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -32,7 +32,16 @@ export default function Id() {
       if (fileInfo?.files[0]?.hasPassword && password)
         setNotif({ type: "info", message: "Verifying password..." })
 
-      const validationResponse = await fetch(`/api/download/${id}${fileId ? `?fileId=${fileId}` : ''}`, {
+      let urlParams = ""
+      if (fileId) {
+        urlParams = `?fileId=${fileId}`
+      } else if (fileInfo && fileInfo.files.length > 1) {
+        urlParams = "?allFiles=true"
+      } else if (fileInfo?.files.length === 1) {
+        urlParams = `?fileId=${fileInfo.files[0].id}`
+      }
+
+      const validationResponse = await fetch(`/api/download/${id}${urlParams}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -53,15 +62,16 @@ export default function Id() {
       const interval = setInterval(() => {
         count += 1
         const fileCount = fileId ? 1 : fileInfo?.files.length || 0
+        const isZip = !fileId && fileInfo && fileInfo.files.length > 1
         setNotif({
           type: "info",
-          message: `Downloading ${fileCount} file${fileCount > 1 ? "s" : ""}` + ".".repeat(count % 4)
+          message: `Downloading ${isZip ? "archive" : fileCount > 1 ? `${fileCount} files` : "file"}` + ".".repeat(count % 4)
         })
       }, 500)
 
-      const triggerDownload = (fId: string, filename: string) => {
+      const triggerDownload = (fId: string, filename: string, isZip = false) => {
         const link = document.createElement('a')
-        link.href = `/api/download/${id}/stream?password=${encodeURIComponent(password)}&fileId=${fId}`
+        link.href = `/api/download/${id}/stream?password=${encodeURIComponent(password)}${isZip ? "&allFiles=true" : `&fileId=${fId}`}`
         link.setAttribute('download', filename)
         link.style.display = 'none'
         document.body.appendChild(link)
@@ -74,14 +84,16 @@ export default function Id() {
         if (file) {
           triggerDownload(fileId, file.filename)
         }
-      } else {
-        fileInfo?.files.forEach(file => {
-          triggerDownload(file.id, file.filename)
-        })
+      } else if (fileInfo && fileInfo.files.length > 1) {
+        triggerDownload("", "files.zip", true)
+      } else if (fileInfo?.files.length === 1) {
+        const file = fileInfo.files[0]
+        triggerDownload(file.id, file.filename)
       }
 
       clearInterval(interval)
-      setNotif({ type: "success", message: `File${(fileId && fileInfo?.files.length === 1) ? '' : 's'} downloaded successfully!` })
+      const isZip = !fileId && fileInfo && fileInfo.files.length > 1
+      setNotif({ type: "success", message: `${isZip ? "Archive" : "File"}${(fileId && fileInfo?.files.length === 1) ? '' : 's'} will start downloading shortly.` })
       setTimeout(() => setNotif(null), 3000)
     } catch (err) {
       console.error('Error downloading file:', err)
@@ -115,8 +127,8 @@ export default function Id() {
   }, [id, setFileInfo, setIsLoading])
 
   return (
-    <main className="my-auto">
-      <h1 className="text-2xl font-bold text-center">
+    <main className="my-auto w-full max-w-7xl flex flex-col items-center md:px-16 px-6">
+      <h1 className="text-2xl mt-10 font-bold text-center">
         Download File
       </h1>
 
@@ -127,61 +139,110 @@ export default function Id() {
       ) : null}
 
       {fileInfo?.exists && (
-        <div className="lg:w-150 w-full mt-4 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-zinc-50 dark:bg-zinc-900 gap-4">
-          <div className="flex flex-col items-start gap-2">
-            {fileInfo.files.map((file) => (
-              <div className="w-full flex gap-4 items-center justify-between" key={file.id}>
-                <div className="bg-blue-100 p-3 rounded-lg">
-                  <FontAwesomeIcon size="2x" icon={faCloudArrowDown} className="text-blue-400" />
-                </div>
-                <div className="flex flex-col gap-1 w-full">
-                  <span className="font-semibold truncate">{file.filename}</span>
-                  <span className="text-xs">
-                    <span>{(file.size > 1024 * 1024 * 1024) ? (file.size / (1024 * 1024 * 1024)).toFixed(2) + " GB" : (file.size > 1024 * 1024) ? (file.size / (1024 * 1024)).toFixed(2) + " MB" : (file.size / 1024).toFixed(2) + " KB"}</span>
-                    {file.maxDownloads !== null &&
-                      <span> | {file.downloadCount} / {file.maxDownloads} downloads</span>
-                    }
-                  </span>
-                </div>
-
-                {fileInfo.files.length > 1 && <div>
-                  <button
-                    onClick={() => downloadFile(file.id)}
-                    disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}
-                    className="bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg cursor-pointer transition"
-                  >
-                    Download
-                  </button>
-                </div>}
-              </div>
-            ))}
-            {fileInfo.files.some((f) => f.hasPassword) && (
-              <div className="w-full flex flex-wrap items-center justify-between mt-2 gap-1">
-                <label htmlFor="password" className="font-semibold">This file is password protected.</label>
-                <div className='w-full inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-                  <FontAwesomeIcon icon={faKey} className='text-zinc-700 dark:text-[#d2d5da]' size='xs' />
-                  <input
-                    type="password"
-                    placeholder="Enter password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && downloadFile()}
-                    className="outline-none w-full"
-                  />
-                </div>
-              </div>
-            )}
+        <div className="w-full mt-4 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 gap-6">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Files Available</h2>
+            <div className="flex flex-wrap gap-4 items-center">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">{fileInfo.files.length} file{fileInfo.files.length > 1 ? 's' : ''} ready for download</p>
+              {fileInfo.files.some((f) => f.hasPassword) && (
+                <span className="inline-flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-semibold">
+                  <FontAwesomeIcon icon={faKey} size="xs" />
+                  Password Protected
+                </span>
+              )}
+              {fileInfo.files.some((f) => f.maxDownloads !== null) ? (
+                <span className="inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-semibold">
+                  {fileInfo.files[0].downloadCount} / {fileInfo.files[0].maxDownloads} downloads left
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-xs font-semibold">
+                  <FontAwesomeIcon icon={faShieldAlt} size="xs" />
+                  Unlimited Downloads
+                </span>
+              )}
+            </div>
           </div>
+
+          <div className="overflow-x-auto w-full max-h-90 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg">
+            <table className="w-full text-xs sm:text-sm">
+              <thead className="bg-zinc-100 dark:bg-zinc-800 sticky top-0">
+                <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                  <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">
+                    <FontAwesomeIcon icon={faCloudArrowDown} className="mr-2 text-zinc-500 dark:text-zinc-400" />
+                    Filename
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Size</th>
+                  <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Action</th>
+                </tr>
+              </thead>
+              <tbody className="shadow-inner shadow-zinc-100 dark:shadow-zinc-700">
+                {fileInfo.files.map((file, index) => (
+                  <tr
+                    key={file.id}
+                    className={`border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'
+                      }`}
+                  >
+                    <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200 font-medium truncate max-w-xs" title={file.filename}>
+                      {file.filename}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200">
+                      {file.size > 1024 * 1024 * 1024
+                        ? (file.size / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+                        : file.size > 1024 * 1024
+                          ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+                          : (file.size / 1024).toFixed(2) + ' KB'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {fileInfo.files.length > 1 && (
+                        <button
+                          onClick={() => downloadFile(file.id)}
+                          disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}
+                          className="text-blue-500 hover:text-blue-700 hover:underline disabled:text-gray-400 disabled:cursor-not-allowed font-medium cursor-pointer transition"
+                        >
+                          Download
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {fileInfo.files.some((f) => f.hasPassword) && (
+            <div className="flex flex-col gap-3">
+              <label className="font-semibold text-zinc-700 dark:text-zinc-300">This file is password protected.</label>
+              <div className="inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-3 text-zinc-700! dark:text-[#d2d5da]! transition duration-300 flex items-center gap-2">
+                <FontAwesomeIcon icon={faKey} className="text-zinc-700 dark:text-[#d2d5da]" size="xs" />
+                <input
+                  type="password"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && downloadFile()}
+                  className="outline-none w-full bg-transparent"
+                />
+              </div>
+            </div>
+          )}
 
           <button
             onClick={() => downloadFile()}
             disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}
-            className="bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg cursor-pointer transition"
+            className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg cursor-pointer transition"
           >
-            Download {fileInfo.files.length > 1 ? "Files" : "File"}
+            Download {fileInfo.files.length > 1 ? 'All Files' : 'File'}
           </button>
+
           {notif && (
-            <div className={`p-4 rounded-lg ${notif.type === "error" ? "bg-red-100 text-red-700" : notif.type === "success" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
+            <div
+              className={`p-4 rounded-lg ${notif.type === 'error'
+                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                : notif.type === 'success'
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                }`}
+            >
               {notif.message}
             </div>
           )}
