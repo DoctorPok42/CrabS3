@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faEnvelope, faUser, faLock } from "@fortawesome/free-solid-svg-icons"
+import { faEnvelope, faUser, faLock, faShieldAlt, faClock, faCertificate, faKey } from "@fortawesome/free-solid-svg-icons"
 
 const DashboardPage = () => {
   const [user, setUser] = useState<{ id: string; email: string, name: string, isAdmin: boolean } | null>(null)
@@ -266,101 +266,172 @@ const DashboardPage = () => {
       </div>
 
       {(dashboardData && dashboardData.files.length > 0) ? (
-        <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
-          <details open>
-            <summary className="text-lg font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer">Your File{dashboardData.files.length > 1 ? 's' : ''} ({dashboardData.files.length})</summary>
+        <div className="w-full flex flex-col gap-8 max-w-480">
+          {Object.entries(
+            dashboardData.files.reduce((acc, file) => {
+              const folderId = file.folder_id || 'unknown'
+              if (!acc[folderId]) acc[folderId] = []
+              acc[folderId].push(file)
+              return acc
+            }, {} as Record<string, typeof dashboardData.files>)
+          ).map(([folderId, folderFiles]) => {
+            const isFileExpired = (file: typeof folderFiles[0]) => {
+              const isDateExpired = new Date(file.expires_at) < new Date()
+              const isDownloadLimitReached = file.max_downloads !== null && file.download_count >= file.max_downloads
+              return isDateExpired || isDownloadLimitReached
+            }
 
-            <div className='space-y-3 mt-4'>
-              {dashboardData.files.map(file => (
-                <div key={file.id} className='flex flex-col gap-3 bg-zinc-50 dark:bg-zinc-800 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-blue-500 dark:hover:border-blue-400 transition'>
-                  <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3'>
-                    <div className='flex-1 min-w-0'>
-                      <p className='text-lg font-semibold text-zinc-700 dark:text-zinc-300 wrap-break-word'>{file.filename}</p>
-                      <p className='text-sm text-zinc-500 dark:text-zinc-400 mt-1'>{formatBytes(file.size)}</p>
-                    </div>
-                  </div>
+            const isFolderExpired = folderFiles.every(file => isFileExpired(file))
+            const hasPassword = folderFiles[0]?.password_hash !== null
+            const maxDownloads = folderFiles[0]?.max_downloads
+            const downloadCount = folderFiles[0]?.download_count
 
-                  <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm'>
-                    <div className='flex flex-col'>
-                      <span className='text-zinc-500 dark:text-zinc-400 font-semibold'>Uploaded</span>
-                      <span className='text-zinc-700 dark:text-zinc-300'>{new Date(file.uploaded_at).toLocaleDateString()}</span>
-                      <span className='text-zinc-600 dark:text-zinc-400 text-xs'>{new Date(file.uploaded_at).toLocaleTimeString()}</span>
-                    </div>
-
-                    <div className='flex flex-col'>
-                      <span className='text-zinc-500 dark:text-zinc-400 font-semibold'>Expires</span>
-                      <span className='text-zinc-700 dark:text-zinc-300'>{new Date(file.expires_at).toLocaleDateString()}</span>
-                      <span className='text-zinc-600 dark:text-zinc-400 text-xs'>{new Date(file.expires_at).toLocaleTimeString()}</span>
-                    </div>
-
-                    <div className='flex flex-col'>
-                      <span className='text-zinc-500 dark:text-zinc-400 font-semibold'>Downloads</span>
-                      <span className='text-zinc-700 dark:text-zinc-300'>{file.download_count} {file.max_downloads ? `/ ${file.max_downloads}` : '/ Unlimited'}</span>
-                    </div>
-
-                    <div className='flex flex-col'>
-                      <span className='text-zinc-500 dark:text-zinc-400 font-semibold'>Protection</span>
-                      <span className='text-zinc-700 dark:text-zinc-300'>{file.password_hash ? '🔒 Password' : '🔓 No password'}</span>
-                    </div>
-                  </div>
-
-                  {(file.email_sender || file.email_recipient) && (
-                    <div className='border-t border-zinc-200 dark:border-zinc-700 pt-3 text-sm'>
-                      {file.email_sender && (
-                        <p className='text-zinc-600 dark:text-zinc-400'><span className='font-semibold select-none mr-2'>Notify:</span>{file.email_sender}</p>
+            return (
+              <div key={folderId} className="w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+                <div className="flex flex-col gap-3 mb-6">
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Files & Settings</h3>
+                    <div className="flex flex-wrap gap-3 items-center">
+                      {hasPassword && (
+                        <span className="inline-flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-semibold">
+                          <FontAwesomeIcon icon={faKey} size="xs" />
+                          Password Protected
+                        </span>
                       )}
-                      {file.email_recipient && (
-                        <p className='text-zinc-600 dark:text-zinc-400'><span className='font-semibold select-none mr-2'>Recipient:</span>{file.email_recipient}</p>
+                      {maxDownloads !== null ? (
+                        <span className="inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-semibold">
+                          <FontAwesomeIcon icon={faShieldAlt} size="xs" />
+                          {downloadCount} / {maxDownloads} downloads left
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-xs font-semibold">
+                          <FontAwesomeIcon icon={faShieldAlt} size="xs" />
+                          Unlimited Downloads
+                        </span>
+                      )}
+                      {isFolderExpired ? (
+                        <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-3 py-1 rounded-full text-xs font-semibold">
+                          <FontAwesomeIcon icon={faClock} size="xs" />
+                          Expired
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-xs font-semibold">
+                          <FontAwesomeIcon icon={faCertificate} size="xs" />
+                          Valid
+                        </span>
                       )}
                     </div>
-                  )}
-
-                  <div className='flex gap-2 pt-2 flex-wrap justify-between'>
-                    <button
-                      onClick={() => handleDeleteFile(file.id, file.folder_id!)}
-                      className='bg-zinc-600 hover:bg-red-700 text-white text-sm font-semibold cursor-pointer py-2 px-4 rounded-lg transition'
-                    >
-                      Delete
-                    </button>
-                    <button
-                      onClick={() => {
-                        const link = `${globalThis.location.origin}/file/${file.folder_id}`
-                        navigator.clipboard.writeText(link).catch(() => {
-                          const textarea = document.createElement('textarea')
-                          textarea.value = link
-                          textarea.style.cssText = 'position:fixed;opacity:0'
-                          document.body.appendChild(textarea)
-                          textarea.select()
-                          document.execCommand('copy')
-                          document.body.removeChild(textarea)
-                        })
-                      }}
-                      className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-semibold cursor-pointer py-2 px-4 rounded-lg transition'
-                    >
-                      Copy Link
-                    </button>
-                    <Link
-                      href={`/file/${file.folder_id}`}
-                      target="_blank"
-                      className='bg-zinc-500 hover:bg-zinc-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition'
-                    >
-                      Download
-                    </Link>
                   </div>
                 </div>
-              ))}
-            </div>
-          </details>
+
+                <details open={!isFolderExpired} className="w-full cursor-pointer">
+                  <summary className="font-bold text-zinc-700 dark:text-zinc-300 mb-4">Manage Files</summary>
+                  <div className="flex flex-col gap-3 mb-6">
+                    <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Share Link</h3>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${globalThis.location.origin}/file/${folderId}`}
+                        className="flex-1 inputClass h-10 text-sm bg-[#fafafa] dark:bg-[#1c1d21] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-3 text-zinc-700! dark:text-[#d2d5da]! cursor-text"
+                      />
+                      {!isFolderExpired && (
+                        <>
+                          <button
+                            onClick={() => {
+                              const link = `${globalThis.location.origin}/file/${folderId}`
+                              navigator.clipboard.writeText(link).catch(() => {
+                                const textarea = document.createElement('textarea')
+                                textarea.value = link
+                                textarea.style.cssText = 'position:fixed;opacity:0'
+                                document.body.appendChild(textarea)
+                                textarea.select()
+                                document.execCommand('copy')
+                                document.body.removeChild(textarea)
+                              })
+                            }}
+                            className='bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition cursor-pointer'
+                          >
+                            Copy
+                          </button>
+                          <a
+                            href={`/file/${folderId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className='bg-zinc-500 hover:bg-zinc-700 text-white font-semibold py-2 px-4 rounded-lg transition cursor-pointer text-center'
+                          >
+                            Open
+                          </a></>)}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 mb-6">
+                    <h4 className="text-base font-bold text-zinc-700 dark:text-zinc-300">Files ({folderFiles.length})</h4>
+                  </div>
+
+                  <div className="overflow-x-auto w-full max-h-96 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                    <table className="w-full text-xs sm:text-sm">
+                      <thead className="bg-zinc-100 dark:bg-zinc-800 sticky top-0">
+                        <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                          <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Filename</th>
+                          <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Size</th>
+                          <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Uploaded</th>
+                          <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Expires</th>
+                          <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Downloads</th>
+                          {!isFolderExpired && <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Action</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {folderFiles.map((file, index) => (
+                          <tr
+                            key={file.id}
+                            className={`border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'
+                              }`}
+                          >
+                            <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200 font-medium truncate max-w-xs" title={file.filename}>
+                              {file.filename}
+                            </td>
+                            <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200 whitespace-nowrap">
+                              {formatBytes(file.size)}
+                            </td>
+                            <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200 whitespace-nowrap text-xs">
+                              {new Date(file.uploaded_at).toLocaleDateString('fr-FR')}
+                            </td>
+                            <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200 whitespace-nowrap text-xs">
+                              {new Date(file.expires_at).toLocaleDateString('fr-FR')}
+                            </td>
+                            <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200 whitespace-nowrap text-xs">
+                              {file.download_count} {file.max_downloads ? `/ ${file.max_downloads}` : '/ ∞'}
+                            </td>
+                            {!isFolderExpired && (
+                              <td className="px-4 py-3">
+                                <button
+                                  onClick={() => handleDeleteFile(file.id, folderId)}
+                                  className='text-red-500 hover:text-red-700 hover:underline font-medium cursor-pointer transition'
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              </div>
+            )
+          })}
         </div>
       ) : dashboardData ? (
-        <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-12 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300 text-center">
+        <div className="w-full max-w-[120rem] flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-12 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300 text-center">
           <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-4">You have not uploaded any files yet.</p>
           <Link href="/" className="inline-block bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition w-fit mx-auto">
             Start Uploading
           </Link>
         </div>
       ) : (
-        <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+        <div className="w-full max-w-[120rem] flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
           <p className="text-lg text-zinc-600 dark:text-zinc-400 text-center">Loading your files...</p>
         </div>
       )}

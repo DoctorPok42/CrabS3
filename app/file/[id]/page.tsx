@@ -152,6 +152,7 @@ export default function Id() {
               )}
               {fileInfo.files.some((f) => f.maxDownloads !== null) ? (
                 <span className="inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-semibold">
+                  <FontAwesomeIcon icon={faShieldAlt} size="xs" />
                   {fileInfo.files[0].downloadCount} / {fileInfo.files[0].maxDownloads} downloads left
                 </span>
               ) : (
