@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 
-interface PopupStatusProps {
+export interface PopupStatusProps {
   message: string
   data?: string
   type: "success" | "error" | "info"

@@ -287,7 +287,7 @@ const Admin = () => {
                     </td>
                     <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm">{u.activeFiles}/{u.totalFiles}</td>
                     <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs sm:text-sm">{u.totalSecrets || 0}</td>
-                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 font-semibold text-xs sm:text-sm">{formatBytes(u.totalSize) + " / " + formatBytes(u.quota)}</td>
+                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 font-semibold text-xs sm:text-sm">{formatBytes(u.totalSize) + " / " + (u.quota === -1 ? "Unlimited" : formatBytes(u.quota))}</td>
                   </tr>
                 ))
               )}

@@ -7,14 +7,17 @@ const Menu = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const [user, setUser] = useState<{ name: string, isAdmin: boolean } | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
 
   useEffect(() => {
     const fetchUser = async () => {
+      setLoading(true)
       const response = await fetch("/api/auth/me")
       if (response.ok) {
         const userData = await response.json()
         setUser(userData)
       }
+      setLoading(false)
     }
     fetchUser()
   }, [])
@@ -113,9 +116,9 @@ const Menu = () => {
                 </div>
               )}
             </>
-          ) : (
+          ) : loading ? (
             <span className="text-sm text-zinc-500 dark:text-zinc-400 animate-pulse">Loading...</span>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
