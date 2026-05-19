@@ -1,6 +1,6 @@
 "use client"
 
-import { faCloudArrowUp, faDashboard, faFile, faLock, faRectangleList } from "@fortawesome/free-solid-svg-icons";
+import { faCloudArrowUp, faDashboard, faFile, faLock, faRectangleList, faUserGear } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,12 +29,14 @@ const NavBar = () => {
     { name: "Upload", href: "/", icon: faCloudArrowUp },
     { name: "Secrets", href: "/secret", icon: faLock },
     { name: "Dashboard", href: "/dashboard", icon: faRectangleList },
-    { name: "My Files", href: "/my-files", icon: faFile },
+    { name: "Account", href: "/me", icon: faUserGear },
+    {},
+    { name: "Logs", href: "/logs", icon: faFile, adminOnly: true },
     { name: "Admin", href: "/admin", icon: faDashboard, adminOnly: true }
   ]
 
   return (
-    <nav className="fixed left-0 top-0 w-69 h-screen overflow-y-auto bg-white dark:bg-[#16171a] border-gray-200 dark:border-zinc-700 z-50 p-8 border-r">
+    <nav className="fixed left-0 top-0 w-69 h-screen lg:block hidden overflow-y-auto bg-white dark:bg-[#16171a] border-gray-200 dark:border-zinc-700 z-50 p-8 border-r">
       <div className="flex items-center gap-4">
         <Image src="/favicon.ico" alt="CrabS3 Logo" width={35} height={35} />
         <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">CrabS3</h1>
@@ -61,6 +63,7 @@ const NavBar = () => {
       <div className="flex flex-col mt-6 gap-2 text-md">
         {links.map((link) => {
           if (link.adminOnly && !user?.isAdmin) return null
+          if (!link.name) return <hr key="divider" className="my-3 mr-8 border-gray-200 dark:border-zinc-800" />
           return (
             <Link
               key={link.name}
