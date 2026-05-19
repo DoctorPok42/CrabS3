@@ -103,10 +103,11 @@ const Admin = () => {
   }
 
   return (
-    <main className="flex flex-col w-full max-w-[100em] gap-8 items-center px-4 sm:px-16 pt-10 mx-auto">
-      <div className="w-full flex flex-col items-center">
+    <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mx-auto">
+      <div className="w-full flex flex-col">
         <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 mb-2">Admin Panel</h1>
-        <p className="text-zinc-500 dark:text-zinc-400">Manage users and storage</p>
+        <p className="text-zinc-500 dark:text-zinc-400">Manage users and storage statistics for your CrabS3 instance.</p>
+        <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
       </div>
 
       <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900">
@@ -220,7 +221,7 @@ const Admin = () => {
         </div>
       </div>
 
-      <div className="w-250 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+      <div className="max-w-250 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
         <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Users</h2>
 
         <div className="overflow-x-auto w-full">

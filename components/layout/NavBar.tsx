@@ -1,6 +1,6 @@
 "use client"
 
-import { faCloudArrowUp, faDashboard, faFile, faLock, faRectangleList, faUserGear } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRightFromBracket, faBroadcastTower, faCloudArrowUp, faDashboard, faFile, faLock, faRectangleList, faUserGear } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,11 +29,20 @@ const NavBar = () => {
     { name: "Upload", href: "/", icon: faCloudArrowUp },
     { name: "Secrets", href: "/secret", icon: faLock },
     { name: "Dashboard", href: "/dashboard", icon: faRectangleList },
+    { name: "Communication", href: "/communication", icon: faBroadcastTower },
     { name: "Account", href: "/me", icon: faUserGear },
     {},
     { name: "Logs", href: "/logs", icon: faFile, adminOnly: true },
-    { name: "Admin", href: "/admin", icon: faDashboard, adminOnly: true }
+    { name: "Admin", href: "/admin", icon: faDashboard, adminOnly: true },
+    {
+      name: "Logout", href: "", icon: faArrowRightFromBracket, color: "text-red-800", onClick: async () => {
+        await fetch("/api/auth/logout", { method: "POST" })
+        window.location.href = "/auth/login"
+      }
+    },
   ]
+
+  if (pathname.split("/")[2] === "login" || pathname.split("/")[2] === "signup") return null
 
   return (
     <nav className="fixed left-0 top-0 w-69 h-screen lg:block hidden overflow-y-auto bg-white dark:bg-[#16171a] border-gray-200 dark:border-zinc-700 z-50 p-8 border-r">
@@ -67,10 +76,11 @@ const NavBar = () => {
           return (
             <Link
               key={link.name}
+              onClick={() => link.onClick?.()}
               href={link.href}
-              className={`text-gray-700 flex gap-4 items-center dark:text-gray-300 rounded-md px-3 group dark:hover:text-[#9f6afe] transition ${link.href === pathname ? "text-[#9f6afe]!" : ""}`}
+              className={`flex gap-4 items-center rounded-md px-3 group hover:text-[#9f6afe] transition ${link.href === pathname ? "text-[#9f6afe]! opacity-90!" : ""} ${link.color || "text-gray-700 dark:text-gray-300"}`}
             >
-              <FontAwesomeIcon icon={link.icon} className={` ${link.href === pathname ? "text-[#9f6afe]" : "text-[#444850]"} group-hover:text-[#9f6afe] w-3`} />
+              <FontAwesomeIcon icon={link.icon} className={` ${link.href === pathname ? "text-[#9f6afe] opacity-90!" : link.color || "text-[#444850]"} group-hover:text-[#9f6afe] w-3`} />
               {link.name}
             </Link>
           )

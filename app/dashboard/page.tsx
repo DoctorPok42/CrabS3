@@ -84,10 +84,11 @@ const DashboardPage = () => {
   }
 
   return (
-    <main className="flex flex-col w-full max-w-7xl items-center px-4 sm:px-16 pt-10">
-      <div className="w-full mb-8 flex flex-col items-center">
+    <main className="flex flex-col w-full max-w-8xl items-center px-4 sm:px-16 pt-10">
+      <div className="w-full mb-8 flex flex-col">
         <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 mb-2">Dashboard</h1>
-        <p className="text-zinc-500 dark:text-zinc-400">Manage your uploaded files</p>
+        <p className="text-zinc-500 dark:text-zinc-400">Manage your uploaded files, view statistics, and update your profile settings.</p>
+        <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
       </div>
 
       {(dashboardData && dashboardData.files.length > 0) ? (
@@ -112,7 +113,7 @@ const DashboardPage = () => {
             const downloadCount = folderFiles[0]?.download_count
 
             return (
-              <div key={folderId} className="w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+              <div key={folderId} className="flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
                 <div className="flex flex-col gap-3 mb-6">
                   <div className="flex flex-col gap-2">
                     <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Files & Settings</h3>
@@ -249,14 +250,14 @@ const DashboardPage = () => {
           })}
         </div>
       ) : dashboardData ? (
-        <div className="w-full max-w-[120rem] flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-12 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300 text-center">
+        <div className="w-full max-w-480 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-12 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300 text-center">
           <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-4">You have not uploaded any files yet.</p>
           <Link href="/" className="inline-block bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition w-fit mx-auto">
             Start Uploading
           </Link>
         </div>
       ) : (
-        <div className="w-full max-w-[120rem] flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+        <div className="w-full max-w-480 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
           <p className="text-lg text-zinc-600 dark:text-zinc-400 text-center">Loading your files...</p>
         </div>
       )}
