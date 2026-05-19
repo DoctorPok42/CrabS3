@@ -70,7 +70,7 @@ const NavBar = () => {
       </div>
 
       <div className="flex flex-col mt-6 gap-2 text-md">
-        {links.map((link) => {
+      {links.map((link) => {
           if (link.adminOnly && !user?.isAdmin) return null
           if (!link.name) return <hr key="divider" className="my-3 mr-8 border-gray-200 dark:border-zinc-800" />
           return (
