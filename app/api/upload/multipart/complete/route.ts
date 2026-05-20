@@ -7,13 +7,14 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { sendNotificationEmail, sendRecipientNotificationEmail } from "@/services/mail.service";
 import { getSession } from "@/lib/auth";
+import { sendAllActiveCommunications } from "@/lib/webhook";
 
 export async function POST(request: Request) {
   const { fileId, folderId, uploadId, parts, metadata } = await request.json();
   let response;
+  const session = await getSession();
 
   try {
-    const session = await getSession();
     if (!session) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -125,6 +126,22 @@ export async function POST(request: Request) {
       await sendNotificationEmail(metadata.emailSender, folderId);
     if (metadata.emailRecipient)
       await sendRecipientNotificationEmail(metadata.emailRecipient, folderId, metadata.emailSender, metadata.emailMessage);
+
+    await sendAllActiveCommunications(session.userId, {
+      content: "",
+      embeds: [
+        {
+          title: "File uploaded",
+          fields: [
+            { name: "Filename", value: metadata.filename, inline: true },
+            { name: "Size", value: `${(Number.parseInt(metadata.size) / (1024 * 1024)).toFixed(2)} MB`, inline: true },
+            { name: "Expires At", value: metadata.expireAfter ? new Date(Date.now() + Number.parseInt(metadata.expireAfter) * 24 * 60 * 60 * 1000).toLocaleString() : "Never", inline: true },
+            { name: "Max Downloads", value: metadata.maxDownloads ? metadata.maxDownloads : "Unlimited", inline: true },
+            { name: "Download Link", value: `${process.env.BASE_URL}/file/${folderId}`, inline: false }
+          ],
+        },
+      ],
+    })
   } catch (error) {
     console.error("Failed to send notification email:", error instanceof Error ? error.message : String(error));
   }
