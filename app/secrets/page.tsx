@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faClockRotateLeft, faEye, faKey } from "@fortawesome/free-solid-svg-icons"
-import { PopupStatus } from "@/components"
+import { Input, PopupStatus } from "@/components"
 
 const SecretPage = () => {
   const [secret, setSecret] = useState<string>("")
@@ -82,28 +82,24 @@ const SecretPage = () => {
             <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Options</h2>
 
             <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 grid-rows-auto">
-              <div className="flex flex-col gap-1 col-span-1 md:col-span-1 lg:col-span-2">
-                <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Max Seen Count</label>
-                <div className='inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-                  <FontAwesomeIcon icon={faEye} className='text-zinc-700 dark:text-[#d2d5da]' size='xs' />
-                  <input
-                    type="number"
-                    id="option1"
-                    name="option1"
-                    placeholder='e.g. 5'
-                    className="outline-none w-full"
-                    value={maxSeen}
-                    onChange={(e) => {
-                      const value = Number.parseInt(e.target.value, 10)
-                      if (!Number.isNaN(value) && value > 0) {
-                        setMaxSeen(value)
-                      } else {
-                        setMaxSeen(1)
-                      }
-                    }}
-                  />
-                </div>
-              </div>
+              <Input
+                label="Max Seen Count"
+                id="maxSeen"
+                type="number"
+                name="maxSeen"
+                placeholder="e.g. 5"
+                value={maxSeen}
+                onChange={(e) => {
+                  const value = Number.parseInt(e.target.value, 10)
+                  if (!Number.isNaN(value) && value > 0) {
+                    setMaxSeen(value)
+                  } else {
+                    setMaxSeen(1)
+                  }
+                }}
+                icon={faEye}
+              />
+
               <div className="flex flex-col gap-1 col-span-1 lg:col-span-2">
                 <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Expire after (days)</label>
                 <div className='inputClass group h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
@@ -124,21 +120,17 @@ const SecretPage = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1 col-span-1 md:col-span-1 lg:col-span-4">
-                <label htmlFor="password" className="text-zinc-700 dark:text-zinc-300">Password (optional)</label>
-                <div className='inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-                  <FontAwesomeIcon icon={faKey} className='text-zinc-700 dark:text-[#d2d5da]' size='xs' />
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder='Set a password to protect the file'
-                    className="outline-none w-full"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-              </div>
+              <Input
+                label="Password (optional)"
+                id="password"
+                type="password"
+                name="password"
+                placeholder='Set a password to protect the secret'
+                value={password}
+                icon={faKey}
+                onChange={(e) => setPassword(e.target.value)}
+                divClass="md:col-span-2 lg:col-span-4"
+              />
             </div>
 
             <div className="mt-4 flex">

@@ -1,5 +1,6 @@
 "use client"
 
+import { Input } from "@/components"
 import { faCloudArrowDown, faKey, faShieldAlt } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useParams } from "next/navigation"
@@ -211,20 +212,18 @@ export default function Id() {
           </div>
 
           {fileInfo.files.some((f) => f.hasPassword) && (
-            <div className="flex flex-col gap-3">
-              <label className="font-semibold text-zinc-700 dark:text-zinc-300">This file is password protected.</label>
-              <div className="inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-3 text-zinc-700! dark:text-[#d2d5da]! transition duration-300 flex items-center gap-2">
-                <FontAwesomeIcon icon={faKey} className="text-zinc-700 dark:text-[#d2d5da]" size="xs" />
-                <input
-                  type="password"
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && downloadFile()}
-                  className="outline-none w-full bg-transparent"
-                />
-              </div>
-            </div>
+            <Input
+              label="This file is password protected."
+              id="password"
+              type="password"
+              name="password"
+              placeholder="Enter password"
+              value={password}
+              icon={faKey}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && downloadFile()}
+              divClass="w-full"
+            />
           )}
 
           <button

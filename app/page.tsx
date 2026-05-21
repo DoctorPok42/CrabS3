@@ -1,6 +1,6 @@
 "use client"
 
-import { PopupStatus } from '@/components'
+import { Input, PopupStatus } from '@/components'
 import { useMultipartUpload } from '@/hooks/useMultipartUpload'
 import { faArrowsDownToLine, faAt, faClockRotateLeft, faEnvelope, faFileCode, faFileImage, faFileText, faKey, faPaperPlane, faPen } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -174,21 +174,16 @@ export default function Home() {
           <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Options</h2>
 
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 grid-rows-auto">
-            <div className="flex flex-col gap-1 col-span-1 md:col-span-1 lg:col-span-2">
-              <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Max downloads</label>
-              <div className='inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-                <FontAwesomeIcon icon={faArrowsDownToLine} className='text-zinc-700 dark:text-[#d2d5da]' size='xs' />
-                <input
-                  type="number"
-                  id="option1"
-                  name="option1"
-                  placeholder='e.g. 5'
-                  className="outline-none w-full"
-                  value={maxDownloads ?? ''}
-                  onChange={(e) => setMaxDownloads(e.target.value ? Number.parseInt(e.target.value) : null)}
-                />
-              </div>
-            </div>
+            <Input
+              label="Max downloads"
+              id="option1"
+              type="number"
+              name="option1"
+              placeholder="e.g. 5"
+              value={maxDownloads ?? ''}
+              onChange={(e) => setMaxDownloads(e.target.value ? Number.parseInt(e.target.value) : null)}
+              icon={faArrowsDownToLine}
+            />
 
             <div className="flex flex-col gap-1 col-span-1 lg:col-span-2">
               <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Expire after (days)</label>
@@ -210,39 +205,27 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex flex-col col-span-1 lg:col-span-2 gap-1">
-              <label htmlFor="emailSender" className="text-zinc-700 dark:text-zinc-300">Notify me by email</label>
-              <div className='inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-                <FontAwesomeIcon icon={faAt} className='text-zinc-700 dark:text-[#d2d5da]' size='xs' />
-                <input
-                  type="email"
-                  id="emailSender"
-                  name="emailSender"
-                  autoComplete="off"
-                  placeholder='my.email@example.com'
-                  className="outline-none bg-transparent w-full"
-                  value={notifyEmail}
-                  onChange={(e) => setNotifyEmail(e.target.value)}
-                />
-              </div>
-            </div>
+            <Input
+              label="Notify me by email"
+              id="emailSender"
+              type="email"
+              name="emailSender"
+              placeholder='my.email@example.com'
+              value={notifyEmail}
+              onChange={(e) => setNotifyEmail(e.target.value)}
+              icon={faAt}
+            />
 
-            <div className="flex flex-col col-span-1 lg:col-span-2 gap-1">
-              <label htmlFor="emailRecipient" className="text-zinc-700 dark:text-zinc-300">Email of recipient</label>
-              <div className='inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-                <FontAwesomeIcon icon={faPaperPlane} className='text-zinc-700 dark:text-[#d2d5da]' size='xs' />
-                <input
-                  type="email"
-                  id="emailRecipient"
-                  name="emailRecipient"
-                  autoComplete="off"
-                  placeholder='recipient@example.com'
-                  className="outline-none w-full"
-                  value={emailRecipient}
-                  onChange={(e) => setEmailRecipient(e.target.value)}
-                />
-              </div>
-            </div>
+            <Input
+              label="Email of recipient"
+              id="emailRecipient"
+              type="email"
+              name="emailRecipient"
+              placeholder='recipient@example.com'
+              value={emailRecipient}
+              onChange={(e) => setEmailRecipient(e.target.value)}
+              icon={faPaperPlane}
+            />
 
             {emailRecipient && <div className="flex flex-col col-span-1 md:col-span-2 lg:col-span-4 gap-1">
               <label htmlFor="emailMessage" className="text-zinc-700 dark:text-zinc-300">Message to recipient</label>
@@ -306,21 +289,17 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex flex-col w-full gap-1 mt-4">
-                <label htmlFor="password" className="text-zinc-700 dark:text-zinc-300">Password (optional)</label>
-                <div className='inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-                  <FontAwesomeIcon icon={faKey} className='text-zinc-700 dark:text-[#d2d5da]' size='xs' />
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder='Set a password to protect the file'
-                    className="outline-none w-full"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-              </div>
+              <Input
+                label="Password (optional)"
+                id="password"
+                type="password"
+                name="password"
+                placeholder='Set a password to protect the file'
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                icon={faKey}
+                divClass='w-full'
+              />
 
               <div className='w-full mt-4 flex gap-2'>
                 <button
@@ -350,7 +329,7 @@ export default function Home() {
 
       <div className='flex flex-col items-center gap-2 mt-4 -mb-4'>
         <h2 className="text-md italic text-zinc-500 dark:text-zinc-400">Or upload a secret</h2>
-        <Link href="/secret" className='text-sm py-2 px-4 rounded-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-300'>
+        <Link href="/secrets" className='text-sm py-2 px-4 rounded-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-300'>
           Upload Secret
         </Link>
       </div>
