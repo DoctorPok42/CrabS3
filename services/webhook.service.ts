@@ -21,9 +21,9 @@ class WebHookService {
   private readonly avatarUrl: string = "https://crabs3.doctorpok.io/favicon.png";
   private readonly username: string = "CrabS3 Notifications";
   private readonly colorStatusMap: Record<string, number> = {
-    "File uploaded": 0x1abc9c,
-    "File downloaded": 0x9b59b6,
-    "File deleted": 0xe74c3c,
+    "file uploaded": 0x1abc9c,
+    "file downloaded": 0x9b59b6,
+    "file deleted": 0xe74c3c,
   };
 
   private static instance: WebHookService;
@@ -50,7 +50,7 @@ class WebHookService {
           avatar_url: payload.avatar_url || this.avatarUrl,
           embeds: payload.embeds?.map(embed => ({
             ...embed,
-            color: embed.color || this.colorStatusMap[embed.title || ""] || 0xcccccc,
+            color: embed.color || this.colorStatusMap[embed.title?.toLocaleLowerCase() || ""] || 0xcccccc,
           })) || [],
         }),
       });
