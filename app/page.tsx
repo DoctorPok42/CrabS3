@@ -139,7 +139,7 @@ export default function Home() {
   }
 
   return (
-    <main className={`flex flex-col ${fileMeta.length > 0 ? 'pt-10 pb-2' : 'my-auto justify-center'} w-full max-w-7xl items-center px-16`}>
+    <main className={`flex flex-col ${fileMeta.length > 0 ? 'pt-10 pb-2' : 'my-auto justify-center'} w-full max-w-7xl items-center md:px-16 px-4`}>
       {(status || uploading) && (
         <PopupStatus message={status?.message || "Uploading..."}
           type={status?.type || "info"}

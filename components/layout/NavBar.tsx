@@ -27,7 +27,7 @@ const NavBar = () => {
 
   const links = [
     { name: "Upload", href: "/", icon: faCloudArrowUp },
-    { name: "Secrets", href: "/secret", icon: faLock },
+    { name: "Secrets", href: "/secrets", icon: faLock },
     { name: "Dashboard", href: "/dashboard", icon: faRectangleList },
     { name: "Communication", href: "/communication", icon: faBroadcastTower },
     { name: "Account", href: "/me", icon: faUserGear },
@@ -42,7 +42,9 @@ const NavBar = () => {
     },
   ]
 
-  if (pathname.split("/")[2] === "login" || pathname.split("/")[2] === "signup") return null
+  const ignoredPaths = ["auth", "file", "secret"]
+
+  if (ignoredPaths.includes(pathname.split("/")[1])) return null
 
   return (
     <nav className="fixed left-0 top-0 w-69 h-screen lg:block hidden overflow-y-auto bg-white dark:bg-[#16171a] border-gray-200 dark:border-zinc-700 z-50 p-8 border-r">
@@ -70,7 +72,7 @@ const NavBar = () => {
       </div>
 
       <div className="flex flex-col mt-6 gap-2 text-md">
-      {links.map((link) => {
+        {links.map((link) => {
           if (link.adminOnly && !user?.isAdmin) return null
           if (!link.name) return <hr key="divider" className="my-3 mr-8 border-gray-200 dark:border-zinc-800" />
           return (

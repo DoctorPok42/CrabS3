@@ -51,7 +51,7 @@ const SecretPage = () => {
   }
 
   return (
-    <div className="my-auto flex flex-col items-center justify-center transition duration-300">
+    <div className="my-auto w-full md:px-16 px-4 flex flex-col items-center justify-center transition duration-300">
       {popupStatus && (
         <PopupStatus
           message={popupStatus.message}
