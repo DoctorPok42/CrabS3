@@ -6,6 +6,7 @@ import { sendDownloadNotificationEmail } from "@/services/mail.service";
 import { ZipDeflate, Zip } from "fflate";
 import { PassThrough, Readable } from "node:stream";
 import os from "node:os";
+import { sendAllActiveCommunications } from "@/lib/webhook";
 
 const ARCHIVE_TYPE = os.platform() === "win32" ? "zip" : "tar";
 
@@ -56,7 +57,7 @@ export async function GET(
       try {
         const files = await prisma.files.findMany({
           where: { folder_id: folderId },
-          select: { id: true, folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true },
+          select: { id: true, folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true, user_id: true },
         });
 
         if (files.length === 0) {
@@ -149,6 +150,15 @@ export async function GET(
             if (file.email_sender) {
               await sendDownloadNotificationEmail(file.email_sender, folderId).catch(console.error);
             }
+
+            if (file.user_id)
+              await sendAllActiveCommunications(file.user_id, {
+                content: "",
+                embeds: [{
+                  title: "File downloaded",
+                  description: `File **${file.filename}** was downloaded.`,
+                }],
+              }).catch(console.error);
           }
         })();
 
@@ -172,7 +182,7 @@ export async function GET(
     try {
       file = await prisma.files.findUnique({
         where: { id: fileId },
-        select: { folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true },
+        select: { folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true, user_id: true },
       });
 
       if (!file) {
@@ -246,6 +256,14 @@ export async function GET(
     }).catch(console.error);
     if (metadata.email_sender)
       await sendDownloadNotificationEmail(metadata.email_sender || "", folderId);
+    if (file.user_id)
+      await sendAllActiveCommunications(file.user_id, {
+        content: "",
+        embeds: [{
+          title: "File downloaded",
+          description: `File **${metadata.filename}** was downloaded.`,
+        }],
+      }).catch(console.error);
 
     return new Response(fileResponse.Body?.transformToWebStream(), {
       headers: {

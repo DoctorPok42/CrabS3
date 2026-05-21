@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faEnvelope, faUser, faLock, faShieldAlt, faClock, faCertificate, faKey } from "@fortawesome/free-solid-svg-icons"
+import { faShieldAlt, faClock, faCertificate, faKey } from "@fortawesome/free-solid-svg-icons"
 
 const DashboardPage = () => {
-  const [user, setUser] = useState<{ id: string; email: string, name: string, isAdmin: boolean } | null>(null)
   const [dashboardData, setDashboardData] = useState<{
     files: Array<{
       id: string;
