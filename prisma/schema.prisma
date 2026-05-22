@@ -102,6 +102,42 @@ model communication {
   @@unique([user_id, type])
 }
 
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
+
+enum LogAction {
+  UPLOAD
+  DOWNLOAD
+  DELETE
+  AUTH_LOGIN
+  AUTH_LOGOUT
+  AUTH_FAILED
+  FILE_EXPIRED
+  USER_CREATED
+  USER_DELETED
+  ADMIN_ACTION
+}
+
+model logs {
+  id         String    @id @default(cuid())
+  level      LogLevel
+  action     LogAction
+  message    String
+  meta       Json?
+  user_id    Int?
+  user       users?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  created_at DateTime  @default(now())
+
+  @@index([level])
+  @@index([action])
+  @@index([created_at])
+  @@index([user_id])
+}
+
 model users {
   id          Int          @id @default(autoincrement())
   name        String
@@ -115,4 +151,5 @@ model users {
   isAdmin     Boolean      @default(false)
   quota       BigInt       @default(10737418240) // 10 GB
   communications communication[]
+  logs        logs[]
 }
