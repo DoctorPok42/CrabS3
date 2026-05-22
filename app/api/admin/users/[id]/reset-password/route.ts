@@ -1,6 +1,8 @@
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import bcrypt from "bcrypt";
+import { log } from "@/services/log.service";
+import { LogAction } from "@/types/log.types";
 
 export async function POST(request: Request) {
   try {
@@ -28,6 +30,13 @@ export async function POST(request: Request) {
     await prisma.users.update({
       where: { id: id },
       data: { passwordHash: hashedPassword },
+    });
+
+    await log({
+      action: LogAction.ADMIN_ACTION,
+      message: `Admin reset password for user ${id}`,
+      userId: session.user.id,
+      meta: { targetUserId: id, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
     });
 
     return Response.json({ message: "Password reset successfully" });
