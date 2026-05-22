@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 
 const NavBar = () => {
   const pathname = usePathname()
-  const [user, setUser] = useState<{ name: string, isAdmin: boolean } | null>(null)
+  const [user, setUser] = useState<{ name: string, isAdmin: boolean, id: number } | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
 
   useEffect(() => {
@@ -36,7 +36,7 @@ const NavBar = () => {
     { name: "Admin", href: "/admin", icon: faDashboard, adminOnly: true },
     {
       name: "Logout", href: "", icon: faArrowRightFromBracket, color: "text-red-800", onClick: async () => {
-        await fetch("/api/auth/logout", { method: "POST" })
+        await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json", "x-user-id": String(user?.id) } })
         window.location.href = "/auth/login"
       }
     },

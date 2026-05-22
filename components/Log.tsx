@@ -29,7 +29,7 @@ const Log = ({ level, action, message, meta, userId, createdAt }: LogProps) => {
           <h3 className="font-bold">{action}</h3>
           <p className="text-sm">{message}</p>
         </div>
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+        <span className="text-xs text-zinc-400 dark:text-zinc-300">
           {new Date(createdAt).toLocaleString()}
         </span>
       </div>
