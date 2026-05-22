@@ -8,6 +8,8 @@ import bcrypt from "bcrypt";
 import { sendNotificationEmail, sendRecipientNotificationEmail } from "@/services/mail.service";
 import { getSession } from "@/lib/auth";
 import { sendAllActiveCommunications } from "@/lib/webhook";
+import { log } from "@/services/log.service";
+import { LogAction } from "@/types/log.types";
 
 export async function POST(request: Request) {
   const { fileId, folderId, uploadId, parts, metadata } = await request.json();
@@ -117,9 +119,15 @@ export async function POST(request: Request) {
     } catch (abortError) {
       console.error("Abort error:", abortError);
     }
-
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
+
+  await log({
+    action: LogAction.UPLOAD,
+    message: `File ${metadata.filename} uploaded`,
+    userId: session.userId,
+    meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+  });
 
   try {
     if (metadata.emailSender)

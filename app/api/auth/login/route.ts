@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 import { verifyPassword, createSession } from "@/lib/auth";
+import { log } from "@/services/log.service";
+import { LogAction, LogLevel } from "@/types/log.types";
 
 export async function POST(request: Request) {
   const { email, password } = await request.json();
@@ -19,9 +21,25 @@ export async function POST(request: Request) {
 
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
+    await log({
+      action: LogAction.AUTH_FAILED,
+      level: LogLevel.WARN,
+      message: "Invalid credentials",
+      userId: user.id,
+      meta: { email, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+    });
+
     return Response.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
   await createSession(user.id, user.email, user.isAdmin);
+
+  await log({
+    action: LogAction.AUTH_LOGIN,
+    message: "User logged in",
+    userId: user.id,
+    meta: { email, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+  });
+
   return Response.json({ success: true });
 }

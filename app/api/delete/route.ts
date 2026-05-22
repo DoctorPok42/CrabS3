@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma"
 import { COLD_BUCKET, HOT_BUCKET, s3Cold, s3Hot } from "@/services/s3.service"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { getSession } from "@/lib/auth"
+import { log } from "@/services/log.service"
+import { LogAction } from "@/types/log.types"
 
 export async function DELETE(request: Request) {
   try {
@@ -45,6 +47,13 @@ export async function DELETE(request: Request) {
       where: {
         id: fileId
       }
+    })
+
+    await log({
+      action: LogAction.DELETE,
+      message: `File ${file.filename} deleted`,
+      userId: session.userId,
+      meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
     })
 
     return new Response(JSON.stringify({ message: 'File deleted successfully' }), { status: 200 })

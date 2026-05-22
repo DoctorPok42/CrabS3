@@ -7,6 +7,8 @@ import { ZipDeflate, Zip } from "fflate";
 import { PassThrough, Readable } from "node:stream";
 import os from "node:os";
 import { sendAllActiveCommunications } from "@/lib/webhook";
+import { log } from "@/services/log.service";
+import { LogAction } from "@/types/log.types";
 
 const ARCHIVE_TYPE = os.platform() === "win32" ? "zip" : "tar";
 
@@ -160,6 +162,13 @@ export async function GET(
                 }],
               }).catch(console.error);
           }
+
+          await log({
+            action: LogAction.DOWNLOAD,
+            message: `Folder ${folderId} downloaded with ${files.length} files`,
+            userId: files[0].user_id || undefined,
+            meta: { folderId, fileCount: files.length, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+          });
         })();
 
         return response;
@@ -264,6 +273,13 @@ export async function GET(
           description: `File **${metadata.filename}** was downloaded.`,
         }],
       }).catch(console.error);
+
+    await log({
+      action: LogAction.DOWNLOAD,
+      message: `File ${metadata.filename} downloaded`,
+      userId: file.user_id || undefined,
+      meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+    });
 
     return new Response(fileResponse.Body?.transformToWebStream(), {
       headers: {

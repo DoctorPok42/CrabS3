@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
+import { log } from "@/services/log.service";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
+import { LogAction } from "@/types/log.types";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import bcrypt from "bcrypt";
 
@@ -33,6 +35,13 @@ export async function POST(
             Bucket: HOT_BUCKET,
             Key: `${folderId}/${fileId}`,
           })).catch(console.error);
+
+          await log({
+            action: LogAction.FILE_EXPIRED,
+            message: `File ${file.filename} has expired and was deleted`,
+            meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+          })
+
           return Response.json({ error: "File has expired" }, { status: 410 });
         }
 

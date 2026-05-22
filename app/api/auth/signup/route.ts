@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 import { hashPassword, createSession } from "@/lib/auth";
+import { log } from "@/services/log.service";
+import { LogAction } from "@/types/log.types";
 
 export async function POST(request: Request) {
   const { token, name, password } = await request.json();
@@ -32,6 +34,13 @@ export async function POST(request: Request) {
   });
 
   await createSession(user.id, invitation.email, false);
+
+  await log({
+    action: LogAction.USER_CREATED,
+    message: `User ${invitation.email} created an account`,
+    userId: user.id,
+    meta: { email: invitation.email, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+  });
 
   return Response.json({ success: true });
 }
