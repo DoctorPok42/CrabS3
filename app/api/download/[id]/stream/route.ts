@@ -301,7 +301,6 @@ export async function GET(
       meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
     });
 
-
     return new Response(fileResponse.Body?.transformToWebStream(), {
       headers: {
         "Content-Type": metadata.contentType || "application/octet-stream",
