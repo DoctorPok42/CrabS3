@@ -8,7 +8,7 @@ import { PassThrough, Readable } from "node:stream";
 import os from "node:os";
 import { sendAllActiveCommunications } from "@/lib/webhook";
 import { log } from "@/services/log.service";
-import { LogAction } from "@/types/log.types";
+import { LogAction, LogLevel } from "@/types/log.types";
 
 const ARCHIVE_TYPE = os.platform() === "win32" ? "zip" : "tar";
 
@@ -53,6 +53,13 @@ export async function GET(
     const folderId = (await params).id
     const fileId = searchParams.get("fileId")
     const allFiles = searchParams.get("allFiles") === "true"
+
+    await log({
+      level: LogLevel.DEBUG,
+      action: LogAction.DOWNLOAD,
+      message: "Download stream request started",
+      meta: { folderId, fileId, allFiles, hasPassword: !!password }
+    });
 
     // Multiple files as ZIP
     if (allFiles) {
@@ -174,6 +181,12 @@ export async function GET(
         return response;
       } catch (error) {
         console.error(error);
+        await log({
+          level: LogLevel.ERROR,
+          action: LogAction.DOWNLOAD,
+          message: "Failed to download folder",
+          meta: { error: error instanceof Error ? error.message : String(error), folderId }
+        });
         return Response.json(
           { error: error instanceof Error ? error.message : "Internal Server Error" },
           { status: 500 }
@@ -246,6 +259,13 @@ export async function GET(
       const newMaxDownloads = maxDownloads - 1;
 
       if (newMaxDownloads === 0) {
+        await log({
+          level: LogLevel.WARN,
+          action: LogAction.DOWNLOAD,
+          message: "File download limit reached, file will be deleted",
+          userId: file.user_id || undefined,
+          meta: { folderId, fileId, filename: metadata.filename }
+        });
         await s3Hot.send(new DeleteObjectsCommand({
           Bucket: HOT_BUCKET,
           Delete: {
@@ -281,6 +301,7 @@ export async function GET(
       meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
     });
 
+
     return new Response(fileResponse.Body?.transformToWebStream(), {
       headers: {
         "Content-Type": metadata.contentType || "application/octet-stream",
@@ -290,6 +311,12 @@ export async function GET(
     })
   } catch (error) {
     console.error(error);
+    await log({
+      level: LogLevel.ERROR,
+      action: LogAction.DOWNLOAD,
+      message: "Download operation failed",
+      meta: { error: error instanceof Error ? error.message : String(error) }
+    });
     return Response.json(
       { error: error instanceof Error ? error.message : "Internal Server Error" },
       { status: 500 }

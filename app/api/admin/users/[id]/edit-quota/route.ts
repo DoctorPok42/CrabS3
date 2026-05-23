@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { log } from "@/services/log.service";
-import { LogAction } from "@/types/log.types";
+import { LogAction, LogLevel } from "@/types/log.types";
 
 export async function PUT(request: Request) {
   try {
@@ -12,6 +12,14 @@ export async function PUT(request: Request) {
 
     const { pathname } = new URL(request.url);
     const id = Number(pathname.split("/").slice(-3)[1]);
+
+    await log({
+      level: LogLevel.DEBUG,
+      action: LogAction.ADMIN_ACTION,
+      message: "Admin quota update request",
+      userId: session.user.id,
+      meta: { targetUserId: id }
+    });
 
     const { quota } = await request.json();
     if (typeof quota !== "number" || Number.isNaN(quota) || quota < -1) {
@@ -36,6 +44,14 @@ export async function PUT(request: Request) {
     return Response.json({ message: "Quota updated successfully", quota: user.quota.toString() });
   } catch (error) {
     console.error("Error updating quota:", error);
+    const session = await getSession();
+    await log({
+      level: LogLevel.ERROR,
+      action: LogAction.ADMIN_ACTION,
+      message: "Failed to update user quota",
+      userId: session?.user.id,
+      meta: { error: error instanceof Error ? error.message : String(error) }
+    });
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

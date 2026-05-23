@@ -6,6 +6,13 @@ import { LogAction, LogLevel } from "@/types/log.types";
 export async function POST(request: Request) {
   const { email, password } = await request.json();
 
+  await log({
+    level: LogLevel.DEBUG,
+    action: LogAction.AUTH_LOGIN,
+    message: "Login attempt",
+    meta: { email, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined }
+  });
+
   const user = await prisma.users.findUnique({
     where: { email },
     select: {

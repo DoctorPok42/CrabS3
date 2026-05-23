@@ -1,4 +1,6 @@
 import prisma from '@/lib/prisma';
+import { log } from '@/services/log.service';
+import { LogAction, LogLevel } from '@/types/log.types';
 
 export async function POST(request: Request) {
   const { secretId } = await request.json();
@@ -6,6 +8,13 @@ export async function POST(request: Request) {
   if (!secretId || typeof secretId !== 'string') {
     return new Response(JSON.stringify({ error: 'Invalid secret ID' }), { status: 400 });
   }
+
+  await log({
+    level: LogLevel.DEBUG,
+    action: LogAction.UPLOAD,
+    message: "Secret check request",
+    meta: { secretId }
+  });
 
   try {
     const secret = await prisma.secrets.findUnique({
@@ -25,7 +34,7 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: 'Secret has expired' }), { status: 410 });
     }
 
-    if (secret.view_count! >= secret.max_views!) {
+    if (secret.view_count! >= secret.max_views) {
       return new Response(JSON.stringify({ error: 'Secret has been viewed too many times' }), { status: 410 });
     }
 
@@ -36,6 +45,12 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('Error checking secret:', error);
+    await log({
+      level: LogLevel.ERROR,
+      action: LogAction.UPLOAD,
+      message: 'Failed to check secret',
+      meta: { error: error instanceof Error ? error.message : String(error) }
+    });
     return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500 });
   }
 }

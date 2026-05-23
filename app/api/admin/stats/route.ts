@@ -2,9 +2,18 @@ import prisma from "@/lib/prisma"
 import { NextResponse } from "next/server"
 import { s3Cold, COLD_BUCKET } from "@/services/s3.service"
 import { HeadBucketCommand } from "@aws-sdk/client-s3"
+import { log } from "@/services/log.service"
+import { LogAction, LogLevel } from "@/types/log.types"
+import { getSession } from "@/lib/auth"
 
 export async function GET() {
   try {
+    await log({
+      level: LogLevel.DEBUG,
+      action: LogAction.ADMIN_ACTION,
+      message: "Admin stats request",
+    })
+
     let coldStorageActive = false
     try {
       const command = new HeadBucketCommand({ Bucket: COLD_BUCKET })
@@ -84,6 +93,14 @@ export async function GET() {
     })
   } catch (error) {
     console.error("Error fetching admin stats:", error)
+    const session = await getSession()
+    await log({
+      level: LogLevel.ERROR,
+      action: LogAction.ADMIN_ACTION,
+      message: "Failed to fetch admin stats",
+      userId: session?.user.id,
+      meta: { error: error instanceof Error ? error.message : String(error) }
+    })
     return NextResponse.json(
       { error: "Failed to fetch admin stats" },
       { status: 500 }

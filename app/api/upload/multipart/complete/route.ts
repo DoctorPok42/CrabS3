@@ -9,7 +9,7 @@ import { sendNotificationEmail, sendRecipientNotificationEmail } from "@/service
 import { getSession } from "@/lib/auth";
 import { sendAllActiveCommunications } from "@/lib/webhook";
 import { log } from "@/services/log.service";
-import { LogAction } from "@/types/log.types";
+import { LogAction, LogLevel } from "@/types/log.types";
 
 export async function POST(request: Request) {
   const { fileId, folderId, uploadId, parts, metadata } = await request.json();
@@ -20,6 +20,14 @@ export async function POST(request: Request) {
     if (!session) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    await log({
+      level: LogLevel.DEBUG,
+      action: LogAction.UPLOAD,
+      message: "Upload completion started",
+      userId: session.userId,
+      meta: { fileId, folderId, partCount: parts.length }
+    });
 
     const existingFile = await prisma.files.findFirst({
       where: { id: fileId, user_id: session.userId },
@@ -52,6 +60,14 @@ export async function POST(request: Request) {
       const usedGB = Number(currentUsage) / (1024 * 1024 * 1024);
       const fileGB = Number(BigInt(metadata.size)) / (1024 * 1024 * 1024);
 
+      await log({
+        level: LogLevel.WARN,
+        action: LogAction.UPLOAD,
+        message: "Upload rejected: quota exceeded",
+        userId: session.userId,
+        meta: { quotaGB, usedGB, fileGB, folderId, fileId }
+      });
+
       await s3Hot.send(new AbortMultipartUploadCommand({
         Bucket: HOT_BUCKET,
         Key: folderId + "/" + fileId,
@@ -81,6 +97,13 @@ export async function POST(request: Request) {
     );
 
     if (!response.ETag) {
+      await log({
+        level: LogLevel.ERROR,
+        action: LogAction.UPLOAD,
+        message: "S3 upload completion failed: no ETag returned",
+        userId: session.userId,
+        meta: { folderId, fileId, uploadId }
+      });
       await s3Hot.send(new AbortMultipartUploadCommand({
         Bucket: HOT_BUCKET,
         Key: folderId + "/" + fileId,
@@ -109,6 +132,13 @@ export async function POST(request: Request) {
     }).catch(console.error);
   } catch (error) {
     console.error("Complete error:", error);
+    await log({
+      level: LogLevel.ERROR,
+      action: LogAction.UPLOAD,
+      message: "Upload completion failed",
+      userId: session?.userId,
+      meta: { error: error instanceof Error ? error.message : String(error), folderId, fileId }
+    });
 
     try {
       await s3Hot.send(new AbortMultipartUploadCommand({
@@ -118,6 +148,13 @@ export async function POST(request: Request) {
       }));
     } catch (abortError) {
       console.error("Abort error:", abortError);
+      await log({
+        level: LogLevel.ERROR,
+        action: LogAction.UPLOAD,
+        message: "Failed to abort upload after error",
+        userId: session?.userId,
+        meta: { error: abortError instanceof Error ? abortError.message : String(abortError) }
+      });
     }
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }

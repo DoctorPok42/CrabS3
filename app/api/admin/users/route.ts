@@ -1,5 +1,7 @@
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { log } from "@/services/log.service";
+import { LogAction, LogLevel } from "@/types/log.types";
 
 export async function GET() {
   try {
@@ -7,6 +9,13 @@ export async function GET() {
     if (!session) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    await log({
+      level: LogLevel.DEBUG,
+      action: LogAction.ADMIN_ACTION,
+      message: "Admin users list request",
+      userId: session.user.id,
+    });
 
     const currentUser = await prisma.users.findUnique({
       where: { id: session.user.id },
@@ -111,6 +120,14 @@ export async function GET() {
     return Response.json(allUsers);
   } catch (error) {
     console.error("Error fetching users:", error);
+    const session = await getSession();
+    await log({
+      level: LogLevel.ERROR,
+      action: LogAction.ADMIN_ACTION,
+      message: "Failed to fetch users list",
+      userId: session?.user.id,
+      meta: { error: error instanceof Error ? error.message : String(error) }
+    });
     return Response.json(
       { error: "Internal server error" },
       { status: 500 }

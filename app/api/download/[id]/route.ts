@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { log } from "@/services/log.service";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
-import { LogAction } from "@/types/log.types";
+import { LogAction, LogLevel } from "@/types/log.types";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import bcrypt from "bcrypt";
 
@@ -14,6 +14,13 @@ export async function POST(
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get("fileId");
     const password = await request.json().then(data => data.password).catch(() => null);
+
+    await log({
+      level: LogLevel.DEBUG,
+      action: LogAction.DOWNLOAD,
+      message: "Download validation request",
+      meta: { folderId, fileId, hasPassword: !!password }
+    });
 
     try {
       if (fileId) {
@@ -117,6 +124,12 @@ export async function POST(
     return Response.json({ status: 200 }, { status: 200 });
   } catch (error) {
     console.error(error);
+    await log({
+      level: LogLevel.ERROR,
+      action: LogAction.DOWNLOAD,
+      message: "Download validation failed",
+      meta: { error: error instanceof Error ? error.message : String(error) }
+    });
     return Response.json(
       { error: error instanceof Error ? error.message : "Internal Server Error" },
       { status: 500 }

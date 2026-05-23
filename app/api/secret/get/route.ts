@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { log } from "@/services/log.service";
+import { LogAction, LogLevel } from "@/types/log.types";
 
 export async function POST(request: Request) {
   const { secretId, password } = await request.json();
@@ -7,6 +9,13 @@ export async function POST(request: Request) {
   if (!secretId || typeof secretId !== 'string') {
     return new Response(JSON.stringify({ error: 'Invalid input' }), { status: 400 });
   }
+
+  await log({
+    level: LogLevel.DEBUG,
+    action: LogAction.UPLOAD,
+    message: "Secret retrieval request",
+    meta: { secretId, hasPassword: !!password }
+  });
 
   try {
     const secret = await prisma.secrets.findUnique({
@@ -36,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     const newCount = secret.view_count! + 1
-    if (newCount >= secret.max_views!) {
+    if (newCount >= secret.max_views) {
       await prisma.secrets.delete({
         where: { id: secretId },
       });
@@ -50,6 +59,12 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ content: secret.content }), { status: 200 });
   } catch (error) {
     console.error('Error retrieving secret:', error);
+    await log({
+      level: LogLevel.ERROR,
+      action: LogAction.UPLOAD,
+      message: 'Failed to retrieve secret',
+      meta: { error: error instanceof Error ? error.message : String(error) }
+    });
     return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500 });
   }
 }

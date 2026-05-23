@@ -3,7 +3,7 @@ import { COLD_BUCKET, HOT_BUCKET, s3Cold, s3Hot } from "@/services/s3.service"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { getSession } from "@/lib/auth"
 import { log } from "@/services/log.service"
-import { LogAction } from "@/types/log.types"
+import { LogAction, LogLevel } from "@/types/log.types"
 
 export async function DELETE(request: Request) {
   try {
@@ -17,6 +17,14 @@ export async function DELETE(request: Request) {
     if (!session) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
     }
+
+    await log({
+      level: LogLevel.DEBUG,
+      action: LogAction.DELETE,
+      message: "Delete request started",
+      userId: session.userId,
+      meta: { folderId, fileId }
+    })
 
     const file = await prisma.files.findFirst({
       where: {
@@ -59,6 +67,14 @@ export async function DELETE(request: Request) {
     return new Response(JSON.stringify({ message: 'File deleted successfully' }), { status: 200 })
   } catch (error) {
     console.error('Error deleting file:', error)
+    const session = await getSession()
+    await log({
+      level: LogLevel.ERROR,
+      action: LogAction.DELETE,
+      message: "Failed to delete file",
+      userId: session?.userId,
+      meta: { error: error instanceof Error ? error.message : String(error) }
+    })
     return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500 })
   }
 }

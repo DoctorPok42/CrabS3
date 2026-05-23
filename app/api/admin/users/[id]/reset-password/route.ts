@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import bcrypt from "bcrypt";
 import { log } from "@/services/log.service";
-import { LogAction } from "@/types/log.types";
+import { LogAction, LogLevel } from "@/types/log.types";
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +13,14 @@ export async function POST(request: Request) {
 
     const { pathname } = new URL(request.url);
     const id = Number(pathname.split("/").slice(-3)[1]);
+
+    await log({
+      level: LogLevel.DEBUG,
+      action: LogAction.ADMIN_ACTION,
+      message: "Admin password reset request",
+      userId: session.user.id,
+      meta: { targetUserId: id }
+    });
 
     const { newPassword } = await request.json();
     if (typeof newPassword !== "string" || newPassword.length < 6) {
@@ -42,6 +50,14 @@ export async function POST(request: Request) {
     return Response.json({ message: "Password reset successfully" });
   } catch (error) {
     console.error("Error resetting password:", error);
+    const session = await getSession();
+    await log({
+      level: LogLevel.ERROR,
+      action: LogAction.ADMIN_ACTION,
+      message: "Failed to reset user password",
+      userId: session?.user.id,
+      meta: { error: error instanceof Error ? error.message : String(error) }
+    });
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
