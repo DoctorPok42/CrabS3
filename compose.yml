@@ -14,9 +14,28 @@ services:
     networks:
       - crabs3-network
 
+  clamav:
+    image: clamav/clamav:stable
+    container_name: crabs3-clamav
+    restart: unless-stopped
+    environment:
+      - CLAMAV_NO_FRESHCLAMD=false
+      - CLAMAV_NO_CLAMD=false
+    volumes:
+      - clamav_data:/var/lib/clamav
+    networks:
+      - crabs3-network
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
   web:
     depends_on:
       - db
+      - clamav
     build: .
     ports:
       - "5000:3000"
@@ -42,9 +61,18 @@ services:
       - SMTP_USER=your_smtp_user
       - SMTP_PASS=your_smtp_password
       - SMTP_FROM=CrabS3 Notifications <your_smtp_user>
+
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
     networks:
       - crabs3-network
       - mail-network # Connect to external mail network for sending emails
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 networks:
   crabs3-network:
@@ -55,3 +83,4 @@ networks:
 volumes:
   db-data:
     driver: local
+  clamav_data:
