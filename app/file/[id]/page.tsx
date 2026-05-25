@@ -128,7 +128,7 @@ export default function Id() {
   }, [id, setFileInfo, setIsLoading])
 
   return (
-    <main className="my-auto w-full max-w-7xl flex flex-col items-center md:px-16 px-6 lg:-ml-69">
+    <main className="my-auto w-full max-w-7xl flex flex-col items-center md:px-16 px-6">
       <h1 className="text-2xl mt-10 font-bold text-center">
         Download File
       </h1>

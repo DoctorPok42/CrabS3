@@ -63,7 +63,7 @@ function SignupForm() {
 
   if (tokenValid === false) {
     return (
-      <div className="w-full max-w-md flex flex-col gap-4 text-center my-auto lg:-ml-69">
+      <div className="w-full max-w-md flex flex-col gap-4 text-center my-auto">
         <h1 className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">Invitation Error</h1>
         <div className="border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-2xl p-6">
           <p className="text-zinc-500 dark:text-zinc-400">
@@ -76,12 +76,12 @@ function SignupForm() {
 
   if (tokenValid === null) {
     return (
-      <p className="text-zinc-500 dark:text-zinc-400 my-auto lg:-ml-69">Verifying invitation…</p>
+      <p className="text-zinc-500 dark:text-zinc-400 my-auto">Verifying invitation…</p>
     )
   }
 
   return (
-    <div className="w-full max-w-sm flex flex-col gap-6 my-auto lg:-ml-69">
+    <div className="w-full max-w-sm flex flex-col gap-6 my-auto">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-zinc-800 dark:text-zinc-100">Welcome</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">

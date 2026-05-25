@@ -80,7 +80,7 @@ const SecretPage = () => {
   }
 
   return (
-    <div className="my-auto lg:-ml-69">
+    <div className="my-auto">
       <h1 className="text-2xl font-bold text-center">Secret {requiresPassword ? "(Password Required)" : ""}</h1>
       {notif && (
         <PopupStatus

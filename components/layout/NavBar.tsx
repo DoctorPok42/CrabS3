@@ -47,7 +47,7 @@ const NavBar = () => {
   if (ignoredPaths.includes(pathname.split("/")[1])) return null
 
   return (
-    <nav className="fixed left-0 top-0 w-69 h-screen lg:block hidden overflow-y-auto bg-white dark:bg-[#16171a] border-gray-200 dark:border-zinc-700 z-50 p-8 border-r">
+    <nav className="w-69 h-full lg:block hidden overflow-y-auto bg-white dark:bg-[#16171a] border-gray-200 dark:border-zinc-700 z-50 p-8 border-r">
       <div className="flex items-center gap-4">
         <Image src="/favicon.ico" alt="CrabS3 Logo" width={35} height={35} />
         <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">CrabS3</h1>
