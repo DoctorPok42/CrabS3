@@ -14,7 +14,6 @@ function getChunkSize(fileSize: number): number {
 
 interface UploadOptions {
   maxDownloads?: number | null;
-  emailSender?: string;
   emailRecipient?: string;
   expireAfter?: "1" | "7" | "14" | "21" | "30";
   password?: string;
@@ -127,7 +126,6 @@ export function useMultipartUpload() {
         size: file.size.toString(),
         folderId,
         ...(options.maxDownloads ? { maxDownloads: options.maxDownloads.toString() } : { maxDownloads: null }),
-        ...(options.emailSender && { emailSender: options.emailSender }),
         ...(options.emailRecipient && { emailRecipient: options.emailRecipient }),
         ...(options.expireAfter && { expireAfter: options.expireAfter || "30" }),
         ...(options.password && { password: options.password }),

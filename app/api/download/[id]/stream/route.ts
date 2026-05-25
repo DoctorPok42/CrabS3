@@ -155,20 +155,20 @@ export async function GET(
                 Delete: { Objects: [{ Key: `${folderId}/${file.id}` }] },
               })).catch(() => { });
             }
-
-            if (file.email_sender) {
-              await sendDownloadNotificationEmail(file.email_sender, folderId).catch(console.error);
-            }
-
-            if (file.user_id)
-              await sendAllActiveCommunications(file.user_id, {
-                content: "",
-                embeds: [{
-                  title: "File downloaded",
-                  description: `File **${file.filename}** was downloaded.`,
-                }],
-              }).catch(console.error);
           }
+
+          if (files[0].email_sender) {
+            await sendDownloadNotificationEmail(files[0].email_sender, folderId).catch(console.error);
+          }
+
+          if (files[0].user_id)
+            await sendAllActiveCommunications(files[0].user_id, {
+              content: "",
+              embeds: [{
+                title: "File downloaded",
+                description: `Folder ${folderId} was downloaded.`,
+              }],
+            }).catch(console.error);
 
           await log({
             action: LogAction.DOWNLOAD,
@@ -283,23 +283,36 @@ export async function GET(
         download_count: { increment: 1 },
       },
     }).catch(console.error);
-    if (metadata.email_sender)
-      await sendDownloadNotificationEmail(metadata.email_sender || "", folderId);
-    if (file.user_id)
-      await sendAllActiveCommunications(file.user_id, {
-        content: "",
-        embeds: [{
-          title: "File downloaded",
-          description: `File **${metadata.filename}** was downloaded.`,
-        }],
-      }).catch(console.error);
 
-    await log({
-      action: LogAction.DOWNLOAD,
-      message: `File ${metadata.filename} downloaded`,
-      userId: file.user_id || undefined,
-      meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
-    });
+    (async () => {
+      try {
+        if (metadata.email_sender)
+          await sendDownloadNotificationEmail(metadata.email_sender || "", folderId);
+        if (file.user_id)
+          await sendAllActiveCommunications(file.user_id, {
+            content: "",
+            embeds: [{
+              title: "File downloaded",
+              description: `File **${metadata.filename}** was downloaded.`,
+            }],
+          }).catch(console.error);
+
+        await log({
+          action: LogAction.DOWNLOAD,
+          message: `File ${metadata.filename} downloaded`,
+          userId: file.user_id || undefined,
+          meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+        });
+      } catch (error) {
+        console.error("Post-download operations failed:", error);
+        await log({
+          level: LogLevel.ERROR,
+          action: LogAction.DOWNLOAD,
+          message: "Post-download operations failed",
+          meta: { error: error instanceof Error ? error.message : String(error), folderId, fileId }
+        });
+      }
+    })();
 
     return new Response(fileResponse.Body?.transformToWebStream(), {
       headers: {
