@@ -2,7 +2,7 @@
 
 import { Input, PopupStatus } from '@/components'
 import { useMultipartUpload } from '@/hooks/useMultipartUpload'
-import { faArrowsDownToLine, faAt, faClockRotateLeft, faEnvelope, faFileCode, faFileImage, faFileText, faKey, faPaperPlane, faPen } from '@fortawesome/free-solid-svg-icons'
+import { faArrowsDownToLine, faAt, faClockRotateLeft, faEnvelope, faFileCode, faFileImage, faFileText, faKey, faPen } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -11,7 +11,6 @@ import { useDropzone } from 'react-dropzone'
 
 export default function Home() {
   const [maxDownloads, setMaxDownloads] = useState<number | null>(null)
-  const [notifyEmail, setNotifyEmail] = useState<string>("")
   const [emailRecipient, setEmailRecipient] = useState<string>("")
   const [emailMessage, setEmailMessage] = useState<string>("")
   const [expireAfter, setExpireAfter] = useState<"1" | "7" | "14" | "21" | "30">("30")
@@ -109,7 +108,6 @@ export default function Home() {
       const results = await Promise.all(files.map((file, index) =>
         upload(file, {
           maxDownloads: maxDownloads ?? null,
-          emailSender: notifyEmail || undefined,
           emailRecipient: emailRecipient || undefined,
           expireAfter,
           password: password || undefined,
@@ -151,7 +149,7 @@ export default function Home() {
         />
       )}
 
-      <div style={{ ['--shadow-color' as string]: '#3b82f6aa' }} className={`lg:w-150 w-full mt-20 ${fileMeta.length > 0 ? 'h-40 md:h-40 p-1 rounded-2xl' : 'inputShadow h-[30vh] my-auto p-2 rounded-3xl'} flex items-center justify-center border-zinc-200 dark:border-zinc-700 border-2 cursor-pointer group hover:border-blue-500 bg-zinc-50 dark:bg-zinc-900 transition duration-300`}>
+      <div style={{ ['--shadow-color' as string]: '#3b82f6aa' }} className={`lg:w-150 w-full ${fileMeta.length > 0 ? 'h-40 md:h-40 p-1 rounded-2xl' : 'inputShadow h-[30vh] my-auto p-2 rounded-3xl mt-10'} ${(status || uploading) && "mt-5!"} flex items-center justify-center border-zinc-200 dark:border-zinc-700 border-2 cursor-pointer group hover:border-blue-500 bg-zinc-50 dark:bg-zinc-900 transition duration-300`}>
         <div className={`${fileMeta.length > 0 ? 'rounded-xl' : 'rounded-2xl'} w-full h-full flex items-center justify-center border-dashed border-zinc-200 dark:border-zinc-700 border-2 group-hover:border-blue-300 dark:group-hover:border-blue-800 transition duration-300`} {...getRootProps()}>
           <input {...getInputProps()} />
           <div className="p-8 text-xl text-center text-zinc-700 dark:text-zinc-300">
@@ -181,7 +179,7 @@ export default function Home() {
               name="option1"
               placeholder="e.g. 5"
               value={maxDownloads ?? ''}
-              onChange={(e) => setMaxDownloads(e.target.value ? Number.parseInt(e.target.value) : null)}
+              onChange={(e) => setMaxDownloads(e.target.value === '' ? null : Math.max(1, Number.parseInt(e.target.value)))}
               icon={faArrowsDownToLine}
             />
 
@@ -206,17 +204,6 @@ export default function Home() {
             </div>
 
             <Input
-              label="Notify me by email"
-              id="emailSender"
-              type="email"
-              name="emailSender"
-              placeholder='my.email@example.com'
-              value={notifyEmail}
-              onChange={(e) => setNotifyEmail(e.target.value)}
-              icon={faAt}
-            />
-
-            <Input
               label="Email of recipient"
               id="emailRecipient"
               type="email"
@@ -224,7 +211,18 @@ export default function Home() {
               placeholder='recipient@example.com'
               value={emailRecipient}
               onChange={(e) => setEmailRecipient(e.target.value)}
-              icon={faPaperPlane}
+              icon={faAt}
+            />
+
+            <Input
+              label="Password (optional)"
+              id="password"
+              type="password"
+              name="password"
+              placeholder='MySecretPassword'
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              icon={faKey}
             />
 
             {emailRecipient && <div className="flex flex-col col-span-1 md:col-span-2 lg:col-span-4 gap-1">
@@ -242,7 +240,7 @@ export default function Home() {
               </div>
             </div>}
 
-            <div className='col-span-1 md:col-span-2 lg:col-span-4 flex flex-wrap justify-between border-t-2 border-zinc-300 dark:border-zinc-700 pt-4 mt-2'>
+            <div className='col-span-1 md:col-span-2 lg:col-span-4 flex flex-wrap justify-between border-t-2 border-zinc-200 dark:border-zinc-700 pt-4'>
               <div className='flex flex-col w-full'>
                 <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Selected File{fileMeta.length > 1 ? 's' : ''} ({fileMeta.length})</h3>
                 <div className='space-y-3 mt-3'>
@@ -289,17 +287,6 @@ export default function Home() {
                 </div>
               </div>
 
-              <Input
-                label="Password (optional)"
-                id="password"
-                type="password"
-                name="password"
-                placeholder='Set a password to protect the file'
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                icon={faKey}
-                divClass='w-full'
-              />
 
               <div className='w-full mt-4 flex gap-2'>
                 <button

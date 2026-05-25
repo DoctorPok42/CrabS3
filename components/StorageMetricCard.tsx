@@ -27,7 +27,7 @@ export const StorageMetricCard = ({ title, value, icon, color, subtitle }: Stora
           <p className="text-2xl font-bold mt-2">{value}</p>
           {subtitle && <p className="text-xs opacity-75 mt-1">{subtitle}</p>}
         </div>
-        <FontAwesomeIcon icon={icon} size="2x" opacity={0.7} />
+        <FontAwesomeIcon icon={icon} size="xl" opacity={0.7} />
       </div>
     </div>
   )

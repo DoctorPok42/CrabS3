@@ -127,7 +127,7 @@ const LogsPage = () => {
 
           <button
             onClick={() => setPage(1)}
-            className="col-span-1 md:col-span-1 lg:col-span-2 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition duration-300 mt-7 cursor-pointer"
+            className="col-span-1 md:col-span-1 lg:col-span-2 h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md transition duration-300 mt-7 cursor-pointer"
           >
             Apply
           </button>

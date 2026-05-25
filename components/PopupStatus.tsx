@@ -54,7 +54,7 @@ const PopupStatus = ({ message, data, type, fileId, uploading, progress, fileMet
   }
 
   return (
-    <div className={`lg:w-150 w-full -mb-16 ${fileMeta && fileMeta.length > 0 ? '' : 'mt-4'} p-4 flex flex-col border-2 rounded-xl ${CLASS_NAMES[status?.type || 'info']}`}>
+    <div className={`lg:w-150 w-full mb-4 ${fileMeta && fileMeta.length > 0 ? '' : 'mt-4'} p-4 flex flex-col border-2 rounded-xl ${CLASS_NAMES[status?.type || 'info']}`}>
       <div className="flex justify-between items-center">
         <p>{status?.message}</p>
         {uploading && <span className="text-sm font-semibold">{status?.progress}%</span>}

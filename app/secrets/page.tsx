@@ -64,7 +64,7 @@ const SecretPage = () => {
         />
       )}
 
-      <div style={{ ['--shadow-color' as string]: '#f59e0baa' }} className={`inputShadow lg:w-150 w-full mt-20 h-[30vh] my-auto p-2 rounded-3xl flex items-center justify-center border-zinc-200 dark:border-zinc-700 border-2 cursor-pointer group hover:border-yellow-600 focus-within:border-yellow-600 bg-zinc-50 dark:bg-zinc-900 transition duration-300`}>
+      <div style={{ ['--shadow-color' as string]: '#f59e0baa' }} className={`inputShadow lg:w-150 w-full ${secret ? '' : 'mt-10'} h-[30vh] my-auto p-2 rounded-3xl flex items-center justify-center border-zinc-200 dark:border-zinc-700 border-2 cursor-pointer group hover:border-yellow-600 focus-within:border-yellow-600 bg-zinc-50 dark:bg-zinc-900 transition duration-300`}>
         <div className={`rounded-2xl w-full h-full flex items-center justify-center border-dashed border-zinc-200 dark:border-zinc-700 border-2 group-hover:border-yellow-500 dark:group-hover:border-yellow-800 focus-within:border-yellow-500 dark:focus-within:border-yellow-800 transition duration-300`}>
           <textarea
             value={secret}
