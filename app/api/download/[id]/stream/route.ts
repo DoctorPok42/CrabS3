@@ -9,6 +9,7 @@ import os from "node:os";
 import { sendAllActiveCommunications } from "@/lib/webhook";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
+import { getIp } from "@/lib/ip";
 
 const ARCHIVE_TYPE = os.platform() === "win32" ? "zip" : "tar";
 
@@ -66,7 +67,7 @@ export async function GET(
       try {
         const files = await prisma.files.findMany({
           where: { folder_id: folderId },
-          select: { id: true, folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true, user_id: true },
+          select: { id: true, folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true, user_id: true, infected: true, scanned_at: true },
         });
 
         if (files.length === 0) {
@@ -113,6 +114,16 @@ export async function GET(
           });
 
           for (const file of files) {
+            if (file.infected || !file.scanned_at) {
+              await log({
+                level: LogLevel.WARN,
+                action: LogAction.DOWNLOAD,
+                message: `Skipping file during ZIP creation — ${file.infected ? "infected" : "pending scan"}: ${file.filename}`,
+                meta: { folderId, fileId: file.id, filename: file.filename, status: file.infected ? "infected" : "pending_scan" }
+              });
+              continue;
+            }
+
             try {
               const fileData = await getFileData(folderId, file.id);
               if (fileData?.Body) {
@@ -172,9 +183,9 @@ export async function GET(
 
           await log({
             action: LogAction.DOWNLOAD,
-            message: `Folder ${folderId} downloaded with ${files.length} files`,
+            message: `Folder ${folderId} downloaded with ${files.filter(f => !f.infected && f.scanned_at).length} files`,
             userId: files[0].user_id || undefined,
-            meta: { folderId, fileCount: files.length, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+            meta: { folderId, fileCount: files.length, ip: getIp(request) },
           });
         })();
 
@@ -204,7 +215,7 @@ export async function GET(
     try {
       file = await prisma.files.findUnique({
         where: { id: fileId },
-        select: { folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true, user_id: true },
+        select: { folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true, user_id: true, infected: true, scanned_at: true },
       });
 
       if (!file) {
@@ -224,6 +235,38 @@ export async function GET(
         if (!isPasswordValid) {
           return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
+      }
+
+      if (file.infected) {
+        (async () => {
+          await log({
+            level: LogLevel.WARN,
+            action: LogAction.DOWNLOAD,
+            message: `Download blocked — infected file: ${file.filename}`,
+            meta: { folderId, fileId, ip: getIp(request) }
+          });
+        })();
+
+        return Response.json(
+          { error: "This file has been removed for security reasons." },
+          { status: 410 }
+        );
+      }
+
+      if (!file.scanned_at && !file.infected) {
+        (async () => {
+          await log({
+            level: LogLevel.WARN,
+            action: LogAction.DOWNLOAD,
+            message: "Download attempted before security scan completed",
+            meta: { folderId, fileId, ip: getIp(request) }
+          });
+        })();
+
+        return Response.json(
+          { error: "File is pending security scan, please retry in a few seconds." },
+          { status: 202 }
+        );
       }
     } catch (error) {
       if (error instanceof Error && error.name === "NoSuchKey") {
@@ -301,7 +344,7 @@ export async function GET(
           action: LogAction.DOWNLOAD,
           message: `File ${metadata.filename} downloaded`,
           userId: file.user_id || undefined,
-          meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+          meta: { folderId, fileId, ip: getIp(request) },
         });
       } catch (error) {
         console.error("Post-download operations failed:", error);

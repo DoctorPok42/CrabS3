@@ -1,7 +1,7 @@
 "use client"
 
 import { Input } from "@/components"
-import { faCloudArrowDown, faKey, faShieldAlt } from "@fortawesome/free-solid-svg-icons"
+import { faBug, faCloudArrowDown, faKey, faShieldAlt } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -22,6 +22,8 @@ export default function Id() {
       size: number
       maxDownloads: number | null
       downloadCount: number
+      infectedBy: string | null
+      scannedAt: Date | null
     }>
   } | null>(null)
 
@@ -56,7 +58,7 @@ export default function Id() {
           throw new Error("Incorrect password")
 
         const errorData = await validationResponse.json()
-        throw new Error(`Error: ${validationResponse.status} ${errorData.error || validationResponse.statusText}`)
+        throw new Error(`Error: ${errorData.error || validationResponse.statusText}`)
       }
 
       let count = 0
@@ -95,11 +97,9 @@ export default function Id() {
       clearInterval(interval)
       const isZip = !fileId && fileInfo && fileInfo.files.length > 1
       setNotif({ type: "success", message: `${isZip ? "Archive" : "File"}${(fileId && fileInfo?.files.length === 1) ? '' : 's'} will start downloading shortly.` })
-      setTimeout(() => setNotif(null), 3000)
     } catch (err) {
       console.error('Error downloading file:', err)
       setNotif({ type: "error", message: err instanceof Error ? err.message : "Failed to download file" })
-      setTimeout(() => setNotif(null), 3000)
     } finally {
       setIsDownloading(false)
     }
@@ -118,7 +118,6 @@ export default function Id() {
       } catch (err) {
         console.error('Error checking file:', err)
         setNotif({ type: "error", message: err instanceof Error ? err.message : "Failed to check file" })
-        setTimeout(() => setNotif(null), 3000)
       } finally {
         setIsLoading(false)
       }
@@ -162,6 +161,12 @@ export default function Id() {
                   Unlimited Downloads
                 </span>
               )}
+              {fileInfo.files.some((f) => f.infectedBy !== null) && (
+                <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-3 py-1 rounded-full text-xs font-bold">
+                  <FontAwesomeIcon icon={faBug} size="xs" />
+                  Infected: {fileInfo.files.find((f) => f.infectedBy !== null)?.infectedBy}
+                </span>
+              )}
             </div>
           </div>
 
@@ -195,7 +200,7 @@ export default function Id() {
                           : (file.size / 1024).toFixed(2) + ' KB'}
                     </td>
                     <td className="px-4 py-3">
-                      {fileInfo.files.length > 1 && (
+                      {(fileInfo.files.length > 1 && !file.infectedBy) && (
                         <button
                           onClick={() => downloadFile(file.id)}
                           disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}

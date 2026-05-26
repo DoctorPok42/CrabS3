@@ -23,6 +23,14 @@ services:
     environment:
       - CLAMAV_NO_FRESHCLAMD=false
       - CLAMAV_NO_CLAMD=false
+      - CLAMD_CONF_ScanArchive=true
+      - CLAMD_CONF_ScanOLE2=true
+      - CLAMD_CONF_ScanPDF=true
+      - CLAMD_CONF_ScanXMLDOCS=true
+      - CLAMD_CONF_MaxRecursion=10
+      - CLAMD_CONF_MaxFileSize=104857600
+      - CLAMD_CONF_MaxScanSize=419430400
+      - CLAMD_CONF_AlertBrokenExecutables=true
     volumes:
       - clamav_data:/var/lib/clamav
     networks:

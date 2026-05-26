@@ -1,3 +1,4 @@
+import { getIp } from "@/lib/ip";
 import prisma from "@/lib/prisma";
 import { log } from "@/services/log.service";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
@@ -26,7 +27,7 @@ export async function POST(
       if (fileId) {
         const file = await prisma.files.findUnique({
           where: { id: fileId },
-          select: { folder_id: true, password_hash: true, filename: true, size: true, max_downloads: true, download_count: true, expires_at: true },
+          select: { folder_id: true, password_hash: true, filename: true, size: true, max_downloads: true, download_count: true, expires_at: true, scanned_at: true, infected: true },
         });
 
         if (!file) {
@@ -46,10 +47,30 @@ export async function POST(
           await log({
             action: LogAction.FILE_EXPIRED,
             message: `File ${file.filename} has expired and was deleted`,
-            meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+            meta: { folderId, fileId, ip: getIp(request) },
           })
 
           return Response.json({ error: "File has expired" }, { status: 410 });
+        }
+
+        if (file.infected) {
+          await log({
+            level: LogLevel.WARN,
+            action: LogAction.DOWNLOAD,
+            message: `Download blocked — infected file: ${file.filename}`,
+            meta: { folderId, fileId, ip: getIp(request) }
+          });
+          return Response.json(
+            { error: "This file has been removed for security reasons." },
+            { status: 411 }
+          );
+        }
+
+        if (!file.scanned_at && !file.infected) {
+          return Response.json(
+            { error: "File is pending security scan, please retry in a few seconds." },
+            { status: 202 }
+          );
         }
 
         if (file.max_downloads !== null && file.download_count! >= file.max_downloads) {

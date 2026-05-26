@@ -28,6 +28,8 @@ export async function GET(request: Request) {
         expires_at: true,
         download_count: true,
         max_downloads: true,
+        infected_by: true,
+        scanned_at: true
       },
     })
 
@@ -44,7 +46,9 @@ export async function GET(request: Request) {
       filename: file.filename,
       size: Number(file.size),
       maxDownloads: file.max_downloads,
-      downloadCount: file.download_count
+      downloadCount: file.download_count,
+      infectedBy: file.infected_by,
+      scannedAt: file.scanned_at
     }));
 
     return Response.json({

@@ -8,6 +8,11 @@ import { LogAction, LogLevel } from "@/types/log.types";
 const CLAMAV_HOST = process.env.CLAMAV_HOST || "localhost";
 const CLAMAV_PORT = Number.parseInt(process.env.CLAMAV_PORT || "3310");
 
+function sanitizeString(str: string | null) {
+  if (!str) return null;
+  return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+}
+
 async function scanBuffer(buffer: Buffer): Promise<{ isInfected: boolean; virus: string | null }> {
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
@@ -97,6 +102,7 @@ export async function handleScanResult(
   try {
     result = await scanBuffer(buffer);
   } catch (err) {
+    console.error(`ClamAV scan failed for "${filename}": ${(err as Error).message}`);
     await log({
       level: LogLevel.ERROR,
       action: LogAction.UPLOAD,
@@ -108,12 +114,13 @@ export async function handleScanResult(
   }
 
   if (result.isInfected) {
+    const sanitizedVirus = sanitizeString(result.virus);
     await log({
       level: LogLevel.ERROR,
       action: LogAction.UPLOAD,
-      message: `Virus detected in "${filename}": ${result.virus}`,
+      message: `Virus detected in "${filename}": ${sanitizedVirus}`,
       userId,
-      meta: { folderId, fileId, filename, ip, virus: result.virus },
+      meta: { folderId, fileId, ip, filename, virus: sanitizedVirus },
     });
 
     await Promise.allSettled([
@@ -129,7 +136,7 @@ export async function handleScanResult(
 
     await prisma.files.update({
       where: { id: fileId },
-      data: { infected: true, infected_by: result.virus ?? "unknown" },
+      data: { infected: true, infected_by: sanitizedVirus ?? "unknown" },
     });
   } else {
     await prisma.files.update({

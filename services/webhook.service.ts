@@ -23,7 +23,8 @@ class WebHookService {
   private readonly colorStatusMap: Record<string, number> = {
     "file uploaded": 0x1abc9c,
     "file downloaded": 0x9b59b6,
-    "file deleted": 0xe74c3c,
+    "file deleted": 0xe67e22,
+    "virus detected": 0xe74c3c,
   };
 
   private static instance: WebHookService;
