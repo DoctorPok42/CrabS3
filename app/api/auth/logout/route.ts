@@ -1,4 +1,5 @@
 import { deleteSession } from "@/lib/auth";
+import { getIp } from "@/lib/ip";
 import { log } from "@/services/log.service";
 import { LogAction } from "@/types/log.types";
 
