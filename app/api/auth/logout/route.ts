@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     action: LogAction.AUTH_LOGOUT,
     message: "User logged out",
     userId: Number(request.headers.get("x-user-id")) || undefined,
-    meta: { ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+    meta: { ip: getIp(request) },
   });
 
   return Response.json({ success: true });

@@ -11,6 +11,7 @@ import { sendAllActiveCommunications } from "@/lib/webhook";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { handleScanResult } from "@/services/clamav.service";
+import { getIp } from "@/lib/ip";
 
 export async function POST(request: Request) {
   const { fileId, folderId, uploadId, parts, metadata } = await request.json();
@@ -164,7 +165,7 @@ export async function POST(request: Request) {
     action: LogAction.UPLOAD,
     message: `File ${metadata.filename} uploaded`,
     userId: session.userId,
-    meta: { folderId, fileId, size: Number.parseInt(metadata.size), maxDownloads: metadata.maxDownloads, hasPassword: !!metadata.password, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+    meta: { folderId, fileId, size: Number.parseInt(metadata.size), maxDownloads: metadata.maxDownloads, hasPassword: !!metadata.password, ip: getIp(request) },
   });
 
   const ServerResponse = Response.json({
@@ -202,7 +203,7 @@ export async function POST(request: Request) {
 
   (async () => {
     try {
-      await handleScanResult(folderId, fileId, metadata.filename, session.userId, request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined);
+      await handleScanResult(folderId, fileId, metadata.filename, session.userId, getIp(request));
     } catch (error) {
       console.error("Failed to handle scan result:", error instanceof Error ? error.message : String(error));
     }

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { sendInvitationEmail } from "@/services/mail.service";
 import { log } from "@/services/log.service";
 import { LogAction } from "@/types/log.types";
+import { getIp } from "@/lib/ip";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
     action: LogAction.ADMIN_ACTION,
     message: `Invitation sent to ${email}`,
     userId: session.userId,
-    meta: { email, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+    meta: { email, ip: getIp(request) },
   });
 
   return Response.json({ success: true });

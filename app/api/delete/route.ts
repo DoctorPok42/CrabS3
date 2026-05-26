@@ -4,6 +4,7 @@ import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { getSession } from "@/lib/auth"
 import { log } from "@/services/log.service"
 import { LogAction, LogLevel } from "@/types/log.types"
+import { getIp } from "@/lib/ip"
 
 export async function DELETE(request: Request) {
   try {
@@ -61,7 +62,7 @@ export async function DELETE(request: Request) {
       action: LogAction.DELETE,
       message: `File ${file.filename} deleted`,
       userId: session.userId,
-      meta: { folderId, fileId, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+      meta: { folderId, fileId, ip: getIp(request) },
     })
 
     return new Response(JSON.stringify({ message: 'File deleted successfully' }), { status: 200 })

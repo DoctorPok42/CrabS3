@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma"
 import bcrypt from "bcrypt"
 import { log } from "@/services/log.service"
 import { LogAction, LogLevel } from "@/types/log.types"
+import { getIp } from "@/lib/ip"
 
 export async function POST(request: Request) {
   const { content, expiresAt, maxViews, password } = await request.json()
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
       action: LogAction.UPLOAD,
       message: "Secret created",
       userId: session.userId,
-      meta: { secretId: secret.id, expiresAt, maxViews, hasPassword: !!password, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+      meta: { secretId: secret.id, expiresAt, maxViews, hasPassword: !!password, ip: getIp(request) },
     })
 
     return new Response(JSON.stringify({ id: secret.id }), { status: 201 })

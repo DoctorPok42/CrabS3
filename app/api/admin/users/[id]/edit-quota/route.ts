@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import { getIp } from "@/lib/ip";
 import prisma from "@/lib/prisma";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
@@ -38,7 +39,7 @@ export async function PUT(request: Request) {
       action: LogAction.ADMIN_ACTION,
       message: `Admin updated quota for user ${id} to ${quota} bytes`,
       userId: session.user.id,
-      meta: { targetUserId: id, quota, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || undefined },
+      meta: { targetUserId: id, quota, ip: getIp(request) },
     });
 
     return Response.json({ message: "Quota updated successfully", quota: user.quota.toString() });
