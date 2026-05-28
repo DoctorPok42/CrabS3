@@ -143,7 +143,7 @@ export default function Id() {
           <div className="flex flex-col gap-2">
             <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Files Available</h2>
             <div className="flex flex-wrap gap-4 items-center">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">{fileInfo.files.length} file{fileInfo.files.length > 1 ? 's' : ''} ready for download</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">{fileInfo.files.filter((f) => !f.infectedBy).length} file{fileInfo.files.filter((f) => !f.infectedBy).length > 1 ? 's' : ''} ready for download</p>
               {fileInfo.files.some((f) => f.hasPassword) && (
                 <span className="inline-flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-semibold">
                   <FontAwesomeIcon icon={faKey} size="xs" />
@@ -187,10 +187,16 @@ export default function Id() {
                   <tr
                     key={file.id}
                     className={`border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'
-                      }`}
+                      } ${file.infectedBy ? 'opacity-70' : ''}`}
                   >
                     <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200 font-medium truncate max-w-xs" title={file.filename}>
                       {file.filename}
+                      {file.infectedBy && (
+                        <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full text-xs font-bold ml-2">
+                          <FontAwesomeIcon icon={faBug} size="xs" />
+                          Infected: {file.infectedBy}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200">
                       {file.size > 1024 * 1024 * 1024

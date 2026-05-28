@@ -72,17 +72,19 @@ services:
       - SMTP_PASS=your_smtp_password
       - SMTP_FROM=CrabS3 Notifications <your_smtp_user>
 
+      - LOG_MIN_LEVEL=INFO
+
       - CLAMAV_HOST=clamav
       - CLAMAV_PORT=3310
     networks:
       - crabs3-network
       - mail-network # Connect to external mail network for sending emails
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 60s
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 20s
 
 networks:
   crabs3-network:
