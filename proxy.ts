@@ -14,6 +14,8 @@ const PUBLIC_ROUTES = [
   "/api/secret/check",
   "/api/secret/get",
   "/api/health",
+  "/api/services/upload",
+  "/api/services/download",
 ];
 
 export function proxy(request: NextRequest) {

@@ -16,6 +16,11 @@ model downloads {
   files         files?    @relation(fields: [file_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
+enum UploadType {
+  USER
+  SERVICE
+}
+
 model files {
   id             String      @id
   folder_id      String?
@@ -39,6 +44,9 @@ model files {
   scanned_at     DateTime?   @db.Timestamp(6)
   user           users?       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user_id        Int?
+  service        services?    @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  service_id     Int?
+  type           UploadType  @default(USER)
 }
 
 model secrets {
@@ -51,6 +59,8 @@ model secrets {
   password_hash  String?
   user_id        Int?
   user           users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  service_id     Int?
+  service        services? @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model multipart_uploads {
@@ -123,6 +133,11 @@ enum LogAction {
   USER_CREATED
   USER_DELETED
   ADMIN_ACTION
+  CREATE_SERVICE
+  DELETE_SERVICE
+  UPDATE_SERVICE
+  SERVICE_UPLOAD
+  SERVICE_DOWNLOAD
 }
 
 model logs {
@@ -139,6 +154,23 @@ model logs {
   @@index([action])
   @@index([created_at])
   @@index([user_id])
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model services {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  token       String    @unique
+  files       files[]
+  secrets     secrets[]
+  quota       BigInt    @default(10737418240) // 10 GB
+  status       ServiceStatus @default(ACTIVE)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
 }
 
 model users {

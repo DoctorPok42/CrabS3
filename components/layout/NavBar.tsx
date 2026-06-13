@@ -1,6 +1,6 @@
 "use client"
 
-import { faArrowRightFromBracket, faBroadcastTower, faCloudArrowUp, faDashboard, faFile, faLock, faRectangleList, faUserGear } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRightFromBracket, faBroadcastTower, faCircleNodes, faCloudArrowUp, faDashboard, faFile, faLock, faRectangleList, faUserGear } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,6 +33,7 @@ const NavBar = () => {
     { name: "Account", href: "/me", icon: faUserGear },
     {},
     { name: "Logs", href: "/logs", icon: faFile, adminOnly: true },
+    { name: "Services", href: "/services", icon: faCircleNodes, adminOnly: true },
     { name: "Admin", href: "/admin", icon: faDashboard, adminOnly: true },
     {
       name: "Logout", href: "", icon: faArrowRightFromBracket, color: "text-red-800", onClick: async () => {

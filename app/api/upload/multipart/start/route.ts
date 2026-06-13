@@ -3,6 +3,8 @@ import { CreateMultipartUploadCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { log } from "@/services/log.service";
+import { LogAction, LogLevel } from "@/types/log.types";
 
 export async function POST(request: Request) {
   try {
@@ -47,6 +49,15 @@ export async function POST(request: Request) {
       const quotaGB = Number(user.quota) / (1024 * 1024 * 1024);
       const usedGB = Number(currentUsage) / (1024 * 1024 * 1024);
       const fileGB = Number(fileSizeBytes) / (1024 * 1024 * 1024);
+      (async () => {
+        log({
+          level: LogLevel.WARN,
+          action: LogAction.UPLOAD,
+          message: `User ${session.userId} exceeded quota. Used: ${usedGB.toFixed(2)} GB, Quota: ${quotaGB.toFixed(2)} GB, File Size: ${fileGB.toFixed(2)} GB`,
+          userId: session.userId,
+        })
+      })();
+
       return Response.json(
         {
           error: `Exceeded quota. You have used ${usedGB.toFixed(2)} GB / ${quotaGB.toFixed(2)} GB. This file is ${fileGB.toFixed(2)} GB.`,
