@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     const service = await prisma.services.findUnique({
       where: { id: Number.parseInt(verifiedToken.id) },
-      select: { quota: true, id: true },
+      select: { quota: true, id: true, status: true },
     });
     if (!service) {
       return new Response("Service not found", { status: 404 });
@@ -59,6 +59,16 @@ export async function POST(request: Request) {
         `Exceeded quota. You have used ${usedGB.toFixed(2)} GB / ${quotaGB.toFixed(2)} GB. This file is ${fileGB.toFixed(2)} GB.`,
         { status: 413 }
       );
+    }
+
+    if (service.status !== "ACTIVE") {
+      log({
+        level: LogLevel.WARN,
+        action: LogAction.SERVICE_UPLOAD,
+        message: `Service ${verifiedToken.id} attempted to upload while inactive.`,
+        userId: Number.parseInt(verifiedToken.id),
+      });
+      return new Response("Service is not active", { status: 403 });
     }
 
     const fileId = randomUUID();
@@ -96,9 +106,9 @@ export async function POST(request: Request) {
 
     return new Response(
       JSON.stringify({
-        uploadUrl: url,
+        url,
         fileId,
-        folderId: folderId,
+        folderId,
       }),
       { status: 200 }
     );

@@ -17,12 +17,24 @@ export async function GET() {
         },
       },
     })
-    services.forEach((service: any) => {
+    services.forEach(async (service: any) => {
       service.files = service._count?.files || 0;
       service.secrets = service._count?.secrets || 0;
       service.quota = Number(service.quota);
       delete service._count;
+
+      service.totalFilesSize = await prisma.files.aggregate({
+        where: {
+          service_id: {
+            in: services.map((service) => service.id),
+          },
+        },
+        _sum: {
+          size: true,
+        },
+      });
     });
+
     return new Response(JSON.stringify(services), {
       status: 200,
     });

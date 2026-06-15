@@ -12,6 +12,7 @@ type Service = {
   quota: number
   files: number
   secrets: number
+  totalFilesSize: number
   created_at: string | Date
   token?: string
 }
@@ -174,7 +175,7 @@ const Services = () => {
                   <div className="flex gap-2 items-center border-b border-zinc-200 dark:border-zinc-700 pb-2">
                     <div className="w-fit flex gap-2 items-center py-2 px-3 bg-zinc-100 dark:bg-zinc-800 rounded-md mt-2">
                       <FontAwesomeIcon icon={faGauge} size="sm" className="text-[#9f6afe]" />
-                      <p className="text-zinc-500 dark:text-zinc-400 text-sm">Quota: {(service.quota / 1024 / 1024 / 1024).toFixed(2)} GB</p>
+                      <p className="text-zinc-500 dark:text-zinc-400 text-sm">Usage: {service.totalFilesSize && (service.totalFilesSize / 1024 / 1024 / 1024).toFixed(2) || 0} GB</p>
                     </div>
 
                     <div className="w-fit flex gap-2 items-center py-2 px-3 bg-zinc-100 dark:bg-zinc-800 rounded-md mt-2">
