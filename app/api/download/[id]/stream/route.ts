@@ -5,13 +5,10 @@ import bcrypt from "bcrypt";
 import { sendDownloadNotificationEmail } from "@/services/mail.service";
 import { ZipDeflate, Zip } from "fflate";
 import { PassThrough, Readable } from "node:stream";
-import os from "node:os";
 import { sendAllActiveCommunications } from "@/lib/webhook";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { getIp } from "@/lib/ip";
-
-const ARCHIVE_TYPE = os.platform() === "win32" ? "zip" : "tar";
 
 const getFileData = async (folderId: string, fileId: string) => {
   const key = `${folderId}/${fileId}`;
@@ -98,8 +95,8 @@ export async function GET(
 
         const response = new Response(webStream, {
           headers: {
-            "Content-Type": `application/${ARCHIVE_TYPE}`,
-            "Content-Disposition": `attachment; filename="${folderId}.${ARCHIVE_TYPE}"`,
+            "Content-Type": `application/zip`,
+            "Content-Disposition": `attachment; filename="${folderId}.zip"`,
           },
         });
 
