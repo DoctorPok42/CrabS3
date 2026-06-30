@@ -29,9 +29,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       suppressHydrationWarning
     >
-      <body className="h-screen flex">
+      <body className="min-h-screen flex max-w-450 mx-auto bg-white dark:bg-[#16171a]! text-black dark:text-white">
         <NavBar />
-        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#16171a]">
+        <div className=" mx-auto flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#16171a]">
           <div className="flex-1 overflow-y-auto flex items-center flex-col">
             {children}
             <Footer />
