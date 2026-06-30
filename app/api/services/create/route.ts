@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import { getIp } from "@/lib/ip";
 import { createTokenService } from "@/lib/service";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
         action: LogAction.CREATE_SERVICE,
         message: `Service ${service.name} created`,
         userId: session.user.id,
-        meta: { serviceId: service.id },
+        meta: { serviceId: service.id, ip: getIp(request) },
       });
     })();
     return new Response(JSON.stringify({ ...service, quota: Number(service.quota) }), {

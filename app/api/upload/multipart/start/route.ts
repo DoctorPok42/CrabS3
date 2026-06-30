@@ -89,6 +89,7 @@ export async function POST(request: Request) {
         content_type: contentType,
         folder_id: folderId,
         user_id: session.userId,
+        storage: "hot"
       },
     }).catch(console.error);
 
