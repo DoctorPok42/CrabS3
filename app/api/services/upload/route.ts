@@ -3,7 +3,7 @@ import { checkTokenService } from "@/lib/service";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { randomUUID } from "node:crypto";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
 
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
     const url = await getSignedUrl(
       s3Hot,
-      new GetObjectCommand({
+      new PutObjectCommand({
         Bucket: HOT_BUCKET,
         Key: `${folderId}/${fileId}`,
       }), {
