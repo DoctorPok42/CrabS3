@@ -78,6 +78,7 @@ export async function POST(request: Request) {
       new PutObjectCommand({
         Bucket: HOT_BUCKET,
         Key: `${folderId}/${fileId}`,
+        StorageClass: "EXPRESS_ONEZONE",
       }), {
       expiresIn: 3600,
     }
