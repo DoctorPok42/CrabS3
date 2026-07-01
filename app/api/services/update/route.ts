@@ -1,5 +1,8 @@
 import { getSession } from "@/lib/auth";
+import { getIp } from "@/lib/ip";
 import prisma from "@/lib/prisma";
+import { log } from "@/services/log.service";
+import { LogAction, LogLevel } from "@/types/log.types";
 
 export async function PUT(request: Request) {
   try {
@@ -16,6 +19,16 @@ export async function PUT(request: Request) {
       where: { id: Number(id) },
       data: { status },
     });
+
+    (async () => {
+      log({
+        level: LogLevel.INFO,
+        action: LogAction.UPDATE_SERVICE,
+        message: `Service status updated`,
+        userId: session.user.id,
+        meta: { serviceId: Number(id), status, ip: getIp(request) },
+      })
+    })();
 
     return new Response(JSON.stringify({ message: "Service status updated" }), {
       status: 200,

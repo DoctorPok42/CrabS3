@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import { getIp } from "@/lib/ip";
 import { deleteService } from "@/lib/service";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
@@ -26,7 +27,7 @@ export async function DELETE(request: Request) {
         action: LogAction.DELETE_SERVICE,
         message: `Service with ID ${id} deleted`,
         userId: session.user.id,
-        meta: { serviceId: id },
+        meta: { serviceId: id, ip: getIp(request) },
       });
     })();
 

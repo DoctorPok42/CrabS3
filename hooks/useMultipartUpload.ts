@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 
-const MAX_PARALLEL_CHUNKS = 4; // Upload multiple chunks in parallel for better performance
+const MAX_PARALLEL_CHUNKS = 3; // Upload multiple chunks in parallel for better performance
 
 function getChunkSize(fileSize: number): number {
   if (fileSize < 10 * 1024 * 1024) return fileSize; // < 10 MB - no chunking
@@ -144,6 +144,17 @@ export function useMultipartUpload() {
       uploadCount.current--;
 
       if (uploadCount.current === 0) {
+        const responseData = await fetch("/api/upload/multipart/finish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folderId }),
+        });
+
+        if (!responseData.ok) {
+          const errorData = await responseData.json();
+          setError(errorData.error || "Failed to finalize upload");
+        }
+
         setProgress(100);
         setUploading(false);
       }
@@ -201,7 +212,7 @@ function uploadChunk(
 
       xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
-          onProgress(Math.round((e.loaded / e.total) * 100));
+          onProgress(Math.round((e.loaded / e.total) * 100 * (0.9 + Math.random() * 0.1)));
         }
       });
 

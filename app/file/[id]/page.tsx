@@ -1,8 +1,9 @@
 "use client"
 
-import { Input } from "@/components"
+import { Button, Input } from "@/components"
 import { faBug, faCloudArrowDown, faKey, faShieldAlt } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import Head from "next/head"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
@@ -128,6 +129,9 @@ export default function Id() {
 
   return (
     <main className="my-auto w-full max-w-7xl flex flex-col items-center md:px-16 px-6">
+      <Head>
+        <title>Download File - {fileInfo?.files.length === 1 ? fileInfo.files[0].filename : 'Multiple Files'}</title>
+      </Head>
       <h1 className="text-2xl mt-10 font-bold text-center">
         Download File
       </h1>
@@ -139,11 +143,19 @@ export default function Id() {
       ) : null}
 
       {fileInfo?.exists && (
-        <div className="w-full mt-4 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 gap-6">
+        <div className="w-full mt-4 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow-lg dark:shadow-zinc-600 dark:bg-zinc-900 gap-6">
           <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Files Available</h2>
-            <div className="flex flex-wrap gap-4 items-center">
+            <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">File{fileInfo.files.length > 1 ? 's' : ''} Available</h2>
+            <div className="flex flex-wrap gap-x-4 gap-y-2 items-center">
               <p className="text-sm text-zinc-500 dark:text-zinc-400">{fileInfo.files.filter((f) => !f.infectedBy).length} file{fileInfo.files.filter((f) => !f.infectedBy).length > 1 ? 's' : ''} ready for download</p>
+              <span className="inline-flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1 rounded-full text-xs font-semibold">
+                Total Size: {fileInfo.files.reduce((acc, file) => acc + file.size, 0) > 1024 * 1024 * 1024
+                  ? (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+                  : fileInfo.files.reduce((acc, file) => acc + file.size, 0) > 1024 * 1024
+                    ? (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / (1024 * 1024)).toFixed(2) + ' MB'
+                    : (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / 1024).toFixed(2) + ' KB'}
+              </span>
+
               {fileInfo.files.some((f) => f.hasPassword) && (
                 <span className="inline-flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-semibold">
                   <FontAwesomeIcon icon={faKey} size="xs" />
@@ -168,9 +180,32 @@ export default function Id() {
                 </span>
               )}
             </div>
+
           </div>
 
-          <div className="overflow-x-auto w-full max-h-90 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg">
+
+          <button
+            onClick={() => downloadFile()}
+            disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}
+            className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg cursor-pointer transition"
+          >
+            Download {fileInfo.files.length > 1 ? 'All Files' : 'File'}
+          </button>
+
+          {notif && (
+            <div
+              className={`p-4 rounded-lg lg:text-left text-center ${notif.type === 'error'
+                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                : notif.type === 'success'
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                }`}
+            >
+              {notif.message}
+            </div>
+          )}
+
+          <div className="max-h-90 overflow-x-hidden w-full border border-zinc-200 dark:border-zinc-700 rounded-lg">
             <table className="w-full text-xs sm:text-sm">
               <thead className="bg-zinc-100 dark:bg-zinc-800 sticky top-0">
                 <tr className="border-b border-zinc-200 dark:border-zinc-700">
@@ -178,18 +213,18 @@ export default function Id() {
                     <FontAwesomeIcon icon={faCloudArrowDown} className="mr-2 text-zinc-500 dark:text-zinc-400" />
                     Filename
                   </th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Size</th>
+                  <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300 hidden lg:block">Size</th>
                   <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Action</th>
                 </tr>
               </thead>
-              <tbody className="shadow-inner shadow-zinc-100 dark:shadow-zinc-700">
+              <tbody className="w-full shadow-inner shadow-zinc-100 dark:shadow-zinc-700">
                 {fileInfo.files.map((file, index) => (
                   <tr
                     key={file.id}
-                    className={`border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'
+                    className={`w-full flex lg:table-row border-b border-zinc-200  dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'
                       } ${file.infectedBy ? 'opacity-70' : ''}`}
                   >
-                    <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200 font-medium truncate max-w-xs" title={file.filename}>
+                    <td className="lg:w-[85%] w-[70%] px-4 py-3 text-zinc-700 dark:text-zinc-200 font-medium truncate" title={file.filename}>
                       {file.filename}
                       {file.infectedBy && (
                         <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full text-xs font-bold ml-2">
@@ -198,21 +233,27 @@ export default function Id() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-zinc-700 dark:text-zinc-200">
+                    <td className="px-4 py-3 hidden lg:block truncate text-zinc-700 dark:text-zinc-200">
                       {file.size > 1024 * 1024 * 1024
                         ? (file.size / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
                         : file.size > 1024 * 1024
                           ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
                           : (file.size / 1024).toFixed(2) + ' KB'}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 w-1/3">
                       {(fileInfo.files.length > 1 && !file.infectedBy) && (
                         <button
                           onClick={() => downloadFile(file.id)}
                           disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}
                           className="text-blue-500 hover:text-blue-700 hover:underline disabled:text-gray-400 disabled:cursor-not-allowed font-medium cursor-pointer transition"
                         >
-                          Download
+                          <span className="hidden lg:flex">Download</span>
+                          <Button
+                            icon={faCloudArrowDown}
+                            variant="primary"
+                            divClass="lg:hidden"
+                            onClick={() => downloadFile(file.id)}
+                          />
                         </button>
                       )}
                     </td>
@@ -235,27 +276,6 @@ export default function Id() {
               onKeyDown={(e) => e.key === "Enter" && downloadFile()}
               divClass="w-full"
             />
-          )}
-
-          <button
-            onClick={() => downloadFile()}
-            disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}
-            className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg cursor-pointer transition"
-          >
-            Download {fileInfo.files.length > 1 ? 'All Files' : 'File'}
-          </button>
-
-          {notif && (
-            <div
-              className={`p-4 rounded-lg ${notif.type === 'error'
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                : notif.type === 'success'
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                }`}
-            >
-              {notif.message}
-            </div>
           )}
         </div>
       )}

@@ -1,6 +1,9 @@
+import { getIp } from "@/lib/ip";
 import prisma from "@/lib/prisma";
 import { checkTokenService } from "@/lib/service";
+import { log } from "@/services/log.service";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
+import { LogAction, LogLevel } from "@/types/log.types";
 import { GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -9,6 +12,14 @@ export async function GET(request: Request) {
     const token = request.headers.get("Authorization")?.replace("Bearer ", "");
     const verifiedToken = await checkTokenService(token || "");
     if (!verifiedToken) {
+      (async () => {
+        log({
+          level: LogLevel.WARN,
+          action: LogAction.SERVICE_DOWNLOAD,
+          message: `Unauthorized download attempt`,
+          meta: { ip: getIp(request) }
+        })
+      })();
       return new Response("Unauthorized", { status: 401 });
     }
 
@@ -29,10 +40,30 @@ export async function GET(request: Request) {
     }
 
     if (linkType === "url") {
+      (async () => {
+        log({
+          level: LogLevel.INFO,
+          action: LogAction.SERVICE_DOWNLOAD,
+          message: `Service with ID ${verifiedToken.id} downloaded files from folder ${folerId}`,
+          userId: Number.parseInt(verifiedToken.id),
+          meta: { folderId: folerId, downloadType: linkType, ip: getIp(request) }
+        })
+      })();
+
       return Response.json({
         url: process.env["BASE_URL"] + `/files/${folerId}`,
       });
     } else if (linkType === "direct") {
+      (async () => {
+        log({
+          level: LogLevel.INFO,
+          action: LogAction.SERVICE_DOWNLOAD,
+          message: `Service with ID ${verifiedToken.id} downloaded files from folder ${folerId}`,
+          userId: Number.parseInt(verifiedToken.id),
+          meta: { folderId: folerId, downloadType: linkType, ip: getIp(request) }
+        })
+      })();
+
       const s3Objects = await s3Hot.send(
         new ListObjectsV2Command({
           Bucket: HOT_BUCKET,
@@ -68,6 +99,17 @@ export async function GET(request: Request) {
       )
 
       return Response.json({ files });
+    } else {
+      (async () => {
+        log({
+          level: LogLevel.WARN,
+          action: LogAction.SERVICE_DOWNLOAD,
+          message: `Invalid link type: ${linkType}`,
+          userId: Number.parseInt(verifiedToken.id),
+          meta: { folderId: folerId, downloadType: linkType, ip: getIp(request) }
+        })
+      })();
+      return new Response("Invalid link type", { status: 400 });
     }
   } catch (error) {
     console.error(error);

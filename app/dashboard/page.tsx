@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faBug, faCheckCircle, faKey, faTimesCircle } from "@fortawesome/free-solid-svg-icons"
+import { Button } from "@/components"
 
 const DashboardPage = () => {
   const [dashboardData, setDashboardData] = useState<{
@@ -28,6 +29,7 @@ const DashboardPage = () => {
   } | null>(null)
   const [page, setPage] = useState<number>(1)
   const [totalPages, setTotalPages] = useState<number>(0)
+  const [type, setType] = useState<"active" | "expired">("active")
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -85,6 +87,11 @@ const DashboardPage = () => {
     }
   }
 
+  const handleChangeType = (newType: "active" | "expired") => {
+    setType(newType)
+    setPage(1)
+  }
+
   return (
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full flex flex-col">
@@ -93,162 +100,179 @@ const DashboardPage = () => {
         <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
       </div>
 
+      <div className="p-1 flex gap-1 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 text-sm font-medium max-w-6xl">
+        <div className={`px-12 py-1 font-bold cursor-pointer transition rounded-sm ${type === "active" && "bg-teal-500 text-white"}`} onClick={() => handleChangeType("active")}>
+          Active
+        </div>
+        <div className={`px-12 py-1 font-bold cursor-pointer transition rounded-sm ${type === "expired" && "bg-teal-500 text-white"}`} onClick={() => handleChangeType("expired")}>
+          Expired
+        </div>
+      </div>
+
       {dashboardData === null && (
         <div className="w-full max-w-2xl flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl p-8 bg-white dark:bg-zinc-900 transition duration-300">
           <p className="text-center text-zinc-600 dark:text-zinc-400">Loading your files...</p>
         </div>
       )}
 
-      {dashboardData && dashboardData.files.length > 0 && (
-        <div className="w-full flex flex-col gap-4 max-w-6xl">
-          {Object.entries(
-            dashboardData.files.reduce((acc, file) => {
-              const folderId = file.folder_id || 'unknown'
-              if (!acc[folderId]) acc[folderId] = []
-              acc[folderId].push(file)
-              return acc
-            }, {} as Record<string, typeof dashboardData.files>)
-          ).map(([folderId, folderFiles]) => {
-            const isFileExpired = (file: typeof folderFiles[0]) => {
-              const isDateExpired = new Date(file.expires_at) < new Date()
-              const isDownloadLimitReached = file.max_downloads !== null && file.download_count >= file.max_downloads
-              return isDateExpired || isDownloadLimitReached
-            }
+      {
+        dashboardData && dashboardData.files.length > 0 && (
+          <div className="w-full flex flex-col gap-4 max-w-6xl">
+            {Object.entries(
+              dashboardData.files.reduce((acc, file) => {
+                const folderId = file.folder_id || 'unknown'
+                if (!acc[folderId]) acc[folderId] = []
+                acc[folderId].push(file)
+                return acc
+              }, {} as Record<string, typeof dashboardData.files>)
+            ).map(([folderId, folderFiles]) => {
+              const isFileExpired = (file: typeof folderFiles[0]) => {
+                const isDateExpired = new Date(file.expires_at) < new Date()
+                const isDownloadLimitReached = file.max_downloads !== null && file.download_count >= file.max_downloads
+                return isDateExpired || isDownloadLimitReached
+              }
 
-            const isFolderExpired = folderFiles.every(file => isFileExpired(file))
-            const hasPassword = folderFiles[0]?.password_hash !== null
+              const isFolderExpired = folderFiles.every(file => isFileExpired(file))
+              const hasPassword = folderFiles[0]?.password_hash !== null
 
-            return (
-              <div key={folderId} className="flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 bg-white dark:bg-zinc-900 transition duration-300">
-                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-6">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{folderId === 'unknown' ? 'Ungrouped Files' : folderId}</h3>
-                  </div>
+              if (type === "active" && isFolderExpired) return null
+              if (type === "expired" && !isFolderExpired) return null
 
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {hasPassword && (
-                      <div className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-sm font-medium px-3 py-1.5 rounded-lg">
-                        <FontAwesomeIcon icon={faKey} size="xs" />
-                        <span>Protected</span>
-                      </div>
-                    )}
-                    <div className={`flex items-center text-sm font-medium px-3 py-1.5 rounded-lg ${isFolderExpired ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'}`}>
-                      <FontAwesomeIcon icon={isFolderExpired ? faTimesCircle : faCheckCircle} size="xs" className="mr-1" />
-                      {isFolderExpired ? 'Expired' : 'Active'}
+              return (
+                <div key={folderId} className="flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 bg-white dark:bg-zinc-900 transition duration-300">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-6">
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{folderId === 'unknown' ? 'Ungrouped Files' : folderId} | {folderFiles.length} file{folderFiles.length === 1 ? '' : 's'}</h3>
                     </div>
-                    {folderFiles[0].infected && (
-                      <div className="flex items-center text-sm font-medium px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                        <FontAwesomeIcon icon={faBug} size="xs" className="mr-1" />
-                        Infected
-                      </div>
-                    )}
-                  </div>
 
-                  {!isFolderExpired && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          const link = `${globalThis.location.origin}/file/${folderId}`
-                          navigator.clipboard.writeText(link).catch(() => {
-                            console.error('Error copying link')
-                          })
-                        }}
-                        className='text-sm cursor-pointer py-2 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-300'
-                      >
-                        Copy Link
-                      </button>
-                      <a
-                        href={`/file/${folderId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className='text-sm py-2 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 hover:border-green-500 hover:bg-green-100 dark:hover:bg-green-900 transition duration-300'
-                      >
-                        Open
-                      </a>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-3 mb-4">
-                  <h4 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Files ({folderFiles.length})</h4>
-                </div>
-
-                <div className="space-y-2">
-                  {folderFiles.map((file) => {
-                    const isExpired = isFileExpired(file)
-                    let bgClass = 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-
-                    if (isExpired) {
-                      bgClass = 'opacity-50 bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
-                    } else if (file.infected) {
-                      bgClass = 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30'
-                    }
-
-                    return (
-                      <div
-                        key={file.id}
-                        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border transition duration-200 ${bgClass}`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200 truncate">{file.filename}</p>
-                            {file.infected && (
-                              <span className="text-xs font-medium px-1.5 py-1 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400">
-                                <FontAwesomeIcon icon={faBug} size="xs" />
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-zinc-500 dark:text-zinc-400 flex gap-3">
-                            <span>{formatBytes(file.size)}</span>
-                            {file.max_downloads && (
-                              <>
-                                <span>•</span>
-                                <span>{file.download_count}/{file.max_downloads} downloads</span>
-                              </>
-                            )}
-                          </div>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {hasPassword && (
+                        <div className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-sm font-medium px-3 py-1.5 rounded-lg">
+                          <FontAwesomeIcon icon={faKey} size="xs" />
+                          <span>Protected</span>
                         </div>
-                        {!isFolderExpired && !file.infected && (
-                          <button
-                            onClick={() => handleDeleteFile(file.id, folderId)}
-                            className='text-sm text-red-500 hover:text-red-700 font-medium px-3 py-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition'
-                          >
-                            Delete
-                          </button>
-                        )}
+                      )}
+                      <div className={`flex items-center text-sm font-medium px-3 py-1.5 rounded-lg ${isFolderExpired ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'}`}>
+                        <FontAwesomeIcon icon={isFolderExpired ? faTimesCircle : faCheckCircle} size="xs" className="mr-1" />
+                        {isFolderExpired ? 'Expired' : 'Active'}
                       </div>
-                    )
-                  })}
+                      {folderFiles[0].infected && (
+                        <div className="flex items-center text-sm font-medium px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                          <FontAwesomeIcon icon={faBug} size="xs" className="mr-1" />
+                          Infected
+                        </div>
+                      )}
+                    </div>
+
+                    {!isFolderExpired && (
+                      <div className="flex gap-2">
+                        <Button
+                          text="Copy Link"
+                          onClick={() => {
+                            const link = `${globalThis.location.origin}/file/${folderId}`
+                            navigator.clipboard.writeText(link).catch(() => {
+                              console.error('Error copying link')
+                            })
+                          }}
+                        />
+
+                        <a
+                          href={`/file/${folderId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className='text-sm py-2 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 hover:border-green-500 hover:bg-green-100 dark:hover:bg-green-900 transition duration-300'
+                        >
+                          Open
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    {folderFiles.map((file) => {
+                      const isExpired = isFileExpired(file)
+                      let bgClass = 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+
+                      if (isExpired) {
+                        bgClass = 'opacity-50 bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
+                      } else if (file.infected) {
+                        bgClass = 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30'
+                      }
+
+                      return (
+                        <div
+                          key={file.id}
+                          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border transition duration-200 ${bgClass}`}
+                        >
+                          <div>
+                            <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-200 text-sm">
+                              <p className="text-sm font-medium truncate">{file.filename}</p>
+                              {file.infected && (
+                                <span className="text-xs font-medium px-1.5 py-1 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400">
+                                  <FontAwesomeIcon icon={faBug} size="xs" />
+                                </span>
+                              )}
+                              <span className="hidden lg:flex">•</span>
+                              <span className="hidden lg:flex" title={formatBytes(file.size)}>
+                                {formatBytes(file.size)}
+                              </span>
+                              {file.max_downloads && (
+                                <>
+                                  <span className="hidden lg:flex">•</span>
+                                  <span className="hidden lg:flex" title={`${file.download_count}/${file.max_downloads} downloads`}>
+                                    {file.download_count}/{file.max_downloads} downloads
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            <div className="text-sm text-zinc-500 dark:text-zinc-400 flex gap-3">
+                            </div>
+                          </div>
+                          {!isFolderExpired && !file.infected && (
+                            <Button
+                              text="Delete"
+                              variant="danger"
+                              onClick={() => handleDeleteFile(file.id, folderId)}
+                            />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+              )
+            })}
+          </div>
+        )
+      }
 
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-6">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-            <button
-              key={num}
-              onClick={() => setPage(num)}
-              className={`cursor-pointer px-3 py-1 rounded-md ${page === num ? 'bg-blue-500 text-white' : 'bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600'}`}
-            >
-              {num}
-            </button>
-          ))}
-        </div>
-      )}
+      {
+        totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-6">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+              <button
+                key={num}
+                onClick={() => setPage(num)}
+                className={`cursor-pointer px-3 py-1 rounded-md ${page === num ? 'bg-blue-500 text-white' : 'bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600'}`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+        )
+      }
 
-      {dashboardData?.files.length === 0 && (
-        <div className="w-full max-w-2xl flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl p-12 bg-white dark:bg-zinc-900 transition duration-300 text-center">
-          <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">You haven&apos;t uploaded any files yet.</p>
-          <Link href="/" className="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg transition w-fit mx-auto">
-            Start uploading
-          </Link>
-        </div>
-      )}
-    </main>
+      {
+        dashboardData?.files.length === 0 && (
+          <div className="w-full max-w-2xl flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl p-12 bg-white dark:bg-zinc-900 transition duration-300 text-center">
+            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">You haven&apos;t uploaded any files yet.</p>
+            <Link href="/" className="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg transition w-fit mx-auto">
+              Start uploading
+            </Link>
+          </div>
+        )
+      }
+    </main >
   )
 }
 
