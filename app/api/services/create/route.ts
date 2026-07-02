@@ -23,6 +23,7 @@ export async function POST(request: Request) {
         name: body.name,
         token: "",
         folder_id: folderId,
+        uuid: randomUUID(),
       },
     });
 
