@@ -1,9 +1,10 @@
 "use client"
 
-import { Input } from "@/components"
-import { faFileAlt, faGauge, faIdBadge, faKey } from "@fortawesome/free-solid-svg-icons"
+import { Button, Input } from "@/components"
+import { faFileAlt, faGauge, faKey } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { useDropzone } from "react-dropzone"
 
 type Service = {
   id: number
@@ -15,12 +16,15 @@ type Service = {
   totalFilesSize: number
   created_at: string | Date
   token?: string
+  image?: string
 }
 
 const Services = () => {
   const [services, setServices] = useState<Service[]>([])
   const [serviceName, setServiceName] = useState<string>("")
   const [loading, setLoading] = useState<boolean>(true)
+  const [invitationCode, setInvitationCode] = useState<string>("")
+  const [serviceId, setServiceId] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -109,6 +113,67 @@ const Services = () => {
     }
   }
 
+  const handleCreateInvitation = async (serviceId: number) => {
+    try {
+      const response = await fetch("/api/services/create/invite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ serviceId }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setInvitationCode(data.invitationCode)
+      } else {
+        const errorData = await response.json()
+        alert(`Error creating invitation: ${errorData.error}`)
+      }
+    } catch (error) {
+      console.error("Error creating invitation:", error)
+      alert("An error occurred while creating the invitation. Please try again.")
+    }
+  }
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    try {
+      if (serviceId === null) {
+        alert("Please select a service before uploading an image.")
+        return
+      }
+
+      console.log("Service ID for image upload:", serviceId)
+      const response = await fetch("/api/services/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: serviceId,
+          img: await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(acceptedFiles[0])
+          })
+        }),
+      })
+
+      if (response.ok) {
+        globalThis.location.reload()
+      } else {
+        const errorData = await response.json()
+        alert(`Error updating service image: ${errorData.error}`)
+      }
+    } catch (error) {
+      console.error("Error updating service image:", error)
+      alert("An error occurred while updating the service image. Please try again.")
+    }
+  }, [serviceId])
+
+  const { getRootProps, getInputProps } = useDropzone({ onDrop })
+
   return (
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full flex flex-col">
@@ -116,6 +181,22 @@ const Services = () => {
         <p className="text-zinc-500 dark:text-zinc-400">Manage your services and integrations with CrabS3.</p>
         <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
       </div>
+
+      {invitationCode && (
+        <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/50 dark:bg-black/50 z-50">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow-lg w-96">
+            <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300 mb-4">Invitation Code</h2>
+            <p className="text-zinc-500 dark:text-zinc-400 mb-4">Share this invitation code with others to allow them to join your service.</p>
+            <div className="flex items-center justify-center gap-2">
+              {invitationCode.split("").map((char, index) => (
+                <div key={index + char} className="px-4 py-2 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 rounded-md border border-zinc-300 dark:border-zinc-700 text-xl font-bold text-zinc-700 dark:text-zinc-300">
+                  {char}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="w-full flex flex-col gap-4">
         <div className="w-full flex flex-col gap-2 p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg">
@@ -172,7 +253,12 @@ const Services = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-2 items-center border-b border-zinc-200 dark:border-zinc-700 pb-2">
+                  <div className="flex flex-wrap gap-2 items-center border-b border-zinc-200 dark:border-zinc-700 pb-2">
+                    <div className="w-full">
+                      {service.image && (
+                        <img src={service.image} className="w-20 h-20 rounded-md object-cover" />
+                      )}
+                    </div>
                     <div className="w-fit flex gap-2 items-center py-2 px-3 bg-zinc-100 dark:bg-zinc-800 rounded-md mt-2">
                       <FontAwesomeIcon icon={faGauge} size="sm" className="text-[#9f6afe]" />
                       <p className="text-zinc-500 dark:text-zinc-400 text-sm">Usage: {service.totalFilesSize && (service.totalFilesSize / 1024 / 1024 / 1024).toFixed(2) || 0} GB</p>
@@ -190,6 +276,21 @@ const Services = () => {
                   </div>
 
                   <div className="flex gap-2 items-center">
+                    <Button
+                      text="Create Invitation"
+                      onClick={() => handleCreateInvitation(service.id)}
+                      divClass="rounded-md!"
+                    />
+
+                    <div {...getRootProps()}>
+                      <Button
+                        text="Upload Image"
+                        divClass="rounded-md!"
+                        onClick={() => setServiceId(service.id)}
+                      />
+                      <input {...getInputProps()} />
+                    </div>
+
                     <button
                       className="w-fit px-3 py-2 cursor-pointer bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-100 rounded-md text-sm font-medium hover:bg-yellow-200 dark:hover:bg-yellow-700 transition duration-300"
                       onClick={() => handleToggleServiceStatus(service.id, service.status)}

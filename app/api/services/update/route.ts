@@ -8,16 +8,19 @@ export async function PUT(request: Request) {
   try {
     const session = await getSession();
     const body = await request.json();
-    if (!body?.id || !body?.status || !session?.user?.id || !session?.user?.isAdmin) {
+    if (!body?.id || !session?.user?.id || !session?.user?.isAdmin) {
       return new Response(JSON.stringify({ error: "Missing id, status, or user ID" }), {
         status: 400,
       });
     }
-    const { id, status } = body;
+    const { id, status, img } = body;
 
     await prisma.services.update({
       where: { id: Number(id) },
-      data: { status },
+      data: {
+        ...(status ? { status } : {}),
+        ...(img ? { image: img } : {})
+      },
     });
 
     (async () => {

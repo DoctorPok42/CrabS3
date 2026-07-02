@@ -9,6 +9,7 @@ export async function GET() {
         quota: true,
         created_at: true,
         status: true,
+        image: true,
         _count: {
           select: {
             files: true,

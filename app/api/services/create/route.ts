@@ -1,8 +1,10 @@
 import { getSession } from "@/lib/auth";
 import { getIp } from "@/lib/ip";
+import prisma from "@/lib/prisma";
 import { createTokenService } from "@/lib/service";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
+import { randomUUID } from "node:crypto";
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +16,21 @@ export async function POST(request: Request) {
       });
     }
 
-    const service = await createTokenService(body.name);
+    const folderId = randomUUID();
+
+    const servicePrisma = await prisma.services.create({
+      data: {
+        name: body.name,
+        token: "",
+        folder_id: folderId,
+      },
+    });
+
+    const service = await createTokenService(servicePrisma.id, body.name) as {
+      id: number;
+      name: string;
+      quota: bigint;
+    };
 
     (async () => {
       log({

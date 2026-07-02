@@ -1,29 +1,28 @@
 import jsonwebtoken from "jsonwebtoken";
 import prisma from "./prisma";
 
-export const createTokenService = async (name: string) => {
+export const createTokenService = async (id: number, name: string, maxDuration?: number, tokenOnly: boolean = false) => {
   try {
-    const service = await prisma.services.create({
-      data: {
-        name,
-        token: "",
-      },
-    });
-
     const token = jsonwebtoken.sign(
       {
-        id: service.id,
-        name: service.name,
+        id: id,
+        name: name,
       },
       process.env["JWT_SECRET"] as string,
       {
         audience: "service",
+        algorithm: "HS256",
+        ...(maxDuration ? { expiresIn: maxDuration } : {}),
       }
     );
 
+    if (tokenOnly) {
+      return token;
+    }
+
     const response = await prisma.services.update({
       where: {
-        id: service.id,
+        id,
       },
       data: {
         token,
@@ -62,6 +61,20 @@ export const checkTokenService = async (token: string) => {
       }
     ) as { id: string; name: string };
     return decoded;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export const getServiceByUUID = async (uuid: string) => {
+  try {
+    const service = await prisma.services.findUnique({
+      where: {
+        uuid,
+      },
+    });
+    return service;
   } catch (error) {
     console.error(error);
     return null;

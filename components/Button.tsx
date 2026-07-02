@@ -3,6 +3,7 @@ import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontaw
 interface ButtonProps {
   text?: string;
   onClick: () => void;
+  onHover?: () => void;
   variant?: 'primary' | 'secondary' | 'danger' | 'success';
   icon?: FontAwesomeIconProps['icon'];
   divClass?: string
@@ -15,11 +16,11 @@ const colorClass = {
   "success": "hover:border-green-500 hover:bg-green-100 dark:hover:bg-green-900"
 }
 
-const Button = ({ text, onClick, variant = 'primary', icon, divClass }: ButtonProps) => {
+const Button = ({ text, onClick, onHover, variant = 'primary', icon, divClass }: ButtonProps) => {
   if (!text && !icon) return null;
 
   return (
-    <div onClick={onClick} className={`text-sm py-2 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 cursor-pointer transition duration-300 ${colorClass[variant] || colorClass.primary} ${divClass}`}>
+    <div onClick={onClick} onMouseEnter={onHover} className={`text-sm py-2 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 cursor-pointer transition duration-300 ${colorClass[variant] || colorClass.primary} ${divClass}`}>
       {icon && <FontAwesomeIcon icon={icon} />}
       {text && <span>{text}</span>}
     </div>
