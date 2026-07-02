@@ -73,6 +73,13 @@ export const getServiceByUUID = async (uuid: string) => {
       where: {
         uuid,
       },
+      select: {
+        uuid: true,
+        name: true,
+        image: true,
+        status: true,
+        created_at: true,
+      }
     });
     return service;
   } catch (error) {

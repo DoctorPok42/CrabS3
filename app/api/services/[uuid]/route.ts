@@ -1,8 +1,12 @@
 import { getServiceByUUID } from "@/lib/service";
+import { NextRequest } from "next/server";
 
-export async function GET(request: Request, { params }: { params: { uuid: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ uuid: string }> }
+) {
   try {
-    const { uuid } = params;
+    const { uuid } = await params;
     if (!uuid) {
       return new Response(JSON.stringify({ error: "Missing UUID" }), {
         status: 400,
