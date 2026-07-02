@@ -16,6 +16,8 @@ const PUBLIC_ROUTES = [
   "/api/health",
   "/api/services/upload",
   "/api/services/download",
+  "/api/services/join",
+  "/api/services/:uuid/join",
 ];
 
 export function proxy(request: NextRequest) {
