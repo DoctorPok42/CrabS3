@@ -93,6 +93,9 @@ export async function POST(request: Request) {
         service_id: Number.parseInt(verifiedToken.id),
         type: "SERVICE",
         content_type: contentType,
+        download_count: 0,
+        max_downloads: null,
+        expires_at: new Date(Date.now() + 100 * 24 * 60 * 60 * 1000), // 100 days
       },
     });
 
