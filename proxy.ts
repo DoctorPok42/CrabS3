@@ -17,7 +17,7 @@ const PUBLIC_ROUTES = [
   "/api/services/upload",
   "/api/services/download",
   "/api/services/join",
-  "/api/services/:uuid/join",
+  "/api/services",
 ];
 
 export function proxy(request: NextRequest) {
