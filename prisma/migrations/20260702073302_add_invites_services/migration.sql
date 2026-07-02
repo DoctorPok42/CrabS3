@@ -8,7 +8,15 @@
 -- AlterTable
 ALTER TABLE "services" ADD COLUMN     "folder_id" TEXT,
 ADD COLUMN     "image" TEXT,
-ADD COLUMN     "uuid" TEXT NOT NULL;
+ADD COLUMN     "uuid" TEXT;
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+UPDATE "services"
+SET "uuid" = gen_random_uuid()::text
+WHERE "uuid" IS NULL;
+
+ALTER TABLE "services" ALTER COLUMN "uuid" SET NOT NULL;
 
 -- CreateTable
 CREATE TABLE "invites" (
