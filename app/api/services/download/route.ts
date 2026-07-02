@@ -23,7 +23,15 @@ export async function GET(request: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const folerId = request.headers.get("X-Folder-Id") || null;
+    const service = await prisma.services.findUnique({
+      where: { id: Number.parseInt(verifiedToken.id) },
+      select: { folder_id: true }
+    });
+    if (!service) {
+      return new Response("Service not found", { status: 404 });
+    }
+
+    const folerId = service.folder_id;
     const linkType = request.headers.get("X-Link-Type") || "url";
     if (!folerId) {
       return new Response("X-Folder-Id header is required", { status: 400 });
@@ -51,7 +59,7 @@ export async function GET(request: Request) {
       })();
 
       return Response.json({
-        url: process.env["BASE_URL"] + `/files/${folerId}`,
+        url: process.env["BASE_URL"] + `/file/${folerId}`,
       });
     } else if (linkType === "direct") {
       (async () => {
