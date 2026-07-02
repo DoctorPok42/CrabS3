@@ -52,9 +52,19 @@ export async function POST(request: Request) {
       });
     }
 
-    return new Response(JSON.stringify({ token, service: findInvitation.service }), {
-      status: 200,
-    });
+    return new Response(
+      JSON.stringify({
+        token,
+        service: {
+          ...findInvitation.service,
+          quota: Number(findInvitation.service.quota),
+          id: Number(findInvitation.service.id),
+        },
+      }),
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
     console.error(error);
     return new Response(JSON.stringify({ error: "Failed to join service" }), {
