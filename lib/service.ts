@@ -79,6 +79,7 @@ export const getServiceByUUID = async (uuid: string) => {
         image: true,
         status: true,
         created_at: true,
+        folder_id: true,
       }
     });
     return service;
