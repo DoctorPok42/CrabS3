@@ -173,9 +173,47 @@ export async function GET(
             await sendAllActiveCommunications(files[0].user_id, {
               content: "",
               embeds: [{
-                title: "File downloaded",
+                title: "Folder downloaded",
                 description: `Folder ${folderId} was downloaded.`,
               }],
+              text: `Folder ${folderId} was downloaded.`,
+              attachments: [
+                {
+                  contentType: "application/vnd.microsoft.card.adaptive",
+                  contentUrl: null,
+                  content: {
+                    $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                    type: "AdaptiveCard",
+                    version: "1.2",
+                    body: [
+                      {
+                        type: "TextBlock",
+                        text: `Folder ${folderId} was downloaded.`,
+                      },
+                      {
+                        type: "TextBlock",
+                        text: `Files ID: ${files.map((f) => `\`${f.id}\``).join("\n")}`,
+                      },
+                    ]
+                  }
+                }
+              ],
+              blocks: [
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: `*Folder ${folderId} was downloaded.*`,
+                  },
+                },
+                {
+                  type: "section",
+                  fields: [
+                    { type: "mrkdwn", text: `*Folder ID:*\n\`${folderId}\`` },
+                    { type: "mrkdwn", text: `*File Count:*\n${files.length}` },
+                  ],
+                },
+              ],
             }).catch(console.error);
 
           await log({
@@ -332,14 +370,66 @@ export async function GET(
           await sendAllActiveCommunications(file.user_id, {
             content: "",
             embeds: [{
-              title: "File downloaded",
-              description: `File **${metadata.filename}** was downloaded.`,
+              title: "Folder downloaded",
+              description: `Folder **${folderId}** was downloaded.`,
             }],
+            text: `Folder ${folderId} was downloaded.`,
+            attachments: [
+              {
+                contentType: "application/vnd.microsoft.card.adaptive",
+                contentUrl: null,
+                content: {
+                  $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                  type: "AdaptiveCard",
+                  version: "1.2",
+                  body: [
+                    {
+                      type: "TextBlock",
+                      text: `Folder downloaded`,
+                    },
+                    {
+                      type: "TextBlock",
+                      text: `Folder ID: \`${folderId}\``,
+                    },
+                    {
+                      type: "TextBlock",
+                      text: `File ID: \`${fileId}\``,
+                    },
+                  ]
+                }
+              }
+            ],
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: `*Folder ${folderId} was downloaded.*`,
+                },
+              },
+              {
+                type: "section",
+                fields: [
+                  { type: "mrkdwn", text: `*Folder ID:*\n\`${folderId}\`` },
+                  { type: "mrkdwn", text: `*File ID:*\n\`${fileId}\`` },
+                ],
+              },
+            ],
+            sections: [
+              {
+                activityTitle: "Folder downloaded",
+                activitySubtitle: `Folder ${folderId} was downloaded.`,
+                facts: [
+                  { title: "Folder ID", value: `\`${folderId}\`` },
+                  { title: "File ID", value: `\`${fileId}\`` },
+                ],
+              },
+            ],
           }).catch(console.error);
 
         await log({
           action: LogAction.DOWNLOAD,
-          message: `File ${metadata.filename} downloaded`,
+          message: `Folder ${folderId} downloaded`,
           userId: file.user_id || undefined,
           meta: { folderId, fileId, ip: getIp(request) },
         });

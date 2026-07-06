@@ -1,4 +1,4 @@
-import webhookService, { DiscordWebHookPayload, WebHookType } from "@/services/webhook.service";
+import webhookService, { DiscordWebHookPayload, SlackWebHookPayload, TeamsWebHookPayload, WebHookType } from "@/services/webhook.service";
 import prisma from "./prisma";
 
 export async function getActiveCommunication(userId: number) {
@@ -14,7 +14,7 @@ export async function getActiveCommunication(userId: number) {
   )
 }
 
-export async function sendAllActiveCommunications(userId: number, payload: DiscordWebHookPayload) {
+export async function sendAllActiveCommunications(userId: number, payload: DiscordWebHookPayload | SlackWebHookPayload | TeamsWebHookPayload) {
   const user = await getActiveCommunication(userId);
   if (!user) return;
 

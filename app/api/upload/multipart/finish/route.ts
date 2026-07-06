@@ -55,6 +55,68 @@ export async function POST(request: Request) {
             ],
           },
         ],
+        text: `File${files.length > 1 ? 's' : ''} uploaded successfully`,
+        attachments: [
+          {
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: {
+              "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+              type: "AdaptiveCard",
+              version: "1.2",
+              body: [
+                {
+                  type: "TextBlock",
+                  text: `File${files.length > 1 ? 's' : ''} uploaded successfully!`,
+                },
+                {
+                  type: "FactSet",
+                  facts: [
+                    { title: "Folder ID", value: `\`${folderId}\`` },
+                    { title: "File Count", value: files.length.toString() },
+                    { title: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n") },
+                    { title: "Download Link", value: `${process.env.BASE_URL}/file/${folderId}` },
+                    { title: "Sender Email", value: session.email },
+                    { title: "IP Address", value: getIp(request) },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*File${files.length > 1 ? 's' : ''} uploaded successfully!`,
+            },
+          },
+          {
+            type: "section",
+            fields: [
+              { type: "mrkdwn", text: `*Folder ID:*\n\`${folderId}\`` },
+              { type: "mrkdwn", text: `*File Count:*\n${files.length}` },
+              { type: "mrkdwn", text: `*Files ID:*\n${files.map((f) => `\`${f.id}\``).join("\n")}` },
+              { type: "mrkdwn", text: `*Download Link:*\n${process.env.BASE_URL}/file/${folderId}` },
+              { type: "mrkdwn", text: `*Sender Email:*\n${session.email}` },
+              { type: "mrkdwn", text: `*IP Address:*\n${getIp(request)}` },
+            ],
+          },
+        ],
+        sections: [
+          {
+            activityTitle: "File uploaded",
+            activitySubtitle: `File${files.length > 1 ? 's' : ''} uploaded successfully!`,
+            facts: [
+              { title: "Folder ID", value: `\`${folderId}\`` },
+              { title: "File Count", value: files.length.toString() },
+              { title: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n") },
+              { title: "Download Link", value: `${process.env.BASE_URL}/file/${folderId}` },
+              { title: "Sender Email", value: session.email },
+              { title: "IP Address", value: getIp(request) },
+            ],
+          },
+        ],
       });
     })();
 

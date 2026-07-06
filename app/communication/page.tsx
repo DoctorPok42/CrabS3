@@ -2,10 +2,12 @@
 
 import { Input } from "@/components"
 import { useEffect, useState } from "react"
-import { faDiscord } from "@fortawesome/free-brands-svg-icons"
+import { faDiscord, faMicrosoft, faSlack } from "@fortawesome/free-brands-svg-icons"
 
 const Communication = () => {
   const [discordWebhookURL, setDiscordWebhookURL] = useState<string | null>(null)
+  const [slackWebhookURL, setSlackWebhookURL] = useState<string | null>(null)
+  const [teamsWebhookURL, setTeamsWebhookURL] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchCommunicationSettings = async () => {
@@ -18,8 +20,16 @@ const Communication = () => {
 
         const data = await response.json()
         const discordCommunication = data?.communications?.find((comm: any) => comm.type === "discord")
+        const slackCommunication = data?.communications?.find((comm: any) => comm.type === "slack")
+        const teamsCommunication = data?.communications?.find((comm: any) => comm.type === "teams")
         if (discordCommunication) {
           setDiscordWebhookURL(discordCommunication.url)
+        }
+        if (slackCommunication) {
+          setSlackWebhookURL(slackCommunication.url)
+        }
+        if (teamsCommunication) {
+          setTeamsWebhookURL(teamsCommunication.url)
         }
       } catch (error) {
         console.error("Error fetching communication settings:", error)
@@ -37,6 +47,14 @@ const Communication = () => {
             type: "discord",
             url: discordWebhookURL,
           },
+          {
+            type: "slack",
+            url: slackWebhookURL,
+          },
+          {
+            type: "teams",
+            url: teamsWebhookURL,
+          }
         ],
       }
 
@@ -75,6 +93,28 @@ const Communication = () => {
           onChange={(e) => setDiscordWebhookURL(e.target.value)}
           placeholder="https://discord.com/api/webhooks/{webhook.id}/{webhook.token}"
           icon={faDiscord}
+        />
+
+        <Input
+          label="Slack URL"
+          type="text"
+          name="slackWebhookURL"
+          id="slackWebhookURL"
+          value={slackWebhookURL || ""}
+          onChange={(e) => setSlackWebhookURL(e.target.value)}
+          placeholder="https://hooks.slack.com/services/{webhook.id}/{webhook.token}"
+          icon={faSlack}
+        />
+
+        <Input
+          label="Teams URL"
+          type="text"
+          name="teamsWebhookURL"
+          id="teamsWebhookURL"
+          value={teamsWebhookURL || ""}
+          onChange={(e) => setTeamsWebhookURL(e.target.value)}
+          placeholder="https://outlook.office.com/webhook/{webhook.id}/{webhook.token}"
+          icon={faMicrosoft}
         />
 
         <button
