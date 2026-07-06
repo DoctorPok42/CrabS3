@@ -80,5 +80,8 @@ jobs:
             cd ${{ secrets.SERVER_APP_DIR }}
             docker pull ${{ vars.DOCKERHUB_USERNAME }}/crabs3:${{ github.sha }}
             docker compose -f compose.yml up -d --force-recreate
-            sleep 10
+            until [ "$(docker inspect -f '{{.State.Health.Status}}' web)" == "healthy" ]; do
+              echo "Waiting for web container to be healthy..."
+              sleep 5
+            done
             docker-compose exec -T web npx prisma migrate deploy
