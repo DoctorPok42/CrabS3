@@ -1,10 +1,14 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
+import { Agent as HttpAgent } from "node:http";
+import { Agent as HttpsAgent } from "node:https";
 
 const handlerConfig = {
   connectionTimeout: 300_000,
   requestTimeout: 3_600_000,
   socketTimeout: 3_600_000,
+  httpAgent: new HttpAgent({ keepAlive: true, maxSockets: 50 }),
+  httpsAgent: new HttpsAgent({ keepAlive: true, maxSockets: 50 }),
 }
 
 export const HOT_BUCKET = process.env.S3_HOT_BUCKET_NAME || "hot-bucket";

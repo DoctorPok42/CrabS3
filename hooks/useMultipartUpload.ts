@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 
-const MAX_PARALLEL_CHUNKS = 3; // Upload multiple chunks in parallel for better performance
+const MAX_PARALLEL_CHUNKS = 100; // Upload multiple chunks in parallel for better performance
 
 function getChunkSize(fileSize: number): number {
   if (fileSize < 10 * 1024 * 1024) return fileSize; // < 10 MB - no chunking
@@ -28,12 +28,94 @@ interface UploadResult {
   filename: string;
 }
 
+interface StartSessionResult {
+  fileId: string;
+  uploadId: string;
+}
+
+interface PrewarmEntry {
+  promise: Promise<StartSessionResult>;
+  filename: string;
+  folderId: string;
+}
+
+// Call on drop
+async function startSession(
+  file: File,
+  filename: string,
+  folderId: string
+): Promise<StartSessionResult> {
+  const startRes = await fetch("/api/upload/multipart/start", {
+    method: "POST",
+    headers: {
+      "X-Filename": filename,
+      "X-Folder-Id": folderId,
+      "X-File-Size": file.size.toString(),
+      "Content-Type": file.type || "application/octet-stream",
+    },
+  });
+
+  if (!startRes.ok) {
+    const errorData = await startRes.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to start upload");
+  }
+
+  return startRes.json();
+}
+
 export function useMultipartUpload() {
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const activeUploads = useRef(new Map<string, number>());
   const uploadCount = useRef(0);
+  const prewarmedSessions = useRef(new Map<File, PrewarmEntry>());
+
+
+  const prewarm = useCallback((file: File, folderId: string, filename?: string) => {
+    const name = filename?.trim() || file.name;
+    const existing = prewarmedSessions.current.get(file);
+
+    if (existing && existing.filename === name && existing.folderId === folderId) {
+      return;
+    }
+
+    // Old session resolve then abort it in the background
+    if (existing) {
+      existing.promise
+        .then(({ fileId, uploadId }) =>
+          fetch("/api/upload/multipart/abort", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fileId, folderId: existing.folderId, uploadId }),
+          })
+        )
+        .catch(() => { });
+    }
+
+    prewarmedSessions.current.set(file, {
+      promise: startSession(file, name, folderId),
+      filename: name,
+      folderId,
+    });
+  }, []);
+
+  // Discard a prewarmed session
+  const cancelPrewarm = useCallback((file: File) => {
+    const entry = prewarmedSessions.current.get(file);
+    if (!entry) return;
+    prewarmedSessions.current.delete(file);
+
+    entry.promise
+      .then(({ fileId, uploadId }) =>
+        fetch("/api/upload/multipart/abort", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileId, folderId: entry.folderId, uploadId }),
+        })
+      )
+      .catch(() => { });
+  }, []);
 
   const upload = useCallback(async (
     file: File,
@@ -55,21 +137,30 @@ export function useMultipartUpload() {
     const folderId = options.folderId || crypto.randomUUID();
 
     try {
-      const startRes = await fetch("/api/upload/multipart/start", {
-        method: "POST",
-        headers: {
-          "X-Filename": filename,
-          "X-Folder-Id": folderId,
-          "X-File-Size": file.size.toString(),
-          "Content-Type": file.type || "application/octet-stream",
-        },
-      });
+      const prewarmed = prewarmedSessions.current.get(file);
+      const canReusePrewarm = !!prewarmed
+        && prewarmed.filename === filename
+        && prewarmed.folderId === folderId;
 
-      if (!startRes.ok) {
-        const errorData = await startRes.json();
-        throw new Error(errorData.error || "Failed to start upload");
+      if (prewarmed) {
+        prewarmedSessions.current.delete(file);
+
+        if (!canReusePrewarm) {
+          prewarmed.promise
+            .then(({ fileId: staleId, uploadId: staleUploadId }) =>
+              fetch("/api/upload/multipart/abort", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ fileId: staleId, folderId: prewarmed.folderId, uploadId: staleUploadId }),
+              })
+            )
+            .catch(() => { });
+        }
       }
-      ({ fileId, uploadId } = await startRes.json());
+
+      ({ fileId, uploadId } = canReusePrewarm
+        ? await prewarmed!.promise
+        : await startSession(file, filename, folderId));
 
       uploads.set(fileId!, 0);
 
@@ -194,7 +285,7 @@ export function useMultipartUpload() {
     setError(null);
   }, []);
 
-  return { upload, progress, uploading, error, reset };
+  return { upload, progress, uploading, error, reset, prewarm, cancelPrewarm };
 }
 
 function uploadChunk(

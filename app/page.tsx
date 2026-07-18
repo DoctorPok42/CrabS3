@@ -28,7 +28,7 @@ export default function Home() {
   } | null>(null)
   const uploadResultsRef = useRef<number>(0)
 
-  const { upload, progress, uploading, reset, error } = useMultipartUpload();
+  const { upload, progress, uploading, reset, error, prewarm, cancelPrewarm } = useMultipartUpload();
 
   useEffect(() => {
     if (!uploading && uploadResults > 0) {
@@ -80,8 +80,9 @@ export default function Home() {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (uploading) return;
 
+    const currentFolderId = folderId || crypto.randomUUID();
     if (!folderId) {
-      setFolderId(crypto.randomUUID());
+      setFolderId(currentFolderId);
     }
 
     const newMeta = acceptedFiles.map(file => ({
@@ -93,7 +94,11 @@ export default function Home() {
     setFileMeta(prev => [...prev, ...newMeta])
     setFiles(prev => [...prev, ...acceptedFiles])
     setStatus(null)
-  }, [uploading, folderId])
+
+    for (const file of acceptedFiles) {
+      prewarm(file, currentFolderId)
+    }
+  }, [uploading, folderId, prewarm])
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop })
 

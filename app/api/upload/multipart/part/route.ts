@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
