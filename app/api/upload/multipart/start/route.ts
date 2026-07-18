@@ -28,19 +28,20 @@ export async function POST(request: Request) {
 
     const fileSizeBytes = BigInt(fileSize);
 
-    const user = await prisma.users.findUnique({
-      where: { id: session.userId },
-      select: { quota: true, id: true },
-    });
+    const [user, userFiles] = await Promise.all([
+      prisma.users.findUnique({
+        where: { id: session.userId },
+        select: { quota: true, id: true },
+      }),
+      prisma.files.aggregate({
+        where: { user_id: session.userId },
+        _sum: { size: true },
+      })
+    ]);
 
     if (!user) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
-
-    const userFiles = await prisma.files.aggregate({
-      where: { user_id: session.userId },
-      _sum: { size: true },
-    });
 
     const currentUsage = userFiles._sum.size || BigInt(0);
     const totalUsage = currentUsage + fileSizeBytes;
