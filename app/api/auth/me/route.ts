@@ -12,7 +12,7 @@ export async function GET() {
 
     const userName = await prisma.users.findUnique({
       where: { id: session.userId },
-      select: { name: true, id: true },
+      select: { name: true, id: true, twoFactorEnabled: true },
     });
 
     return Response.json({
@@ -20,6 +20,7 @@ export async function GET() {
       email: session.user.email,
       name: userName?.name,
       isAdmin: session.user.isAdmin,
+      twoFactorEnabled: userName?.twoFactorEnabled ?? false,
     });
   } catch (error) {
     console.error("Error fetching user info:", error);

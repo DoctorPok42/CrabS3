@@ -16,6 +16,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CrabS3 - Simple S3 File Sharing",
   description: "No cloud. No bill. Just S3 buckets full of crabs. 🦀",
+  abstract: "No cloud. No bill. Just S3 buckets full of crabs. 🦀",
+  appleWebApp: {
+    title: "CrabS3",
+  },
 };
 
 export default function RootLayout({

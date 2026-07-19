@@ -1,16 +1,20 @@
 "use client"
 
 import { Input } from "@/components";
-import { faEnvelope, faLock, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faCircleXmark, faEnvelope, faLock, faUser } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useQRCode } from "next-qrcode";
 import { useEffect, useState } from "react";
 
 const Me = () => {
-  const [user, setUser] = useState<{ id: string; email: string, name: string, isAdmin: boolean } | null>(null)
+  const [user, setUser] = useState<{ id: string; email: string, name: string, isAdmin: boolean, twoFactorEnabled: boolean } | null>(null)
   const [editedName, setEditedName] = useState<string>("")
   const [newPassword, setNewPassword] = useState<string>("")
   const [confirmPassword, setConfirmPassword] = useState<string>("")
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [twoFactorSecret, setTwoFactorSecret] = useState<{ secret: string, uri: string } | null>(null)
+  const { Canvas } = useQRCode();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -86,6 +90,39 @@ const Me = () => {
       setIsLoadingProfile(false)
     }
   }
+
+  const handleEnable2FA = async () => {
+    if (user?.twoFactorEnabled) {
+      const response = await fetch('/api/2fa/disable', {
+        method: 'GET',
+      });
+
+      if (response.ok) {
+        setUser(prev => prev ? { ...prev, twoFactorEnabled: false } : null);
+        alert('Two-Factor Authentication has been disabled.');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Error disabling 2FA');
+      }
+      return;
+    }
+
+    const response = await fetch('/api/2fa/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user?.email }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setTwoFactorSecret(data);
+      setUser(prev => prev ? { ...prev, twoFactorEnabled: true } : null);
+    } else {
+      const error = await response.json();
+      alert(error.error || 'Error enabling 2FA');
+    }
+  }
+
   return (
     <div className="flex flex-col w-full max-w-8xl items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full mb-8 flex flex-col">
@@ -93,6 +130,33 @@ const Me = () => {
         <p className="text-zinc-500 dark:text-zinc-400">Manage your account information and settings</p>
         <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
       </div>
+
+      {twoFactorSecret && (
+        <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/50 dark:bg-black/50 z-50">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow-lg w-96">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">Two-Factor Authentication</h2>
+              <div className="flex items-center justify-center cursor-pointer" onClick={() => setTwoFactorSecret(null)}>
+                <FontAwesomeIcon icon={faCircleXmark} className="text-gray-700 dark:text-gray-300 scale-150 hover:text-gray-500 transition" />
+              </div>
+            </div>
+            <p className="text-zinc-500 dark:text-zinc-400 mb-4">Scan this QR code with your authenticator app to enable two-factor authentication for your account.</p>
+            <div className="flex flex-col items-center justify-center gap-2">
+              <Canvas
+                text={twoFactorSecret.uri}
+                options={{
+                  errorCorrectionLevel: "H",
+                  scale: 6,
+                  quality: 0.8,
+                }}
+              />
+              <p className="text-zinc-500 dark:text-zinc-400">
+                Secret: <span className="font-mono bg-zinc-100 dark:bg-zinc-700 rounded px-2 py-1">{twoFactorSecret.secret}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
         {profileMessage && (
@@ -153,6 +217,20 @@ const Me = () => {
             />
           )}
 
+          {/* 2FA */}
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Two-Factor Authentication (2FA)</h2>
+            <p className="text-zinc-500 dark:text-zinc-400 mb-4">Enhance the security of your account by enabling two-factor authentication.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleEnable2FA}
+                className="flex-1 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 cursor-pointer"
+              >
+                {user?.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
+              </button>
+            </div>
+          </div>
+
           <div className="flex gap-3">
             <button
               onClick={handleSaveProfile}
@@ -164,7 +242,7 @@ const Me = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   )
 }
 

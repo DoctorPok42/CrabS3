@@ -202,4 +202,6 @@ model users {
   quota       BigInt       @default(10737418240) // 10 GB
   communications communication[]
   logs        logs[]
+  twoFactorEnabled Boolean     @default(false)
+  twoFactorSecret  String?
 }
