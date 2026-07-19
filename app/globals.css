@@ -42,7 +42,11 @@ body {
 }
 
 .inputShadow {
-  animation: displayShadow .38s ease-out forwards;
+  animation: displayShadow .01s ease forwards;
+}
+
+.loginAnimation {
+  animation: login .38s ease-out forwards;
 }
 
 @keyframes displayShadow {
@@ -52,6 +56,16 @@ body {
 
   to {
     box-shadow: 0 0 100px 10px var(--shadow-color);
+  }
+}
+
+@keyframes login {
+  from {
+    transform: translateX(40em);
+  }
+
+  to {
+    transform: translateX(0);
   }
 }
 
