@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faBug, faCheckCircle, faKey, faTimesCircle } from "@fortawesome/free-solid-svg-icons"
+import { faBug, faCheckCircle, faFingerprint, faKey, faSpinner, faTimesCircle } from "@fortawesome/free-solid-svg-icons"
 import { Button } from "@/components"
 
 const DashboardPage = () => {
@@ -30,6 +30,7 @@ const DashboardPage = () => {
   const [page, setPage] = useState<number>(1)
   const [totalPages, setTotalPages] = useState<number>(0)
   const [type, setType] = useState<"active" | "expired">("active")
+  const [fetchingReport, setFetchingReport] = useState<boolean>(false)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -90,6 +91,29 @@ const DashboardPage = () => {
   const handleChangeType = (newType: "active" | "expired") => {
     setType(newType)
     setPage(1)
+  }
+
+  const getFingerprintReport = async (fileId: string) => {
+    try {
+      setFetchingReport(true)
+      const response = await fetch(`/api/fingerprint/${fileId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch fingerprint report')
+      }
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${fileId}-fingerprint-report.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+    } catch (error) {
+      console.error('Error fetching fingerprint report:', error)
+      return null
+    } finally {
+      setFetchingReport(false)
+    }
   }
 
   return (
@@ -228,13 +252,21 @@ const DashboardPage = () => {
                             <div className="text-sm text-zinc-500 dark:text-zinc-400 flex gap-3">
                             </div>
                           </div>
-                          {!isFolderExpired && !file.infected && (
+                          <div className="flex gap-2">
                             <Button
-                              text="Delete"
-                              variant="danger"
-                              onClick={() => handleDeleteFile(file.id, folderId)}
+                              icon={fetchingReport ? faSpinner : faFingerprint}
+                              onClick={() => getFingerprintReport(file.id)}
+                              variant="secondary"
                             />
-                          )}
+
+                            {!isFolderExpired && !file.infected && (
+                              <Button
+                                text="Delete"
+                                variant="danger"
+                                onClick={() => handleDeleteFile(file.id, folderId)}
+                              />
+                            )}
+                          </div>
                         </div>
                       )
                     })}

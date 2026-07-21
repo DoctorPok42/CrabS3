@@ -9,6 +9,7 @@ import { sendAllActiveCommunications } from "@/lib/webhook";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { getIp } from "@/lib/ip";
+import { download_events } from "@/prisma/app/generated/prisma/client";
 
 const getFileData = async (folderId: string, fileId: string) => {
   const key = `${folderId}/${fileId}`;
@@ -50,21 +51,35 @@ export async function GET(
     const password = searchParams.get("password") || ""
     const folderId = (await params).id
     const fileId = searchParams.get("fileId")
-    const allFiles = searchParams.get("allFiles") === "true"
+    const allFiles = searchParams.get("allFiles") === "true";
 
-    await log({
-      level: LogLevel.DEBUG,
-      action: LogAction.DOWNLOAD,
-      message: "Download stream request started",
-      meta: { folderId, fileId, allFiles, hasPassword: !!password }
-    });
+    (async () => {
+      await log({
+        level: LogLevel.DEBUG,
+        action: LogAction.DOWNLOAD,
+        message: "Download stream request started",
+        meta: { folderId, fileId, allFiles, hasPassword: !!password }
+      });
+    })();
 
     // Multiple files as ZIP
     if (allFiles) {
       try {
         const files = await prisma.files.findMany({
           where: { folder_id: folderId },
-          select: { id: true, folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true, user_id: true, infected: true, scanned_at: true },
+          select: {
+            id: true,
+            folder_id: true,
+            password_hash: true,
+            filename: true,
+            size: true,
+            email_sender: true,
+            email_recipient: true,
+            max_downloads: true,
+            user_id: true,
+            infected: true,
+            scanned_at: true
+          },
         });
 
         if (files.length === 0) {
@@ -216,11 +231,27 @@ export async function GET(
               ],
             }).catch(console.error);
 
+          await prisma.download_events.createMany({
+            data: files.map(file => ({
+              file_id: file.id,
+              ip: getIp(request).split(" |")[0],
+              user_agent: getIp(request).split("| ")[1] || "unknown",
+              hash: bcrypt.hashSync(`${folderId}/${file.id}`, 10),
+            })),
+          }).catch(console.error);
+
           await log({
             action: LogAction.DOWNLOAD,
             message: `Folder ${folderId} downloaded with ${files.filter(f => !f.infected && f.scanned_at).length} files`,
             userId: files[0].user_id || undefined,
-            meta: { folderId, fileCount: files.length, ip: getIp(request) },
+            meta: {
+              folderId,
+              fileCount: files.length,
+              ip: getIp(request),
+              date: new Date().toLocaleString("en-GB", { timeZone: "UTC", hour12: false }),
+              ...files[0].email_recipient ? { recipient: files[0].email_recipient } : {},
+              sender: files[0].email_sender || undefined,
+            },
           });
         })();
 
@@ -250,7 +281,18 @@ export async function GET(
     try {
       file = await prisma.files.findUnique({
         where: { id: fileId },
-        select: { folder_id: true, password_hash: true, filename: true, size: true, email_sender: true, max_downloads: true, user_id: true, infected: true, scanned_at: true },
+        select: {
+          folder_id: true,
+          password_hash: true,
+          filename: true,
+          size: true,
+          email_sender: true,
+          email_recipient: true,
+          max_downloads: true,
+          user_id: true,
+          infected: true,
+          scanned_at: true
+        },
       });
 
       if (!file) {
@@ -427,11 +469,27 @@ export async function GET(
             ],
           }).catch(console.error);
 
+        await prisma.download_events.create({
+          data: {
+            file_id: fileId,
+            ip: getIp(request).split(" |")[0],
+            user_agent: getIp(request).split("| ")[1] || "unknown",
+            hash: await bcrypt.hash(`${folderId}/${fileId}`, 10),
+          }
+        }).catch(console.error);
+
         await log({
           action: LogAction.DOWNLOAD,
           message: `Folder ${folderId} downloaded`,
           userId: file.user_id || undefined,
-          meta: { folderId, fileId, ip: getIp(request) },
+          meta: {
+            folderId,
+            fileId,
+            ip: getIp(request),
+            date: new Date().toLocaleString("en-GB", { timeZone: "UTC", hour12: false }),
+            ...file.email_recipient ? { recipient: file.email_recipient } : {},
+            sender: metadata.email_sender || undefined,
+          },
         });
       } catch (error) {
         console.error("Post-download operations failed:", error);
