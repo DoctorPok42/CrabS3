@@ -45,6 +45,7 @@ export async function POST(
           })).catch(console.error);
 
           await log({
+            level: LogLevel.INFO,
             action: LogAction.FILE_EXPIRED,
             message: `File ${file.filename} has expired and was deleted`,
             meta: { folderId, fileId, ip: getIp(request) },
