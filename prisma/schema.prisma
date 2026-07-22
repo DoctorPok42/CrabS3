@@ -54,6 +54,7 @@ model download_events {
   id          Int       @id @default(autoincrement())
   file_id     String?
   files       files?    @relation(fields: [file_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  folder_id   String?
   hash        String?
   ip          String?
   user_agent  String?

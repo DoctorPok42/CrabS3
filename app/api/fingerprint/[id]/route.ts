@@ -8,28 +8,59 @@ export async function GET(request: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const fileId = request.url.split("/").pop();
-    if (!fileId) {
+    const id = request.url.split("/").pop()?.split("?")[0];
+    if (!id) {
       return new Response("File ID is required", { status: 400 });
     }
+    const type = new URL(request.url).searchParams.get("type");
+    if (!type?.includes("file") && !type?.includes("folder")) {
+      return new Response("Invalid type. Must be 'file' or 'folder'.", { status: 400 });
+    }
 
-    const report = await prisma.download_events.findMany({
-      where: {
-        file_id: fileId,
-      },
-      select: {
-        file_id: true,
-        hash: true,
-        ip: true,
-        user_agent: true,
-        created_at: true,
-      },
-      orderBy: {
-        created_at: "desc",
-      },
-    });
-    if (!report) {
-      return new Response("Report not found", { status: 404 });
+
+    let report;
+
+    if (type === "file") {
+      report = await prisma.download_events.findMany({
+        where: {
+          file_id: id,
+        },
+        select: {
+          file_id: true,
+          folder_id: true,
+          hash: true,
+          ip: true,
+          user_agent: true,
+          created_at: true,
+        },
+        orderBy: {
+          created_at: "desc",
+        },
+      });
+
+      if (!report) {
+        return new Response("Report not found", { status: 404 });
+      }
+    } else if (type === "folder") {
+      report = await prisma.download_events.findMany({
+        where: {
+          folder_id: id,
+        },
+        select: {
+          file_id: true,
+          folder_id: true,
+          hash: true,
+          ip: true,
+          user_agent: true,
+          created_at: true,
+        },
+        orderBy: {
+          created_at: "desc",
+        },
+      });
+      if (!report) {
+        return new Response("Report not found", { status: 404 });
+      }
     }
 
     return new Response(JSON.stringify(report), { status: 200 });

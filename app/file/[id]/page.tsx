@@ -1,8 +1,9 @@
 "use client"
 
 import { Button, Input } from "@/components"
-import { faBug, faCloudArrowDown, faKey, faShieldAlt } from "@fortawesome/free-solid-svg-icons"
+import { faBug, faCircleXmark, faCloudArrowDown, faKey, faQrcode, faShieldAlt } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { useQRCode } from "next-qrcode"
 import Head from "next/head"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -27,6 +28,8 @@ export default function Id() {
       scannedAt: Date | null
     }>
   } | null>(null)
+  const [qrcodePopup, setQrcodePopup] = useState<string | null>(null)
+  const { Canvas } = useQRCode();
 
   const downloadFile = async (fileId?: string) => {
     setIsDownloading(true)
@@ -127,6 +130,11 @@ export default function Id() {
     checkFile()
   }, [id, setFileInfo, setIsLoading])
 
+  const handleQrCode = () => {
+    const link = `${globalThis.location.origin}/file/${id}`
+    setQrcodePopup(link)
+  }
+
   return (
     <main className="my-auto w-full max-w-7xl flex flex-col items-center md:px-16 px-6">
       <Head>
@@ -141,6 +149,30 @@ export default function Id() {
           <p className="text-center text-zinc-500 dark:text-zinc-400">File not found. It may have been deleted or the link is incorrect.</p>
         </div>
       ) : null}
+
+      {qrcodePopup && (
+        <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/50 dark:bg-black/50 z-50">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow-lg w-96">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">QR Code</h2>
+              <div className="flex items-center justify-center cursor-pointer" onClick={() => setQrcodePopup(null)}>
+                <FontAwesomeIcon icon={faCircleXmark} className="text-gray-700 dark:text-gray-300 scale-150 hover:text-gray-500 transition" />
+              </div>
+            </div>
+            <p className="text-zinc-500 dark:text-zinc-400 mb-4">Scan this QR code to access the file.</p>
+            <div className="flex items-center justify-center gap-2">
+              <Canvas
+                text={qrcodePopup}
+                options={{
+                  errorCorrectionLevel: "H",
+                  scale: 6,
+                  quality: 0.8,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {fileInfo?.exists && (
         <div className="w-full mt-4 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow-lg dark:shadow-zinc-600 dark:bg-zinc-900 gap-6">
@@ -183,14 +215,21 @@ export default function Id() {
 
           </div>
 
-
-          <button
-            onClick={() => downloadFile()}
-            disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}
-            className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg cursor-pointer transition"
-          >
-            Download {fileInfo.files.length > 1 ? 'All Files' : 'File'}
-          </button>
+          <div className="flex w-full gap-2">
+            <button
+              onClick={() => downloadFile()}
+              disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}
+              className="w-[95%] bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg cursor-pointer transition"
+            >
+              Download {fileInfo.files.length > 1 ? 'All Files' : 'File'}
+            </button>
+            <button
+              onClick={() => handleQrCode()}
+              className="px-4 rounded-lg transition border-2 border-gray-500 bg-gray-100 dark:bg-zinc-800 dark:border-zinc-700 hover:bg-gray-200 dark:hover:bg-zinc-700 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faQrcode} className="text-gray-700 dark:text-gray-300 scale-105" size='1x' />
+            </button>
+          </div>
 
           {notif && (
             <div
@@ -214,7 +253,7 @@ export default function Id() {
                     Filename
                   </th>
                   <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300 hidden lg:block">Size</th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Action</th>
+                  {fileInfo.files.length > 1 && <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Action</th>}
                 </tr>
               </thead>
               <tbody className="w-full shadow-inner shadow-zinc-100 dark:shadow-zinc-700">
@@ -240,7 +279,7 @@ export default function Id() {
                           ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
                           : (file.size / 1024).toFixed(2) + ' KB'}
                     </td>
-                    <td className="px-4 py-3 w-1/3">
+                    {fileInfo.files.length > 1 && <td className="px-4 py-3 w-1/3">
                       {(fileInfo.files.length > 1 && !file.infectedBy) && (
                         <button
                           onClick={() => downloadFile(file.id)}
@@ -256,7 +295,7 @@ export default function Id() {
                           />
                         </button>
                       )}
-                    </td>
+                    </td>}
                   </tr>
                 ))}
               </tbody>
