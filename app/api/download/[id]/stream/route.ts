@@ -234,6 +234,7 @@ export async function GET(
           await prisma.download_events.createMany({
             data: files.map(file => ({
               file_id: file.id,
+              folder_id: folderId,
               ip: getIp(request).split(" |")[0],
               user_agent: getIp(request).split("| ")[1] || "unknown",
               hash: bcrypt.hashSync(`${folderId}/${file.id}`, 10),
@@ -472,6 +473,7 @@ export async function GET(
         await prisma.download_events.create({
           data: {
             file_id: fileId,
+            folder_id: folderId,
             ip: getIp(request).split(" |")[0],
             user_agent: getIp(request).split("| ")[1] || "unknown",
             hash: await bcrypt.hash(`${folderId}/${fileId}`, 10),

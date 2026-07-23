@@ -30,7 +30,7 @@ const DashboardPage = () => {
   const [page, setPage] = useState<number>(1)
   const [totalPages, setTotalPages] = useState<number>(0)
   const [type, setType] = useState<"active" | "expired">("active")
-  const [fetchingReport, setFetchingReport] = useState<boolean>(false)
+  const [fetchingReport, setFetchingReport] = useState<string>("")
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -93,10 +93,10 @@ const DashboardPage = () => {
     setPage(1)
   }
 
-  const getFingerprintReport = async (fileId: string) => {
+  const getFingerprintReport = async (id: string, type: "file" | "folder") => {
     try {
-      setFetchingReport(true)
-      const response = await fetch(`/api/fingerprint/${fileId}`)
+      setFetchingReport(id)
+      const response = await fetch(`/api/fingerprint/${id}?type=${type}`)
       if (!response.ok) {
         throw new Error('Failed to fetch fingerprint report')
       }
@@ -104,7 +104,7 @@ const DashboardPage = () => {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${fileId}-fingerprint-report.json`
+      a.download = `${id}-${type}-fingerprint-report.json`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -112,7 +112,7 @@ const DashboardPage = () => {
       console.error('Error fetching fingerprint report:', error)
       return null
     } finally {
-      setFetchingReport(false)
+      setFetchingReport("")
     }
   }
 
@@ -188,28 +188,36 @@ const DashboardPage = () => {
                       )}
                     </div>
 
-                    {!isFolderExpired && (
-                      <div className="flex gap-2">
-                        <Button
-                          text="Copy Link"
-                          onClick={() => {
-                            const link = `${globalThis.location.origin}/file/${folderId}`
-                            navigator.clipboard.writeText(link).catch(() => {
-                              console.error('Error copying link')
-                            })
-                          }}
-                        />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        icon={fetchingReport === folderId ? faSpinner : faFingerprint}
+                        onClick={() => getFingerprintReport(folderId, "folder")}
+                        variant="secondary"
+                      />
 
-                        <a
-                          href={`/file/${folderId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className='text-sm py-2 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 hover:border-green-500 hover:bg-green-100 dark:hover:bg-green-900 transition duration-300'
-                        >
-                          Open
-                        </a>
-                      </div>
-                    )}
+                      {!isFolderExpired && (
+                        <div className="flex gap-2">
+                          <Button
+                            text="Copy Link"
+                            onClick={() => {
+                              const link = `${globalThis.location.origin}/file/${folderId}`
+                              navigator.clipboard.writeText(link).catch(() => {
+                                console.error('Error copying link')
+                              })
+                            }}
+                          />
+
+                          <a
+                            href={`/file/${folderId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className='text-sm py-2 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 hover:border-green-500 hover:bg-green-100 dark:hover:bg-green-900 transition duration-300'
+                          >
+                            Open
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -254,8 +262,8 @@ const DashboardPage = () => {
                           </div>
                           <div className="flex gap-2">
                             <Button
-                              icon={fetchingReport ? faSpinner : faFingerprint}
-                              onClick={() => getFingerprintReport(file.id)}
+                              icon={(fetchingReport === file.id || fetchingReport === folderId) ? faSpinner : faFingerprint}
+                              onClick={() => getFingerprintReport(file.id, "file")}
                               variant="secondary"
                             />
 
