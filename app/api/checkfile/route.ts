@@ -48,7 +48,8 @@ export async function GET(request: Request) {
       maxDownloads: file.max_downloads,
       downloadCount: file.download_count,
       infectedBy: file.infected_by,
-      scannedAt: file.scanned_at
+      scannedAt: file.scanned_at,
+      expiresAt: file.expires_at
     }));
 
     return Response.json({
