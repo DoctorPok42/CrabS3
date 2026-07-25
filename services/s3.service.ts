@@ -3,12 +3,16 @@ import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { Agent as HttpAgent } from "node:http";
 import { Agent as HttpsAgent } from "node:https";
 
-const handlerConfig = {
-  connectionTimeout: 300_000,
-  requestTimeout: 3_600_000,
-  socketTimeout: 3_600_000,
-  httpAgent: new HttpAgent({ keepAlive: true, maxSockets: 50 }),
-  httpsAgent: new HttpsAgent({ keepAlive: true, maxSockets: 50 }),
+const REQUEST_TIMEOUT = 250_000;
+
+function createHandler() {
+  return new NodeHttpHandler({
+    connectionTimeout: 10_000,
+    requestTimeout: REQUEST_TIMEOUT,
+    socketTimeout: REQUEST_TIMEOUT,
+    httpAgent: new HttpAgent({ keepAlive: true, maxSockets: 100, keepAliveMsecs: 1000 }),
+    httpsAgent: new HttpsAgent({ keepAlive: true, maxSockets: 100, keepAliveMsecs: 1000 }),
+  });
 }
 
 export const HOT_BUCKET = process.env.S3_HOT_BUCKET_NAME || "hot-bucket";
@@ -22,7 +26,8 @@ export const s3Hot = new S3Client({
     secretAccessKey: process.env.S3_HOT_SECRET_ACCESS_KEY || "rustfssecret",
   },
   forcePathStyle: true,
-  requestHandler: new NodeHttpHandler(handlerConfig),
+  requestHandler: createHandler(),
+  maxAttempts: 3,
 });
 
 // If cold storage is not configured, use hot storage for all operations
@@ -34,5 +39,6 @@ export const s3Cold = process.env.S3_COLD_ENDPOINT ? new S3Client({
     secretAccessKey: process.env.S3_COLD_SECRET_ACCESS_KEY || "rustfssecret",
   },
   forcePathStyle: true,
-  requestHandler: new NodeHttpHandler(handlerConfig),
+  requestHandler: createHandler(),
+  maxAttempts: 3,
 }) : s3Hot;

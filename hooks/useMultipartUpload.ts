@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 
-const MAX_PARALLEL_CHUNKS = 5000; // Upload multiple chunks in parallel for better performance
+const MAX_PARALLEL_CHUNKS = 6; // Upload multiple chunks in parallel for better performance
 
 function getChunkSize(fileSize: number): number {
   if (fileSize < 10 * 1024 * 1024) return fileSize; // < 10 MB - no chunking
@@ -31,6 +31,7 @@ interface UploadResult {
 interface StartSessionResult {
   fileId: string;
   uploadId: string;
+  token: string;
 }
 
 interface PrewarmEntry {
@@ -158,7 +159,8 @@ export function useMultipartUpload() {
         }
       }
 
-      ({ fileId, uploadId } = canReusePrewarm
+      let token: string;
+      ({ fileId, uploadId, token } = canReusePrewarm
         ? await prewarmed!.promise
         : await startSession(file, filename, folderId));
 
@@ -196,11 +198,9 @@ export function useMultipartUpload() {
           batchPromises.push(
             uploadChunk(
               chunk,
-              fileId!,
-              uploadId!,
+              token,
               partNumber,
-              (pct) => updateProgress(chunkIndex, pct),
-              folderId
+              (pct) => updateProgress(chunkIndex, pct)
             ).then(etag => ({ partNumber, etag }))
           );
         }
@@ -290,11 +290,9 @@ export function useMultipartUpload() {
 
 function uploadChunk(
   chunk: Blob,
-  fileId: string,
-  uploadId: string,
+  token: string,
   partNumber: number,
   onProgress: (pct: number) => void,
-  folderId: string,
   retries = 3
 ): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -337,9 +335,7 @@ function uploadChunk(
       });
 
       xhr.open("POST", "/api/upload/multipart/part");
-      xhr.setRequestHeader("X-File-Id", fileId);
-      xhr.setRequestHeader("X-Folder-Id", folderId);
-      xhr.setRequestHeader("X-Upload-Id", uploadId);
+      xhr.setRequestHeader("X-Upload-Token", token);
       xhr.setRequestHeader("X-Part-Number", String(partNumber));
 
       xhr.send(chunk);
