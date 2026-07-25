@@ -1,7 +1,6 @@
 import { s3Hot, HOT_BUCKET } from "@/services/s3.service";
 import { UploadPartCommand } from "@aws-sdk/client-s3";
-import { getSession } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { verifyUploadToken } from "@/lib/upload-token";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -9,32 +8,23 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const fileId = request.headers.get("X-File-Id");
-    const folderId = request.headers.get("X-Folder-Id");
-    const uploadId = request.headers.get("X-Upload-Id");
+    const token = request.headers.get("X-Upload-Token");
     const partNumber = request.headers.get("X-Part-Number");
-    const contentLength = request.headers.get("Content-Length");
 
-    if (!fileId || !folderId || !uploadId || !partNumber) {
+    if (!token || !partNumber) {
       return Response.json({ error: "Missing required headers" }, { status: 400 });
     }
 
-    const file = await prisma.files.findFirst({
-      where: { id: fileId, user_id: session.userId },
-    });
-
-    if (!file) {
-      return Response.json({ error: "File not found or unauthorized" }, { status: 404 });
+    const payload = verifyUploadToken(token);
+    if (!payload) {
+      return Response.json({ error: "Invalid or expired upload token" }, { status: 401 });
     }
 
     if (!request.body) {
       return Response.json({ error: "Empty body" }, { status: 400 });
     }
+
+    const { fid: fileId, fol: folderId, upl: uploadId } = payload;
 
     const arrayBuffer = await request.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -50,11 +40,11 @@ export async function POST(request: Request) {
         UploadId: uploadId,
         PartNumber: Number.parseInt(partNumber),
         Body: buffer,
-        ContentLength: contentLength ? Number.parseInt(contentLength) : buffer.length,
+        ContentLength: buffer.length
       }),
       {
-        abortSignal: AbortSignal.timeout(3_600_000),
-        requestTimeout: 3_600_000,
+        abortSignal: AbortSignal.timeout(280_000),
+        requestTimeout: 280_000,
       }
     );
 

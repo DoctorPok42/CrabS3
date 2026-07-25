@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
+import { signUploadToken } from "@/lib/upload-token";
 
 export async function POST(request: Request) {
   try {
@@ -94,7 +95,14 @@ export async function POST(request: Request) {
       },
     }).catch(console.error);
 
-    return Response.json({ fileId, uploadId: UploadId }, { status: 200 });
+    const token = signUploadToken({
+      uid: session.userId,
+      fid: fileId,
+      fol: folderId,
+      upl: UploadId,
+    });
+
+    return Response.json({ fileId, uploadId: UploadId, token }, { status: 200 });
   } catch (error) {
     console.error("Start error:", error);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
