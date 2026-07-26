@@ -76,6 +76,9 @@ services:
 
       - CLAMAV_HOST=clamav
       - CLAMAV_PORT=3310
+
+      - JWT_SECRET=your_jwt_secret
+      - EXPIRED_FILE_POLICY=cold
     networks:
       - crabs3-network
       - mail-network # Connect to external mail network for sending emails
@@ -85,6 +88,17 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+
+  cron:
+    build:
+      context: ./cron
+    container_name: crabs3-cron
+    environment:
+      CRON_SECRET: testsecret
+      APP_INTERNAL_URL: http://web:3000
+    depends_on:
+      - web
+    restart: unless-stopped
 
 networks:
   crabs3-network:
