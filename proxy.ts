@@ -15,7 +15,7 @@ const PUBLIC_ROUTES = [
   "/api/secret/get",
   "/api/health",
   "/api/services/",
-  "/api/cron/",
+  "/api/cron/check-expired",
 ];
 
 export function proxy(request: NextRequest) {
