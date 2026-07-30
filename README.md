@@ -107,10 +107,6 @@ This project use a middleware to handle API requests, the endpoints are as follo
 - `PUT /api/admin/users/[id]/edit-quota`: Update a user's storage quota.
 - `POST /api/admin/users/[id]/reset-password`: Reset a user's password.
 
-## Documentation
-
-A detailed documentation of the API endpoints is available in the [Bruno collection](./doc/api/).
-
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
