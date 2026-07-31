@@ -116,7 +116,7 @@ services:
       - db
       - clamav
     ports:
-      - "5000:3000"
+      - "3000:3000"
     environment:
       - S3_HOT_ENDPOINT=${S3_HOT_ENDPOINT}
       - S3_HOT_ACCESS_KEY_ID=${S3_HOT_ACCESS_KEY_ID}

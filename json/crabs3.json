@@ -1,0 +1,35 @@
+{
+  "name": "CrabS3",
+  "slug": "crabs3",
+  "categories": [
+    11
+  ],
+  "date_created": "2026-08-01",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://github.com/DoctorPok42/CrabS3",
+  "website": "https://github.com/DoctorPok42/CrabS3",
+  "logo": "https://crabs3.doctorpok.io/favicon.png",
+  "description": "Transfert platform for S3 compatible storage. It is designed to be simple, efficient and easy to use.\nNo cloud. No bill. Just S3 buckets full of crabs. 🦀",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/crabs3.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
