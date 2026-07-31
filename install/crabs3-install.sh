@@ -154,6 +154,75 @@ msg_info "Running database migrations"
 docker compose exec -T web npx prisma migrate deploy
 msg_ok "Migrations applied"
 
+read -rp "${TAB3}Admin email [admin@crabs3.local]: " SEED_ADMIN_EMAIL
+export SEED_ADMIN_EMAIL="${SEED_ADMIN_EMAIL:-admin@crabs3.local}"
+
+msg_info "Seeding admin user"
+
+docker compose cp - web:/app/seed-admin.mjs <<'SEED_SCRIPT_EOF'
+import { PrismaClient } from "./app/generated/prisma/index.js";
+import bcrypt from "bcrypt";
+import crypto from "node:crypto";
+
+const prisma = new PrismaClient();
+
+function generatePassword(length = 20) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%^&*";
+  return Array.from(crypto.randomFillSync(new Uint32Array(length)))
+    .map((n) => alphabet[n % alphabet.length])
+    .join("");
+}
+
+async function main() {
+  const existingAdmin = await prisma.users.findFirst({ where: { isAdmin: true } });
+  if (existingAdmin) {
+    console.log(`SKIP: an admin already exists (${existingAdmin.email})`);
+    return;
+  }
+
+  const email = process.env.SEED_ADMIN_EMAIL || "admin@crabs3.local";
+  const name = process.env.SEED_ADMIN_NAME || "Admin";
+  const password = generatePassword();
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  const user = await prisma.users.create({
+    data: { name, email, passwordHash, isAdmin: true },
+  });
+
+  console.log(`ADMIN_EMAIL=${email}`);
+  console.log(`ADMIN_PASSWORD=${password}`);
+  console.log(`ADMIN_ID=${user.id}`);
+}
+
+main()
+  .catch((err) => {
+    console.error("Seed failed:", err);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
+SEED_SCRIPT_EOF
+
+SEED_OUTPUT=$(docker compose exec -T web -e SEED_ADMIN_EMAIL=${SEED_ADMIN_EMAIL} node seed-admin.mjs)
+docker compose exec -T web rm -f /app/seed-admin.mjs
+
+if echo "$SEED_OUTPUT" | grep -q "^ADMIN_EMAIL="; then
+  ADMIN_EMAIL=$(echo "$SEED_OUTPUT" | grep "^ADMIN_EMAIL=" | cut -d= -f2-)
+  ADMIN_PASSWORD=$(echo "$SEED_OUTPUT" | grep "^ADMIN_PASSWORD=" | cut -d= -f2-)
+
+  cat <<EOF > /opt/crabs3/.admin-credentials.txt
+CrabS3 — Admin account (generated at first install)
+Email:    ${ADMIN_EMAIL}
+Password: ${ADMIN_PASSWORD}
+
+⚠️  Change this password after first login. This file is not regenerated
+    on updates; delete it once you've stored the credentials securely.
+EOF
+  chmod 600 /opt/crabs3/.admin-credentials.txt
+  msg_ok "Admin user created — credentials saved to /opt/crabs3/.admin-credentials.txt"
+else
+  msg_ok "Admin user already existed — skipped"
+fi
+
 cat <<EOF > /opt/crabs3/.generated-secrets.txt
 DB_PASSWORD=${DB_PASSWORD}
 JWT_SECRET=${JWT_SECRET}

@@ -7,7 +7,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Source: https://github.com/DoctorPok42/crabS3
 
 APP="CrabS3"
-var_tags="${var_tags:-file-sharing;docker}"
+var_tags="${var_tags:-file-sharing;cloud-storage}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-16}"
@@ -52,6 +52,8 @@ function update_script() {
 start
 build_container
 description
+
+pct exec "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/DoctorPok42/CrabS3/main/install/crabs3-install.sh)"
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
