@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faBug, faCheckCircle, faFingerprint, faKey, faSpinner, faTimesCircle } from "@fortawesome/free-solid-svg-icons"
-import { Button } from "@/components"
+import { faAddressCard, faBug, faCheckCircle, faFingerprint, faKey, faSpinner, faTimesCircle } from "@fortawesome/free-solid-svg-icons"
+import { Button, Input } from "@/components"
 
 const DashboardPage = () => {
   const [dashboardData, setDashboardData] = useState<{
@@ -24,9 +24,14 @@ const DashboardPage = () => {
       infected: boolean;
       infected_by: string | null;
       scanned_at: string | null;
+      storage: "hot" | "cold";
+      folder: { id: string; name: string } | null;
     }>,
     isAdmin: boolean;
   } | null>(null)
+  const [folderNameEdits, setFolderNameEdits] = useState<Record<string, string>>({})
+  const [savingFolderId, setSavingFolderId] = useState<string>("")
+  const [isEditingFolderName, setIsEditingFolderName] = useState<string | false>(false)
   const [page, setPage] = useState<number>(1)
   const [totalPages, setTotalPages] = useState<number>(0)
   const [type, setType] = useState<"active" | "expired">("active")
@@ -35,13 +40,20 @@ const DashboardPage = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await fetch(`/api/dashboard/files?page=${page}&limit=10`)
+        const response = await fetch(`/api/dashboard/files?page=${page}&limit=10&type=${type}`)
         if (!response.ok) {
           throw new Error('Failed to fetch dashboard data')
         }
 
         const data = await response.json()
         setDashboardData(data)
+        const nextFolderNames: Record<string, string> = {}
+        for (const file of data.files as Array<{ folder_id: string | null; folder: { name: string } | null }>) {
+          if (file.folder_id && !nextFolderNames[file.folder_id]) {
+            nextFolderNames[file.folder_id] = file.folder?.name || file.folder_id
+          }
+        }
+        setFolderNameEdits(nextFolderNames)
         setTotalPages(data.totalPages)
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
@@ -49,7 +61,7 @@ const DashboardPage = () => {
     }
 
     fetchDashboardData()
-  }, [page])
+  }, [page, type])
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes'
@@ -116,6 +128,75 @@ const DashboardPage = () => {
     }
   }
 
+  const moveFileToHotStorage = async (fileId: string, folderId: string) => {
+    try {
+      const response = await fetch('/api/dashboard/coldtohot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        alert('Error moving file to hot storage')
+        throw new Error(error.error || 'Error moving file to hot storage')
+      }
+
+      setDashboardData(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          files: prev.files.map(file => {
+            if (file.id === fileId) {
+              return { ...file, storage: "hot" }
+            }
+            return file
+          })
+        }
+      })
+    } catch (error) {
+      console.error('Error moving file to hot storage:', error)
+    }
+  }
+
+  const saveFolderName = async (folderId: string, currentName: string) => {
+    const nextName = (folderNameEdits[folderId] ?? currentName).trim()
+    if (!nextName || nextName === currentName) return
+
+    try {
+      setSavingFolderId(folderId)
+      const response = await fetch(`/api/dashboard/folders/${folderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nextName }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || "Failed to rename folder")
+      }
+
+      setDashboardData(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          files: prev.files.map(file => (
+            file.folder_id === folderId
+              ? { ...file, folder: file.folder ? { ...file.folder, name: nextName } : { id: folderId, name: nextName } }
+              : file
+          ))
+        }
+      })
+
+      setFolderNameEdits(prev => ({ ...prev, [folderId]: nextName }))
+      setIsEditingFolderName(false)
+    } catch (error) {
+      console.error('Error renaming folder:', error)
+    } finally {
+      setSavingFolderId("")
+    }
+  }
+
   return (
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full flex flex-col">
@@ -141,7 +222,7 @@ const DashboardPage = () => {
 
       {
         dashboardData && dashboardData.files.length > 0 && (
-          <div className="w-full flex flex-col gap-4 max-w-6xl">
+          <div className="w-full flex flex-col gap-6 max-w-6xl">
             {Object.entries(
               dashboardData.files.reduce((acc, file) => {
                 const folderId = file.folder_id || 'unknown'
@@ -156,17 +237,51 @@ const DashboardPage = () => {
                 return isDateExpired || isDownloadLimitReached
               }
 
+              const folderName = folderFiles[0]?.folder?.name || folderId
+
               const isFolderExpired = folderFiles.every(file => isFileExpired(file))
               const hasPassword = folderFiles[0]?.password_hash !== null
 
-              if (type === "active" && isFolderExpired) return null
-              if (type === "expired" && !isFolderExpired) return null
-
               return (
-                <div key={folderId} className="flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 bg-white dark:bg-zinc-900 transition duration-300">
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-6">
+                <div key={folderId} className="flex flex-col shadow-lg dark:shadow-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 bg-white dark:bg-zinc-900 transition duration-300">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-4">
                     <div className="flex flex-col gap-1">
-                      <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{folderId === 'unknown' ? 'Ungrouped Files' : folderId} | {folderFiles.length} file{folderFiles.length === 1 ? '' : 's'}</h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isFolderExpired) {
+                            setIsEditingFolderName(folderId === isEditingFolderName ? false : folderId)
+                          }
+                        }}
+                        className="text-left text-lg font-semibold text-zinc-900 dark:text-zinc-100 hover:underline hover:text-blue-500 cursor-pointer"
+                      >
+                        {folderId === 'unknown' ? 'Ungrouped Files' : folderName} | {folderFiles.length} file{folderFiles.length === 1 ? '' : 's'}
+                      </button>
+                      {(isEditingFolderName === folderId && folderId !== 'unknown') && (
+                        <div className="flex flex-wrap items-end gap-2 w-full max-w-md">
+                          <Input
+                            label="Folder name"
+                            id={`folder-name-${folderId}`}
+                            type="text"
+                            name={`folder-name-${folderId}`}
+                            value={folderNameEdits[folderId] ?? folderName}
+                            onChange={(e) => setFolderNameEdits(prev => ({ ...prev, [folderId]: e.target.value }))}
+                            icon={faAddressCard}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                saveFolderName(folderId, folderName)
+                              }
+                            }}
+                          />
+
+                          <Button
+                            text={savingFolderId === folderId ? "Saving..." : "Save"}
+                            variant="secondary"
+                            onClick={() => saveFolderName(folderId, folderName)}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-2 items-center">
@@ -195,6 +310,13 @@ const DashboardPage = () => {
                         variant="secondary"
                       />
 
+                      {isFolderExpired && (
+                        <Button
+                          text="Move to Hot Storage"
+                          variant="primary"
+                          onClick={() => moveFileToHotStorage(folderFiles[0].id, folderId)}
+                        />
+                      )}
                       {!isFolderExpired && (
                         <div className="flex gap-2">
                           <Button
@@ -206,15 +328,6 @@ const DashboardPage = () => {
                               })
                             }}
                           />
-
-                          <a
-                            href={`/file/${folderId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className='text-sm py-2 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 hover:border-green-500 hover:bg-green-100 dark:hover:bg-green-900 transition duration-300'
-                          >
-                            Open
-                          </a>
                         </div>
                       )}
                     </div>

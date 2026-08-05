@@ -11,6 +11,7 @@ export async function POST(request: Request) {
   try {
     const filename = request.headers.get("X-Filename");
     const folderId = request.headers.get("X-Folder-Id") || randomUUID();
+    const folderName = request.headers.get("X-Folder-Name")?.trim() || folderId;
     const fileSize = request.headers.get("X-File-Size");
     const contentType = request.headers.get("Content-Type") || "application/octet-stream";
 
@@ -28,6 +29,12 @@ export async function POST(request: Request) {
     }
 
     const fileSizeBytes = BigInt(fileSize);
+
+    await prisma.folders.upsert({
+      where: { id: folderId },
+      update: {},
+      create: { id: folderId, name: folderName },
+    });
 
     const [user, userFiles] = await Promise.all([
       prisma.users.findUnique({

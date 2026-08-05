@@ -14,9 +14,10 @@ interface InputProps {
   divClass?: string;
   disabled?: boolean;
   readOnly?: boolean;
+  autoFocus?: boolean;
 }
 
-const Input = ({ label, id, type, name, placeholder, class: inputClass, value, onChange, onKeyDown, icon, divClass, disabled, readOnly }: InputProps) => {
+const Input = ({ label, id, type, name, placeholder, class: inputClass, value, onChange, onKeyDown, icon, divClass, disabled, readOnly, autoFocus }: InputProps) => {
   return (
     <div className={`flex flex-col gap-1 col-span-1 md:col-span-1 lg:col-span-2 ${divClass || ''} ${disabled || readOnly ? 'cursor-not-allowed' : ''}`}>
       <label htmlFor={id} className="text-zinc-700 dark:text-zinc-300">{label}</label>
@@ -33,6 +34,7 @@ const Input = ({ label, id, type, name, placeholder, class: inputClass, value, o
           onKeyDown={onKeyDown}
           disabled={disabled}
           readOnly={readOnly}
+          autoFocus={autoFocus}
         />
       </div>
     </div>
