@@ -180,7 +180,7 @@ const Admin = () => {
         )}
       </div>
 
-      <div className="w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-3xl p-5.5 bg-card shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-card-dark transition duration-300">
+      <div className="w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-3xl p-5.5 bg-card dark:bg-card-dark transition duration-300">
         <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Invite User</h2>
         <p className="text-zinc-600 dark:text-zinc-400 mb-2">Send an invitation to a new user via email</p>
         <div className="flex flex-col sm:flex-row gap-4">
@@ -203,6 +203,7 @@ const Admin = () => {
 
         <div className="mt-4">
           <button
+            type="button"
             onClick={sendInvite}
             disabled={!emailInvite}
             className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
@@ -212,7 +213,7 @@ const Admin = () => {
         </div>
       </div>
 
-      <div className="w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-3xl p-5.5 bg-card shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-card-dark transition duration-300">
+      <div className="w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-3xl p-5.5 bg-card dark:bg-card-dark transition duration-300">
         <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Users</h2>
 
         <div className="overflow-x-auto w-full">
