@@ -200,9 +200,9 @@ const DashboardPage = () => {
   return (
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full flex flex-col">
-        <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 mb-2">Dashboard</h1>
+        <h1 className="text-3xl font-extrabold text-zinc-700 dark:text-zinc-300 mb-2">Dashboard</h1>
         <p className="text-zinc-500 dark:text-zinc-400">Manage your uploaded files, view statistics, and security settings.</p>
-        <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
+        <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
 
       <div className="p-1 flex gap-1 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 text-sm font-medium max-w-6xl">

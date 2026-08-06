@@ -42,9 +42,9 @@ const LogsPage = () => {
   return (
     <div className="flex flex-col w-full max-w-8xl items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full mb-8 flex flex-col">
-        <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 mb-2">Logs</h1>
+        <h1 className="text-3xl font-extrabold text-zinc-700 dark:text-zinc-300 mb-2">Logs</h1>
         <p className="text-zinc-500 dark:text-zinc-400">View and manage your application logs</p>
-        <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
+        <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
 
       <div className="w-full">
@@ -133,7 +133,7 @@ const LogsPage = () => {
           </button>
         </div>
 
-        <div>
+        <div className="flex flex-col gap-2.5">
           {logs.map((log) => (
             <Log key={log.id} action={log.action} level={log.level} message={log.message} meta={log.meta} createdAt={log.created_at} userId={log.user} />
           ))}

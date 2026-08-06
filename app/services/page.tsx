@@ -177,9 +177,9 @@ const Services = () => {
   return (
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full flex flex-col">
-        <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 mb-2">Services</h1>
+        <h1 className="text-3xl font-extrabold text-zinc-700 dark:text-zinc-300 mb-2">Services</h1>
         <p className="text-zinc-500 dark:text-zinc-400">Manage your services and integrations with CrabS3.</p>
-        <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
+        <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
 
       {invitationCode && (

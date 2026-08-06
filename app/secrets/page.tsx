@@ -64,8 +64,8 @@ const SecretPage = () => {
         />
       )}
 
-      <div style={{ ['--shadow-color' as string]: '#f59e0baa' }} className={`inputShadow lg:w-150 w-full ${secret ? '' : 'mt-10'} h-[30vh] my-auto p-2 rounded-3xl flex items-center justify-center border-zinc-200 dark:border-zinc-700 border-2 cursor-pointer group hover:border-yellow-600 focus-within:border-yellow-600 bg-zinc-50 dark:bg-zinc-900 transition duration-300`}>
-        <div className={`rounded-2xl w-full h-full flex items-center justify-center border-dashed border-zinc-200 dark:border-zinc-700 border-2 group-hover:border-yellow-500 dark:group-hover:border-yellow-800 focus-within:border-yellow-500 dark:focus-within:border-yellow-800 transition duration-300`}>
+      <div style={{ ['--shadow-color' as string]: '#f59e0baa' }} className={`inputShadow lg:w-150 w-full ${secret ? '' : 'mt-10'} h-[30vh] my-auto p-2 rounded-4xl flex items-center justify-center border-zinc-200 dark:border-zinc-700 border-2 cursor-pointer group hover:border-yellow-600 focus-within:border-yellow-600 bg-zinc-50 dark:bg-zinc-900 transition duration-250`}>
+        <div className={`rounded-3xl w-full h-full flex items-center justify-center border-dashed border-zinc-200 dark:border-zinc-700 border-2 group-hover:border-yellow-500 dark:group-hover:border-yellow-800 focus-within:border-yellow-500 dark:focus-within:border-yellow-800 transition duration-250`}>
           <textarea
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
@@ -147,9 +147,9 @@ const SecretPage = () => {
       }
 
       <div className='flex flex-col items-center gap-2 mt-4 -mb-4'>
-        <h2 className="text-md italic text-zinc-500 dark:text-zinc-400">Or upload a file</h2>
-        <Link href="/" className='text-sm py-2 px-4 rounded-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-300'>
-          Upload a File
+        <h2 className="text-md italic text-zinc-500 dark:text-zinc-400">Or send a file</h2>
+        <Link href="/" className='text-sm py-2 px-4 rounded-full font-bold bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark text-zinc-800 dark:text-zinc-200 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150'>
+          Send a File
         </Link>
       </div>
     </div >

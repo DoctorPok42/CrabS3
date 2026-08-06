@@ -154,8 +154,8 @@ export default function Home() {
         />
       )}
 
-      <div style={{ ['--shadow-color' as string]: '#3b82f6aa' }} className={`lg:w-150 w-full ${fileMeta.length > 0 ? 'h-40 md:h-40 p-1 rounded-2xl' : 'inputShadow h-[30vh] my-auto p-2 rounded-3xl mt-10'} ${(status || uploading) && "mt-5!"} flex items-center justify-center border-zinc-200 dark:border-zinc-700 border-2 cursor-pointer group hover:border-blue-500 bg-zinc-50 dark:bg-zinc-900 transition duration-300`}>
-        <div className={`${fileMeta.length > 0 ? 'rounded-xl' : 'rounded-2xl'} w-full h-full flex items-center justify-center border-dashed border-zinc-200 dark:border-zinc-700 border-2 group-hover:border-blue-300 dark:group-hover:border-blue-800 transition duration-300`} {...getRootProps()}>
+      <div style={{ ['--shadow-color' as string]: '#3b82f6aa' }} className={`lg:w-150 w-full ${fileMeta.length > 0 ? 'h-40 md:h-40 p-1 rounded-2xl bg-input! dark:bg-input-dark!' : 'inputShadow h-[30vh] my-auto p-2 rounded-4xl mt-10'} ${(status || uploading) && "mt-5!"} flex items-center justify-center border-zinc-200 dark:border-zinc-700 border-2 cursor-pointer group hover:border-blue-500 bg-zinc-50 dark:bg-zinc-900 transition duration-250`}>
+        <div className={`${fileMeta.length > 0 ? 'rounded-xl' : 'rounded-3xl'} w-full h-full flex items-center justify-center border-dashed border-zinc-200 dark:border-zinc-700 border-2 group-hover:border-blue-300 dark:group-hover:border-blue-800 transition duration-250`} {...getRootProps()}>
           <input {...getInputProps()} />
           <div className="p-8 text-xl text-center text-zinc-700 dark:text-zinc-300">
             {fileMeta.length > 0 ? <div>
@@ -173,7 +173,7 @@ export default function Home() {
       </div>
 
       {
-        fileMeta.length > 0 && <div className="lg:w-150 w-full mt-5 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+        fileMeta.length > 0 && <div className="lg:w-150 w-full mt-5 flex flex-col border-cardBorder dark:border-cardBorder-dark border-2 rounded-2xl p-6 bg-card shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-card-dark transition duration-300">
           <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Options</h2>
 
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 grid-rows-auto">
@@ -320,9 +320,9 @@ export default function Home() {
       }
 
       <div className='flex flex-col items-center gap-2 mt-4 -mb-4'>
-        <h2 className="text-md italic text-zinc-500 dark:text-zinc-400">Or upload a secret</h2>
-        <Link href="/secrets" className='text-sm py-2 px-4 rounded-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-300'>
-          Upload Secret
+        <h2 className="text-md italic text-zinc-500 dark:text-zinc-400">Or send a secret</h2>
+        <Link href="/secrets" className='text-sm py-2 px-4 rounded-full font-bold bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark text-zinc-800 dark:text-zinc-200 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150'>
+          Send a Secret
         </Link>
       </div>
     </main >
