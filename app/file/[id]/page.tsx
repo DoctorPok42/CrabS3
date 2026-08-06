@@ -1,7 +1,7 @@
 "use client"
 
 import { Button, Input } from "@/components"
-import { faBug, faCircleXmark, faClock, faClockFour, faClockRotateLeft, faCloudArrowDown, faKey, faQrcode, faShieldAlt } from "@fortawesome/free-solid-svg-icons"
+import { faBug, faCircleXmark, faClockRotateLeft, faCloudArrowDown, faKey, faQrcode, faShieldAlt } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useQRCode } from "next-qrcode"
 import Head from "next/head"
@@ -27,6 +27,7 @@ export default function Id() {
       infectedBy: string | null
       scannedAt: Date | null
       expiresAt: Date | null
+      folderName: string | null
     }>
   } | null>(null)
   const [qrcodePopup, setQrcodePopup] = useState<string | null>(null)
@@ -90,13 +91,13 @@ export default function Id() {
       if (fileId) {
         const file = fileInfo?.files.find(f => f.id === fileId)
         if (file) {
-          triggerDownload(fileId, file.filename)
+          triggerDownload(fileId, file.folderName ? file.folderName : file.filename)
         }
       } else if (fileInfo && fileInfo.files.length > 1) {
         triggerDownload("", "files.zip", true)
       } else if (fileInfo?.files.length === 1) {
         const file = fileInfo.files[0]
-        triggerDownload(file.id, file.filename)
+        triggerDownload(file.id, file.folderName ? file.folderName : file.filename)
       }
 
       clearInterval(interval)
@@ -177,8 +178,8 @@ export default function Id() {
 
       {fileInfo?.exists && (
         <div className="w-full mt-4 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow-lg dark:shadow-zinc-600 dark:bg-zinc-900 gap-6">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">File{fileInfo.files.length > 1 ? 's' : ''} Available</h2>
+          <div className="flex flex-col">
+            <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">{fileInfo.files[0].folderName || `File${fileInfo.files.length > 1 ? 's' : ''} Available`}</h2>
             <div className="flex flex-wrap gap-x-2 gap-y-2 items-center">
               <p className="text-sm text-zinc-500 dark:text-zinc-400">{fileInfo.files.filter((f) => !f.infectedBy).length} file{fileInfo.files.filter((f) => !f.infectedBy).length > 1 ? 's' : ''} available for download</p>
               <span className="inline-flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1 rounded-full text-xs font-semibold">

@@ -29,7 +29,8 @@ export async function GET(request: Request) {
         download_count: true,
         max_downloads: true,
         infected_by: true,
-        scanned_at: true
+        scanned_at: true,
+        folder: { select: { name: true } }
       },
     })
 
@@ -49,7 +50,8 @@ export async function GET(request: Request) {
       downloadCount: file.download_count,
       infectedBy: file.infected_by,
       scannedAt: file.scanned_at,
-      expiresAt: file.expires_at
+      expiresAt: file.expires_at,
+      folderName: file.folder?.name || null
     }));
 
     return Response.json({

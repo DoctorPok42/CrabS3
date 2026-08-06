@@ -26,6 +26,7 @@ export async function GET(request: Request) {
           file_id: id,
         },
         select: {
+          folder: { select: { name: true } },
           file_id: true,
           folder_id: true,
           hash: true,

@@ -7,6 +7,16 @@ datasource db {
   provider = "postgresql"
 }
 
+model folders {
+  id                String              @id
+  name              String
+  created_at        DateTime?           @default(now()) @db.Timestamp(6)
+  files             files[]
+  download_events   download_events[]
+  multipart_uploads multipart_uploads[]
+  services          services[]
+}
+
 model downloads {
   id            Int       @id @default(autoincrement())
   file_id       String?
@@ -22,43 +32,45 @@ enum UploadType {
 }
 
 model files {
-  id             String      @id
-  folder_id      String?
-  filename       String
-  content_type   String
-  size           BigInt
-  uploaded_at    DateTime?   @default(now()) @db.Timestamp(6)
-  expires_at     DateTime?   @db.Timestamp(6)
-  storage        String?     @default("hot")
-  max_downloads  Int?
-  download_count Int?        @default(0)
-  password_hash  String?
-  email_sender   String?
+  id              String             @id
+  folder_id       String?
+  filename        String
+  content_type    String
+  size            BigInt
+  uploaded_at     DateTime?          @default(now()) @db.Timestamp(6)
+  expires_at      DateTime?          @db.Timestamp(6)
+  storage         String?            @default("hot")
+  max_downloads   Int?
+  download_count  Int?               @default(0)
+  password_hash   String?
+  email_sender    String?
   email_recipient String?
-  email_message  String?
-  upload_token   String?     @unique
-  download_token String?     @unique
-  downloads      downloads[]
-  infected       Boolean     @default(false)
-  infected_by    String?
-  scanned_at     DateTime?   @db.Timestamp(6)
-  user           users?       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user_id        Int?
-  service        services?    @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  service_id     Int?
-  type           UploadType  @default(USER)
+  email_message   String?
+  upload_token    String?            @unique
+  download_token  String?            @unique
+  downloads       downloads[]
+  infected        Boolean            @default(false)
+  infected_by     String?
+  scanned_at      DateTime?          @db.Timestamp(6)
+  folder          folders?           @relation(fields: [folder_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  user            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_id         Int?
+  service         services?          @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  service_id      Int?
+  type            UploadType         @default(USER)
   download_events download_events[]
 }
 
 model download_events {
-  id          Int       @id @default(autoincrement())
-  file_id     String?
-  files       files?    @relation(fields: [file_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  folder_id   String?
-  hash        String?
-  ip          String?
-  user_agent  String?
-  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  id         Int       @id @default(autoincrement())
+  file_id    String?
+  files      files?    @relation(fields: [file_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  folder_id  String?
+  folder     folders?  @relation(fields: [folder_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  hash       String?
+  ip         String?
+  user_agent String?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
 }
 
 model secrets {
@@ -78,6 +90,7 @@ model secrets {
 model multipart_uploads {
   file_id    String    @id
   folder_id  String?
+  folder     folders?  @relation(fields: [folder_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   upload_id  String
   filename   String
   chunk_size Int
@@ -116,12 +129,12 @@ model session {
 }
 
 model communication {
-  id          Int       @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   type        String
   url         String
   user_id     Int?
-  user        users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  active      Boolean   @default(true)
+  user        users?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  active      Boolean    @default(true)
   created_at   DateTime? @default(now()) @db.Timestamp(6)
 
   @@unique([user_id, type])
@@ -175,18 +188,19 @@ enum ServiceStatus {
 }
 
 model services {
-  id          Int       @id @default(autoincrement())
-  uuid        String    @default(uuid()) @unique
-  name        String    @unique
-  token       String    @unique
-  folder_id   String?
-  image       String?
-  files       files[]
-  secrets     secrets[]
-  invites     invites[]
-  quota       BigInt    @default(10737418240) // 10 GB
-  status       ServiceStatus @default(ACTIVE)
-  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  id         Int       @id @default(autoincrement())
+  uuid       String    @default(uuid()) @unique
+  name       String    @unique
+  token      String    @unique
+  folder_id  String?
+  folder     folders?  @relation(fields: [folder_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  image      String?
+  files      files[]
+  secrets    secrets[]
+  invites    invites[]
+  quota      BigInt    @default(10737418240) // 10 GB
+  status     ServiceStatus @default(ACTIVE)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
 }
 
 model invites {
@@ -194,7 +208,7 @@ model invites {
   code        String    @unique
   service_id   Int
   service     services  @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  expires_at   DateTime  @db.Timestamp(6)
+  expires_at   DateTime @db.Timestamp(6)
   max_uses    Int
   uses        Int       @default(0)
   created_at  DateTime? @default(now()) @db.Timestamp(6)
