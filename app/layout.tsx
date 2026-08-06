@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Footer, NavBar } from "@/components";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
 });
 
@@ -30,12 +30,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      className={`${plusJakartaSans.variable} ${jetBrainsMono.variable} antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-screen flex max-w-450 mx-auto bg-white dark:bg-[#16171a]! text-black dark:text-white">
+      <body className="min-h-screen flex max-w-450 mx-auto text-text dark:text-text-dark">
         <NavBar />
-        <div className=" mx-auto flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#16171a]">
+        <div className=" mx-auto flex-1 flex flex-col overflow-hidden bg-page dark:bg-page-dark">
           <div className="flex-1 overflow-y-auto flex items-center flex-col">
             {children}
             <Footer />
