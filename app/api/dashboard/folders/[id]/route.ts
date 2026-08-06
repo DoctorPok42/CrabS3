@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });

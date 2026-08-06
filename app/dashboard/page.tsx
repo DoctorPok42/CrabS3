@@ -166,7 +166,7 @@ const DashboardPage = () => {
     try {
       setSavingFolderId(folderId)
       const response = await fetch(`/api/dashboard/folders/${folderId}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: nextName }),
       })
