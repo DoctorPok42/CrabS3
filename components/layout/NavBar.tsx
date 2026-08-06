@@ -1,6 +1,6 @@
 "use client"
 
-import { faArrowRightFromBracket, faBroadcastTower, faCircleNodes, faCloudArrowUp, faDashboard, faFile, faLock, faRectangleList, faUserGear } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRightFromBracket, faBarsStaggered, faCircleNodes, faGrip, faLock, faShield, faTowerCell, faUpload, faUser } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import Link from "next/link";
@@ -26,36 +26,35 @@ const NavBar = () => {
   }, [])
 
   const links = [
-    { name: "Upload", href: "/", icon: faCloudArrowUp },
+    { name: "Upload", href: "/", icon: faUpload },
     { name: "Secrets", href: "/secrets", icon: faLock },
-    { name: "Dashboard", href: "/dashboard", icon: faRectangleList },
-    { name: "Communication", href: "/communication", icon: faBroadcastTower },
-    { name: "Account", href: "/me", icon: faUserGear },
+    { name: "Dashboard", href: "/dashboard", icon: faGrip },
+    { name: "Communication", href: "/communication", icon: faTowerCell },
+    { name: "Account", href: "/me", icon: faUser },
     {},
-    { name: "Logs", href: "/logs", icon: faFile, adminOnly: true },
+    { name: "Logs", href: "/logs", icon: faBarsStaggered, adminOnly: true },
     { name: "Services", href: "/services", icon: faCircleNodes, adminOnly: true },
-    { name: "Admin", href: "/admin", icon: faDashboard, adminOnly: true },
-    {
-      name: "Logout", href: "", icon: faArrowRightFromBracket, color: "text-red-800", onClick: async () => {
-        await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json", "x-user-id": String(user?.id) } })
-        window.location.href = "/auth/login"
-      }
-    },
+    { name: "Admin", href: "/admin", icon: faShield, adminOnly: true },
   ]
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json", "x-user-id": String(user?.id) } })
+    window.location.href = "/auth/login"
+  }
 
   const ignoredPaths = ["auth", "file", "secret"]
 
   if (ignoredPaths.includes(pathname.split("/")[1])) return null
 
   return (
-    <nav className="w-69 lg:block hidden bg-white dark:bg-[#16171a] border-gray-200 dark:border-zinc-700 z-50 p-8 pt-0 border-r">
+    <nav className="w-69 lg:block relative hidden bg-sidebar dark:bg-sidebar-dark border-gray-200 dark:border-zinc-700 z-50 p-8 pt-0 border-r">
       <div className="sticky top-0 pt-8">
         <div className="flex items-center gap-4">
           <Image src="/favicon.ico" alt="CrabS3 Logo" width={35} height={35} />
           <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">CrabS3</h1>
         </div>
 
-        <div className="w-full rounded-lg border mt-7 border-gray-300 dark:border-zinc-700 p-3 bg-gray-50 dark:bg-zinc-800">
+        <div className="w-full rounded-2xl border mt-7 border-border dark:border-zinc-700 p-3 bg-input dark:bg-zinc-800">
           {loading ? (
             <div className="flex items-center gap-3 animate-pulse">
               <p className="w-8 h-8 rounded-full bg-gray-300 dark:bg-zinc-600 flex items-center justify-center text-white text-xs font-bold cursor-pointer"></p>
@@ -64,31 +63,42 @@ const NavBar = () => {
           ) : (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <p className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                <p className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-bold">
                   {user?.name.charAt(0).toUpperCase()}
                 </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{user?.name || "Unknown User"}</p>
+                <p className="text-sm font-semibold text-text dark:text-text-dark truncate">{user?.name || "Unknown User"}</p>
               </div>
             </div>
           )}
         </div>
 
-        <div className="flex flex-col mt-6 gap-2 text-md">
+        <div className="flex flex-col mt-6 -space-y-1 text-md">
           {links.map((link) => {
             if (link.adminOnly && !user?.isAdmin) return null
             if (!link.name) return <hr key="divider" className="my-3 mr-8 border-gray-200 dark:border-zinc-800" />
             return (
               <Link
                 key={link.name}
-                onClick={() => link.onClick?.()}
                 href={link.href}
-                className={`flex gap-4 items-center rounded-md px-3 group hover:text-[#9f6afe] transition ${link.href === pathname ? "text-[#9f6afe]! opacity-90!" : ""} ${link.color || "text-gray-700 dark:text-gray-300"}`}
+                className={`flex font-semibold gap-4 items-center px-3.5 py-2.5 rounded-full group hover:text-uploadColor hover:bg-uploadBg dark:hover:bg-uploadBg-dark transition ${link.href === pathname ? "text-uploadColor! opacity-90! bg-uploadBg dark:bg-uploadBg-dark" : ""} text-gray-700 dark:text-gray-300`}
               >
-                <FontAwesomeIcon icon={link.icon} className={` ${link.href === pathname ? "text-[#9f6afe] opacity-90!" : link.color || "text-[#444850]"} group-hover:text-[#9f6afe] w-3`} />
+                <FontAwesomeIcon icon={link.icon} className={` ${link.href === pathname ? "text-uploadColor opacity-90!" : "text-[#444850]"} group-hover:text-uploadColor w-3`} />
                 {link.name}
               </Link>
             )
           })}
+
+          <div className="fixed bottom-5 w-60">
+            <hr key="divider" className="my-3 mr-8 border-gray-200 dark:border-zinc-800" />
+            <button
+              type="button"
+              onClick={logout}
+              className="cursor-pointer flex gap-4 items-center rounded-md px-3 transition text-[#d84040]"
+            >
+              <FontAwesomeIcon icon={faArrowRightFromBracket} className="text-[#d84040] w-3" />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     </nav>

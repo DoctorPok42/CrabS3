@@ -105,19 +105,19 @@ const Admin = () => {
   return (
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mx-auto">
       <div className="w-full flex flex-col">
-        <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 mb-2">Admin Panel</h1>
+        <h1 className="text-3xl font-extrabold text-zinc-700 dark:text-zinc-300 mb-2">Admin Panel</h1>
         <p className="text-zinc-500 dark:text-zinc-400">Manage users and storage statistics for your CrabS3 instance.</p>
-        <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
+        <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
 
-      <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900">
+      <div className="w-full flex flex-col">
         <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Storage Overview</h2>
         {statsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {new Array(9).fill(0).map((_, i) => (
-              <div key={i + 1} className="col-span-1 border-2 border-zinc-200 dark:border-zinc-700 rounded-lg p-4 animate-pulse bg-zinc-50 dark:bg-zinc-800">
-                <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4 mb-3"></div>
-                <div className="h-8 bg-zinc-200 dark:bg-zinc-700 rounded w-1/2"></div>
+              <div key={i + 1} className="col-span-1 rounded-lg p-4 animate-pulse bg-[#f1edf6] dark:bg-zinc-800">
+                <div className="h-4 bg-[#d8d3cf] dark:bg-zinc-700 rounded w-3/4 mb-3"></div>
+                <div className="h-8 bg-[#d8d3cf] dark:bg-zinc-700 rounded w-1/2"></div>
               </div>
             ))}
           </div>
@@ -127,14 +127,12 @@ const Admin = () => {
               title="Total Storage Used (Hot + Cold)"
               value={formatBytes(stats.totalStorageUsed)}
               icon={faHdd}
-              color="blue"
               subtitle={`${formatBytes(stats.totalStorageUsed - (stats.expiredStorageSize))}`}
             />
             <StorageMetricCard
               title="Expired Storage Size"
               value={formatBytes(stats.expiredStorageSize)}
               icon={faTrash}
-              color="red"
               subtitle="Awaiting cleanup"
             />
             <StorageMetricCard
@@ -148,50 +146,44 @@ const Admin = () => {
               title="Average File Size"
               value={formatBytes(stats.averageFileSize)}
               icon={faRulerVertical}
-              color="blue"
               subtitle="Per file"
             />
             <StorageMetricCard
               title="Total Downloads"
               value={stats.totalDownloads}
               icon={faDownload}
-              color="orange"
               subtitle="All time"
             />
             <StorageMetricCard
               title="Total Users"
               value={stats.totalUsers}
               icon={faUser}
-              color="purple"
               subtitle={`${stats.usersWithFiles} with files`}
             />
             <StorageMetricCard
               title="Total Files"
               value={stats.totalFiles}
               icon={faFile}
-              color="purple"
               subtitle={`${stats.activeFiles} active`}
             />
             <StorageMetricCard
               title="Files Protected"
               value={stats.filesWithPassword}
               icon={faShieldAlt}
-              color="green"
               subtitle="With password"
             />
             <StorageMetricCard
               title="Secrets Shared"
               value={stats.totalSecrets}
               icon={faLock}
-              color="orange"
             />
           </div>
         )}
       </div>
 
-      <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
-        <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Admin Panel</h2>
-        <p className="text-zinc-600 dark:text-zinc-400 mb-2">You have admin privileges. You can invite new users by email</p>
+      <div className="w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-3xl p-5.5 bg-card shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-card-dark transition duration-300">
+        <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Invite User</h2>
+        <p className="text-zinc-600 dark:text-zinc-400 mb-2">Send an invitation to a new user via email</p>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex flex-col w-full gap-1">
             <label htmlFor="emailInvite" className="text-zinc-700 dark:text-zinc-300">Email</label>
@@ -221,7 +213,7 @@ const Admin = () => {
         </div>
       </div>
 
-      <div className="max-w-250 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+      <div className="w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-3xl p-5.5 bg-card shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-card-dark transition duration-300">
         <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Users</h2>
 
         <div className="overflow-x-auto w-full">
