@@ -139,7 +139,6 @@ const Admin = () => {
               title="Cold Storage"
               value={stats.coldStorageActive ? "Active" : "Inactive"}
               icon={faDatabase}
-              color={stats.coldStorageActive ? "green" : "gray"}
               subtitle="S3 bucket status"
             />
             <StorageMetricCard
