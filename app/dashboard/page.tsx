@@ -205,12 +205,18 @@ const DashboardPage = () => {
         <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
 
-      <div className="p-1 flex gap-1 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 text-sm font-medium max-w-6xl">
-        <div className={`px-12 py-1 font-bold cursor-pointer transition rounded-sm ${type === "active" && "bg-teal-500 text-white"}`} onClick={() => handleChangeType("active")}>
-          Active
-        </div>
-        <div className={`px-12 py-1 font-bold cursor-pointer transition rounded-sm ${type === "expired" && "bg-teal-500 text-white"}`} onClick={() => handleChangeType("expired")}>
-          Expired
+      <div className="w-full flex">
+        <div className="flex p-1 gap-1 bg-input dark:bg-input-dark border border-cardBorder dark:border-cardBorder-dark rounded-full">
+          <Button
+            text="Active"
+            onClick={() => handleChangeType("active")}
+            variant={type === "active" ? "primary" : "ghost"}
+          />
+          <Button
+            text="Expired"
+            onClick={() => handleChangeType("expired")}
+            variant={type === "expired" ? "primary" : "ghost"}
+          />
         </div>
       </div>
 
@@ -222,7 +228,7 @@ const DashboardPage = () => {
 
       {
         dashboardData && dashboardData.files.length > 0 && (
-          <div className="w-full flex flex-col gap-6 max-w-6xl">
+          <div className="w-full flex flex-col gap-6">
             {Object.entries(
               dashboardData.files.reduce((acc, file) => {
                 const folderId = file.folder_id || 'unknown'
@@ -243,7 +249,7 @@ const DashboardPage = () => {
               const hasPassword = folderFiles[0]?.password_hash !== null
 
               return (
-                <div key={folderId} className="flex flex-col shadow-lg dark:shadow-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 bg-white dark:bg-zinc-900 transition duration-300">
+                <div key={folderId} className="flex flex-col border border-cardBorder dark:border-cardBorder-dark rounded-3xl p-6 bg-card dark:bg-card-dark transition duration-300">
                   <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-4">
                     <div className="flex flex-col gap-1">
                       <button
@@ -291,13 +297,11 @@ const DashboardPage = () => {
                           <span>Protected</span>
                         </div>
                       )}
-                      <div className={`flex items-center text-sm font-medium px-3 py-1.5 rounded-lg ${isFolderExpired ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'}`}>
-                        <FontAwesomeIcon icon={isFolderExpired ? faTimesCircle : faCheckCircle} size="xs" className="mr-1" />
+                      <div className={`flex items-center text-sm font-bold px-3.5 py-1.5 rounded-full ${isFolderExpired ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-[#e1ede0] dark:bg-[#243b21] text-[#005500] dark:text-[#81dd6c]'}`}>
                         {isFolderExpired ? 'Expired' : 'Active'}
                       </div>
                       {folderFiles[0].infected && (
-                        <div className="flex items-center text-sm font-medium px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                          <FontAwesomeIcon icon={faBug} size="xs" className="mr-1" />
+                        <div className="flex items-center text-sm font-bold px-3.5 py-1.5 rounded-full bg-[#f2e8d5] dark:bg-[#44310d] text-[#6a3200] dark:text-[#f7b83d]">
                           Infected
                         </div>
                       )}
@@ -308,12 +312,13 @@ const DashboardPage = () => {
                         icon={fetchingReport === folderId ? faSpinner : faFingerprint}
                         onClick={() => getFingerprintReport(folderId, "folder")}
                         variant="secondary"
+                        title="Get Fingerprint Report"
                       />
 
                       {isFolderExpired && (
                         <Button
                           text="Move to Hot Storage"
-                          variant="primary"
+                          variant="secondary"
                           onClick={() => moveFileToHotStorage(folderFiles[0].id, folderId)}
                         />
                       )}
@@ -327,6 +332,7 @@ const DashboardPage = () => {
                                 console.error('Error copying link')
                               })
                             }}
+                            variant="secondary"
                           />
                         </div>
                       )}
@@ -335,23 +341,20 @@ const DashboardPage = () => {
 
                   <div className="space-y-2">
                     {folderFiles.map((file) => {
-                      const isExpired = isFileExpired(file)
-                      let bgClass = 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                      let bgClass = 'bg-[#f4f1ee] dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700'
 
-                      if (isExpired) {
-                        bgClass = 'opacity-50 bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
-                      } else if (file.infected) {
-                        bgClass = 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30'
+                      if (file.infected) {
+                        bgClass = 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
                       }
 
                       return (
                         <div
                           key={file.id}
-                          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border transition duration-200 ${bgClass}`}
+                          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3 px-4 rounded-2xl transition duration-200 ${bgClass}`}
                         >
                           <div>
                             <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-200 text-sm">
-                              <p className="text-sm font-medium truncate">{file.filename}</p>
+                              <p className="text-sm font-bold truncate">{file.filename}</p>
                               {file.infected && (
                                 <span className="text-xs font-medium px-1.5 py-1 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400">
                                   <FontAwesomeIcon icon={faBug} size="xs" />
