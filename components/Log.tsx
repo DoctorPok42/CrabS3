@@ -3,6 +3,7 @@
 import { LogAction, LogLevel } from "@/types/log.types";
 import { JSONValue } from "next/dist/server/config-shared";
 import { useState } from "react";
+import { LogLevelsColors } from "./log-colors";
 
 export interface LogProps {
   level: LogLevel
@@ -20,12 +21,7 @@ const LEVEL_COLORS: Record<LogLevel, string> = {
   ERROR: "bg-[#f6eceb] border border-[#e9bebb] dark:bg-[#281512] dark:border-[#592825]",
 };
 
-const LogLevelsColors: Record<LogLevel, string> = {
-  DEBUG: "text-gray-800 dark:text-gray-300",
-  INFO: "bg-[#c8e2f0] text-[#004688] dark:bg-[#083f59] dark:text-[#58cffe]",
-  WARN: "bg-[#ebdec5] text-[#6a3200] dark:bg-[#4f3605] dark:text-[#f4b63c]",
-  ERROR: "bg-[#f1d9d7] text-[#800613] dark:bg-[#5b2b27] dark:text-[#f9978e]",
-};
+export { LogLevelsColors };
 
 const Log = ({ level, action, message, meta, userId, createdAt }: LogProps) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);

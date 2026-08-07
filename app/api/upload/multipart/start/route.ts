@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   try {
     const filename = request.headers.get("X-Filename");
     const folderId = request.headers.get("X-Folder-Id") || randomUUID();
-    const folderName = request.headers.get("X-Folder-Name")?.trim() || folderId;
+    const folderName = request.headers.get("X-Folder-Name")?.trim() || "";
     const fileSize = request.headers.get("X-File-Size");
     const contentType = request.headers.get("Content-Type") || "application/octet-stream";
 

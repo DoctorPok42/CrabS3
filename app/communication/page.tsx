@@ -1,6 +1,6 @@
 "use client"
 
-import { Input } from "@/components"
+import { Button, Input } from "@/components"
 import { useEffect, useState } from "react"
 import { faDiscord, faMicrosoft, faSlack } from "@fortawesome/free-brands-svg-icons"
 
@@ -19,9 +19,9 @@ const Communication = () => {
         }
 
         const data = await response.json()
-        const discordCommunication = data?.communications?.find((comm: any) => comm.type === "discord")
-        const slackCommunication = data?.communications?.find((comm: any) => comm.type === "slack")
-        const teamsCommunication = data?.communications?.find((comm: any) => comm.type === "teams")
+        const discordCommunication = data?.communications?.find((comm: { type: string }) => comm.type === "discord")
+        const slackCommunication = data?.communications?.find((comm: { type: string }) => comm.type === "slack")
+        const teamsCommunication = data?.communications?.find((comm: { type: string }) => comm.type === "teams")
         if (discordCommunication) {
           setDiscordWebhookURL(discordCommunication.url)
         }
@@ -76,14 +76,14 @@ const Communication = () => {
   }
 
   return (
-    <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
+    <main className="flex flex-col w-full max-w-8xl gap-8 px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full flex flex-col">
         <h1 className="text-3xl font-extrabold text-zinc-700 dark:text-zinc-300 mb-2">Communication</h1>
         <p className="text-zinc-500 dark:text-zinc-400">Manage communication settings for your CrabS3 instance.</p>
         <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
 
-      <div className="w-full grid md:grid-cols-1 lg:grid-cols-4 gap-6 my-auto">
+      <div className="w-1/2 flex flex-col gap-6">
         <Input
           label="Discord URL"
           type="text"
@@ -117,13 +117,12 @@ const Communication = () => {
           icon={faMicrosoft}
         />
 
-        <button
+        <Button
+          text="Save"
           onClick={handleSave}
-          disabled={!discordWebhookURL}
-          className="col-span-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg cursor-pointer transition duration-200"
-        >
-          Save Settings
-        </button>
+          disabled={!discordWebhookURL && !slackWebhookURL && !teamsWebhookURL}
+          divClass=""
+        />
       </div>
     </main>
   )

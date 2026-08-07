@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faAddressCard, faBug, faCheckCircle, faFingerprint, faKey, faSpinner, faTimesCircle } from "@fortawesome/free-solid-svg-icons"
-import { Button, Input } from "@/components"
+import { faAddressCard, faBug, faFingerprint, faKey, faSpinner } from "@fortawesome/free-solid-svg-icons"
+import { Button, Input, Toast } from "@/components"
 
 const DashboardPage = () => {
   const [dashboardData, setDashboardData] = useState<{
@@ -36,13 +36,14 @@ const DashboardPage = () => {
   const [totalPages, setTotalPages] = useState<number>(0)
   const [type, setType] = useState<"active" | "expired">("active")
   const [fetchingReport, setFetchingReport] = useState<string>("")
+  const [toast, setToast] = useState<{ message: string; level: 'info' | 'success' | 'warning' | 'error', actionLabel?: string } | null>(null)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const response = await fetch(`/api/dashboard/files?page=${page}&limit=10&type=${type}`)
         if (!response.ok) {
-          throw new Error('Failed to fetch dashboard data')
+          setToast({ message: 'Error fetching dashboard data', level: 'error' })
         }
 
         const data = await response.json()
@@ -56,6 +57,7 @@ const DashboardPage = () => {
         setFolderNameEdits(nextFolderNames)
         setTotalPages(data.totalPages)
       } catch (error) {
+        setToast({ message: 'Error fetching dashboard data', level: 'error' })
         console.error('Error fetching dashboard data:', error)
       }
     }
@@ -84,8 +86,7 @@ const DashboardPage = () => {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Error deleting file')
+        setToast({ message: 'Error deleting file', level: 'error' })
       }
 
       setDashboardData(prev => {
@@ -95,7 +96,10 @@ const DashboardPage = () => {
           files: prev.files.filter(file => file.id !== fileId)
         }
       })
+
+      setToast({ message: 'File deleted successfully', level: 'success' })
     } catch (error) {
+      setToast({ message: 'Error deleting file', level: 'error' })
       console.error('Error deleting file:', error)
     }
   }
@@ -110,7 +114,7 @@ const DashboardPage = () => {
       setFetchingReport(id)
       const response = await fetch(`/api/fingerprint/${id}?type=${type}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch fingerprint report')
+        setToast({ message: 'Error fetching fingerprint report', level: 'error' })
       }
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -138,7 +142,7 @@ const DashboardPage = () => {
 
       if (!response.ok) {
         const error = await response.json()
-        alert('Error moving file to hot storage')
+        setToast({ message: 'Error moving file to hot storage', level: 'error' })
         throw new Error(error.error || 'Error moving file to hot storage')
       }
 
@@ -154,7 +158,10 @@ const DashboardPage = () => {
           })
         }
       })
+
+      setToast({ message: 'File moved to hot storage successfully', level: 'success' })
     } catch (error) {
+      setToast({ message: 'Error moving file to hot storage', level: 'error' })
       console.error('Error moving file to hot storage:', error)
     }
   }
@@ -172,8 +179,7 @@ const DashboardPage = () => {
       })
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}))
-        throw new Error(error.error || "Failed to rename folder")
+        setToast({ message: 'Error renaming folder', level: 'error' })
       }
 
       setDashboardData(prev => {
@@ -190,7 +196,9 @@ const DashboardPage = () => {
 
       setFolderNameEdits(prev => ({ ...prev, [folderId]: nextName }))
       setIsEditingFolderName(false)
+      setToast({ message: 'Folder renamed successfully', level: 'success' })
     } catch (error) {
+      setToast({ message: 'Error renaming folder', level: 'error' })
       console.error('Error renaming folder:', error)
     } finally {
       setSavingFolderId("")
@@ -204,6 +212,12 @@ const DashboardPage = () => {
         <p className="text-zinc-500 dark:text-zinc-400">Manage your uploaded files, view statistics, and security settings.</p>
         <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
+
+      <Toast
+        message={toast?.message || ""}
+        level={toast?.level || "info"}
+        actionLabel={toast?.actionLabel || ""}
+      />
 
       <div className="w-full flex">
         <div className="flex p-1 gap-1 bg-input dark:bg-input-dark border border-cardBorder dark:border-cardBorder-dark rounded-full">

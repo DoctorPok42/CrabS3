@@ -1,19 +1,19 @@
 "use client"
 
 import { Button, Input } from "@/components"
-import { faBug, faCircleXmark, faClockRotateLeft, faCloudArrowDown, faKey, faQrcode, faShieldAlt } from "@fortawesome/free-solid-svg-icons"
+import Toast, { ToastProps } from "@/components/Toast"
+import { faBug, faCircleXmark, faCloudArrowDown, faKey } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useQRCode } from "next-qrcode"
 import Head from "next/head"
 import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 export default function Id() {
   const params = useParams()
   const id = params.id as string
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isDownloading, setIsDownloading] = useState<boolean>(false)
-  const [notif, setNotif] = useState<{ type: "success" | "error" | "info", message: string } | null>(null)
   const [password, setPassword] = useState<string>("")
   const [fileInfo, setFileInfo] = useState<{
     exists: boolean
@@ -32,14 +32,16 @@ export default function Id() {
   } | null>(null)
   const [qrcodePopup, setQrcodePopup] = useState<string | null>(null)
   const { Canvas } = useQRCode();
+  const qrcodeRef = useRef<HTMLDivElement>(null);
+  const [toast, setToast] = useState<ToastProps | null>(null)
 
   const downloadFile = async (fileId?: string) => {
     setIsDownloading(true)
-    setNotif(null)
+    setToast(null)
 
     try {
       if (fileInfo?.files[0]?.hasPassword && password)
-        setNotif({ type: "info", message: "Verifying password..." })
+        setToast({ level: "info", message: "Verifying password..." })
 
       let urlParams = ""
       if (fileId) {
@@ -67,17 +69,6 @@ export default function Id() {
         throw new Error(`Error: ${errorData.error || validationResponse.statusText}`)
       }
 
-      let count = 0
-      const interval = setInterval(() => {
-        count += 1
-        const fileCount = fileId ? 1 : fileInfo?.files.length || 0
-        const isZip = !fileId && fileInfo && fileInfo.files.length > 1
-        setNotif({
-          type: "info",
-          message: `Downloading ${isZip ? "archive" : fileCount > 1 ? `${fileCount} files` : "file"}` + ".".repeat(count % 4)
-        })
-      }, 500)
-
       const triggerDownload = (fId: string, filename: string, isZip = false) => {
         const link = document.createElement('a')
         link.href = `/api/download/${id}/stream?password=${encodeURIComponent(password)}${isZip ? "&allFiles=true" : `&fileId=${fId}`}`
@@ -100,12 +91,11 @@ export default function Id() {
         triggerDownload(file.id, file.folderName ? file.folderName : file.filename)
       }
 
-      clearInterval(interval)
       const isZip = !fileId && fileInfo && fileInfo.files.length > 1
-      setNotif({ type: "success", message: `${isZip ? "Archive" : "File"}${(fileId && fileInfo?.files.length === 1) ? '' : 's'} will start downloading shortly.` })
+      setToast({ level: "success", message: `${isZip ? "Archive" : "File"}${(fileId && fileInfo?.files.length === 1) ? '' : 's'} will start downloading shortly.` })
     } catch (err) {
       console.error('Error downloading file:', err)
-      setNotif({ type: "error", message: err instanceof Error ? err.message : "Failed to download file" })
+      setToast({ level: "error", message: err instanceof Error ? err.message : "Failed to download file" })
     } finally {
       setIsDownloading(false)
     }
@@ -123,7 +113,7 @@ export default function Id() {
         setFileInfo(data)
       } catch (err) {
         console.error('Error checking file:', err)
-        setNotif({ type: "error", message: err instanceof Error ? err.message : "Failed to check file" })
+        setToast({ level: "error", message: err instanceof Error ? err.message : "Failed to check file" })
       } finally {
         setIsLoading(false)
       }
@@ -137,38 +127,55 @@ export default function Id() {
     setQrcodePopup(link)
   }
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (qrcodeRef.current && !qrcodeRef.current.contains(event.target as Node)) {
+        setQrcodePopup(null)
+      }
+    }
+
+    if (qrcodePopup) {
+      document.addEventListener('mousedown', handleClickOutside)
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [qrcodePopup])
+
   return (
-    <main className="my-auto w-full max-w-7xl flex flex-col items-center md:px-16 px-6">
+    <main className="my-auto w-full max-w-5xl flex flex-col items-center md:px-16 px-6">
       <Head>
         <title>Download File - {fileInfo?.files.length === 1 ? fileInfo.files[0].filename : 'Multiple Files'}</title>
       </Head>
-      <h1 className="text-2xl mt-10 font-bold text-center">
-        Download File
-      </h1>
-
       {!fileInfo?.exists && !isLoading ? (
-        <div className="mt-4 p-6 border-2 border-zinc-200 dark:border-zinc-700 rounded-2xl bg-zinc-50 dark:bg-zinc-900">
+        <div className="mt-4 p-6 border border-cardBorder dark:border-cardBorder-dark rounded-2xl bg-card dark:bg-card-dark">
           <p className="text-center text-zinc-500 dark:text-zinc-400">File not found. It may have been deleted or the link is incorrect.</p>
         </div>
       ) : null}
 
+      <Toast {...toast} />
+
       {qrcodePopup && (
         <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/50 dark:bg-black/50 z-50">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow-lg w-96">
+          <div ref={qrcodeRef} className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark p-6 rounded-2xl shadow-lg w-96">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">QR Code</h2>
-              <div className="flex items-center justify-center cursor-pointer" onClick={() => setQrcodePopup(null)}>
-                <FontAwesomeIcon icon={faCircleXmark} className="text-gray-700 dark:text-gray-300 scale-150 hover:text-gray-500 transition" />
-              </div>
+              <Button
+                onClick={() => setQrcodePopup(null)}
+                icon={faCircleXmark}
+                variant="ghost"
+                divClass="text-xl! p-0!"
+              />
             </div>
+
             <p className="text-zinc-500 dark:text-zinc-400 mb-4">Scan this QR code to access the file.</p>
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center">
               <Canvas
                 text={qrcodePopup}
                 options={{
                   errorCorrectionLevel: "H",
                   scale: 6,
                   quality: 0.8,
+                  margin: 5,
                 }}
               />
             </div>
@@ -177,94 +184,66 @@ export default function Id() {
       )}
 
       {fileInfo?.exists && (
-        <div className="w-full mt-4 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow-lg dark:shadow-zinc-600 dark:bg-zinc-900 gap-6">
-          <div className="flex flex-col">
+        <div className="w-full mt-4 flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-[28px] p-6 bg-card dark:bg-card-dark gap-4">
+          <div className="flex flex-col gap-2">
             <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">{fileInfo.files[0].folderName || `File${fileInfo.files.length > 1 ? 's' : ''} Available`}</h2>
-            <div className="flex flex-wrap gap-x-2 gap-y-2 items-center">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">{fileInfo.files.filter((f) => !f.infectedBy).length} file{fileInfo.files.filter((f) => !f.infectedBy).length > 1 ? 's' : ''} available for download</p>
-              <span className="inline-flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1 rounded-full text-xs font-semibold">
+            <div className="flex flex-wrap gap-x-2 gap-y-2 items-center font-bold">
+              {!fileInfo.files[0].folderName &&
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">{fileInfo.files.filter((f) => !f.infectedBy).length} file{fileInfo.files.filter((f) => !f.infectedBy).length > 1 ? 's' : ''} available</p>
+              }
+
+              <span className="bg-input dark:bg-input-dark text-text dark:text-text-dark px-3.5 py-1.5 rounded-full text-[12.5px]">
                 Total Size: {fileInfo.files.reduce((acc, file) => acc + file.size, 0) > 1024 * 1024 * 1024
-                  ? (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+                  ? (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / (1024 * 1024 * 1024)).toFixed(1) + ' GB'
                   : fileInfo.files.reduce((acc, file) => acc + file.size, 0) > 1024 * 1024
-                    ? (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / (1024 * 1024)).toFixed(2) + ' MB'
-                    : (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / 1024).toFixed(2) + ' KB'}
+                    ? (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / (1024 * 1024)).toFixed(1) + ' MB'
+                    : (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / 1024).toFixed(1) + ' KB'}
               </span>
 
               {fileInfo.files.some((f) => f.hasPassword) && (
-                <span className="inline-flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-semibold">
-                  <FontAwesomeIcon icon={faKey} />
+                <span className="bg-[#f2e8d5] dark:bg-[#44310d] text-[#6a324b] dark:text-[#f7b833] px-3.5 py-1.5 rounded-full text-[12.5px]">
                   Password Protected
                 </span>
               )}
               {fileInfo.files.some((f) => f.maxDownloads !== null) && (
-                <span className="inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-semibold">
-                  <FontAwesomeIcon icon={faShieldAlt} />
+                <span className="bg-input dark:bg-input-dark text-text dark:text-text-dark px-3.5 py-1.5 rounded-full text-[12.5px]">
                   {fileInfo.files[0].downloadCount} / {fileInfo.files[0].maxDownloads} downloads left
                 </span>
               )}
               {fileInfo.files.some((f) => f.infectedBy !== null) && (
-                <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-3 py-1 rounded-full text-xs font-bold">
-                  <FontAwesomeIcon icon={faBug} />
+                <span className="text-[#a20519] bg-[#ffebe8]  px-3.5 py-1.5 rounded-full text-[12.5px] font-bold">
                   Infected: {fileInfo.files.find((f) => f.infectedBy !== null)?.infectedBy}
                 </span>
               )}
-              <span className="inline-flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-semibold">
-                <FontAwesomeIcon icon={faClockRotateLeft} />
+              <span className="bg-[#f2e8d5] dark:bg-[#44310d] text-[#6a324b] dark:text-[#f7b833] px-3.5 py-1.5 rounded-full text-[12.5px]">
                 Expires: {fileInfo.files[0].expiresAt ? Math.floor((new Date(fileInfo.files[0].expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) + ' days' : 'Never'}
               </span>
             </div>
-
           </div>
 
-          <div className="flex w-full gap-2">
-            <button
+          <div className="flex flex-wrap w-full gap-2">
+            <Button
+              text={`Download ${fileInfo.files.length > 1 ? 'All Files' : 'File'}`}
               onClick={() => downloadFile()}
               disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}
-              className="w-[95%] bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg cursor-pointer transition"
-            >
-              Download {fileInfo.files.length > 1 ? 'All Files' : 'File'}
-            </button>
-            <button
+            />
+            <Button
+              text="QR"
               onClick={() => handleQrCode()}
-              className="px-4 rounded-lg transition border-2 border-gray-500 bg-gray-100 dark:bg-zinc-800 dark:border-zinc-700 hover:bg-gray-200 dark:hover:bg-zinc-700 cursor-pointer"
-            >
-              <FontAwesomeIcon icon={faQrcode} className="text-gray-700 dark:text-gray-300 scale-105" size='1x' />
-            </button>
+              variant="secondary"
+              title="Generate QR Code"
+            />
           </div>
 
-          {notif && (
-            <div
-              className={`p-4 rounded-lg lg:text-left text-center ${notif.type === 'error'
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                : notif.type === 'success'
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                }`}
-            >
-              {notif.message}
-            </div>
-          )}
-
-          <div className="max-h-90 overflow-x-hidden w-full border border-zinc-200 dark:border-zinc-700 rounded-lg">
+          <div className="max-h-90 overflow-x-hidden w-full border border-[#e4e0dd] dark:border-[#302a26] rounded-2xl">
             <table className="w-full text-xs sm:text-sm">
-              <thead className="bg-zinc-100 dark:bg-zinc-800 sticky top-0">
-                <tr className="border-b border-zinc-200 dark:border-zinc-700">
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">
-                    <FontAwesomeIcon icon={faCloudArrowDown} className="mr-2 text-zinc-500 dark:text-zinc-400" />
-                    Filename
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300 hidden lg:block">Size</th>
-                  {fileInfo.files.length > 1 && <th className="text-left px-4 py-3 font-semibold text-zinc-700 dark:text-zinc-300">Action</th>}
-                </tr>
-              </thead>
-              <tbody className="w-full shadow-inner shadow-zinc-100 dark:shadow-zinc-700">
+              <tbody className="w-full">
                 {fileInfo.files.map((file, index) => (
                   <tr
                     key={file.id}
-                    className={`w-full flex lg:table-row border-b border-zinc-200  dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'
-                      } ${file.infectedBy ? 'opacity-70' : ''}`}
+                    className={`w-full flex justify-between items-center lg:table-row ${index < fileInfo.files.length - 1 && 'border-b border-[#e4e0dd] dark:border-[#302a26]'} hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${file.infectedBy ? 'opacity-70' : ''}`}
                   >
-                    <td className="lg:w-[85%] w-[70%] px-4 py-3 text-zinc-700 dark:text-zinc-200 font-medium truncate" title={file.filename}>
+                    <td className="lg:w-[85%] w-[70%] p-4 text-zinc-700 dark:text-zinc-200 font-semibold truncate" title={file.filename}>
                       {file.filename}
                       {file.infectedBy && (
                         <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full text-xs font-bold ml-2">
@@ -273,28 +252,22 @@ export default function Id() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 hidden lg:block truncate text-zinc-700 dark:text-zinc-200">
+                    <td className="p-4 hidden lg:block truncate text-zinc-700 dark:text-zinc-200">
                       {file.size > 1024 * 1024 * 1024
-                        ? (file.size / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+                        ? (file.size / (1024 * 1024 * 1024)).toFixed(1) + ' GB'
                         : file.size > 1024 * 1024
-                          ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
-                          : (file.size / 1024).toFixed(2) + ' KB'}
+                          ? (file.size / (1024 * 1024)).toFixed(1) + ' MB'
+                          : (file.size / 1024).toFixed(1) + ' KB'}
                     </td>
-                    {fileInfo.files.length > 1 && <td className="px-4 py-3 w-1/3">
+                    {fileInfo.files.length > 1 && <td className="px-2">
                       {(fileInfo.files.length > 1 && !file.infectedBy) && (
-                        <button
+                        <Button
+                          icon={faCloudArrowDown}
+                          variant="primary"
+                          divClass="m-0 p-0"
                           onClick={() => downloadFile(file.id)}
                           disabled={isLoading || !fileInfo || (fileInfo.files.some((f) => f.hasPassword) && !password) || isDownloading}
-                          className="text-blue-500 hover:text-blue-700 hover:underline disabled:text-gray-400 disabled:cursor-not-allowed font-medium cursor-pointer transition"
-                        >
-                          <span className="hidden lg:flex">Download</span>
-                          <Button
-                            icon={faCloudArrowDown}
-                            variant="primary"
-                            divClass="lg:hidden"
-                            onClick={() => downloadFile(file.id)}
-                          />
-                        </button>
+                        />
                       )}
                     </td>}
                   </tr>
@@ -321,7 +294,7 @@ export default function Id() {
       )}
 
       {isLoading && (
-        <div className="mt-4 p-6 border-2 border-zinc-200 dark:border-zinc-700 rounded-2xl bg-zinc-50 dark:bg-zinc-900">
+        <div className="mt-4 p-6 border border-cardBorder dark:border-cardBorder-dark rounded-2xl bg-card dark:bg-card-dark">
           <p className="text-zinc-500 dark:text-zinc-400">Loading file information...</p>
         </div>
       )}
