@@ -156,7 +156,7 @@ export default function Id() {
 
       {qrcodePopup && (
         <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/50 dark:bg-black/50 z-50">
-          <div ref={qrcodeRef} className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark p-6 rounded-2xl shadow-lg w-96">
+          <div ref={qrcodeRef} className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark p-6 rounded-2xl w-110">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">QR Code</h2>
               <Button
@@ -175,7 +175,6 @@ export default function Id() {
                   errorCorrectionLevel: "H",
                   scale: 6,
                   quality: 0.8,
-                  margin: 5,
                 }}
               />
             </div>
