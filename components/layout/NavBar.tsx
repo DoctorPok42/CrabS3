@@ -93,7 +93,7 @@ const NavBar = () => {
             <button
               type="button"
               onClick={logout}
-              className="cursor-pointer flex gap-4 items-center rounded-md px-3 transition text-[#d84040]"
+              className="cursor-pointer flex gap-4 items-center rounded-md px-3 transition hover:underline text-[#d84040]"
             >
               <FontAwesomeIcon icon={faArrowRightFromBracket} className="text-[#d84040] w-3" />
               Logout
