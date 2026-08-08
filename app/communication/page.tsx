@@ -79,7 +79,7 @@ const Communication = () => {
     <main className="flex flex-col w-full max-w-8xl gap-8 px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full flex flex-col">
         <h1 className="text-3xl font-extrabold text-zinc-700 dark:text-zinc-300 mb-2">Communication</h1>
-        <p className="text-zinc-500 dark:text-zinc-400">Manage communication settings for your CrabS3 instance.</p>
+        <p className="text-zinc-500 dark:text-zinc-400">Notification settings for your instance.</p>
         <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
 

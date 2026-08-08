@@ -1,7 +1,8 @@
 "use client"
 
+import { Button } from "@/components"
 import PopupStatus, { PopupStatusProps } from "@/components/PopupStatus"
-import { faFileAlt, faShieldAlt, faUser } from "@fortawesome/free-solid-svg-icons"
+import { faShieldAlt, faUser } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -134,8 +135,8 @@ const User = () => {
         <>
           <div className="mt-10 w-full flex flex-col items-center">
             <div className="flex items-center gap-4 mb-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500 text-white">
-                <span className="text-2xl font-bold">{user.name.slice(0, 1)}</span>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-500 text-white">
+                <span className="text-2xl font-bold">{user.name.split(' ').map(n => n[0]).join('')}</span>
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300">{user.name}</h1>
@@ -158,35 +159,31 @@ const User = () => {
           </div>
 
           <div className="lg:w-150 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900">
+            <div className="flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-2xl p-6 bg-card dark:bg-card-dark">
               <div className="flex items-center gap-3 mb-4">
-                <FontAwesomeIcon icon={faFileAlt} className="text-2xl text-blue-500" />
                 <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Files</h3>
               </div>
               <p className="text-3xl font-bold text-zinc-700 dark:text-zinc-200">{user.totalFiles}</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">{user.activeFiles} active</p>
             </div>
 
-            <div className="flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900">
+            <div className="flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-2xl p-6 bg-card dark:bg-card-dark">
               <div className="flex items-center gap-3 mb-4">
-                <FontAwesomeIcon icon={faShieldAlt} className="text-2xl text-purple-500" />
                 <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Secrets</h3>
               </div>
               <p className="text-3xl font-bold text-zinc-700 dark:text-zinc-200">{user.totalSecrets}</p>
             </div>
 
-            <div className="flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900">
+            <div className="flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-2xl p-6 bg-card dark:bg-card-dark">
               <div className="flex items-center gap-3 mb-4">
-                <FontAwesomeIcon icon={faFileAlt} className="text-2xl text-orange-500" />
                 <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Size Used</h3>
               </div>
               <p className="text-3xl font-bold text-zinc-700 dark:text-zinc-200">{(user.sizeUsed / (1024 * 1024)).toFixed(2)} MB</p>
             </div>
           </div>
 
-          <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+          <div className="lg:w-150 w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-2xl p-6 bg-card dark:bg-card-dark transition duration-300">
             <div className="flex items-center gap-3 mb-6">
-              <FontAwesomeIcon icon={faUser} className="text-2xl text-blue-500" />
               <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">User Details</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -209,27 +206,34 @@ const User = () => {
             </div>
           </div>
 
-          <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+          <div className="lg:w-150 w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-2xl p-6 bg-card dark:bg-card-dark transition duration-300">
             <div className="flex items-center gap-3 mb-6">
-              <FontAwesomeIcon icon={faShieldAlt} className="text-2xl text-red-500" />
               <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Admin Actions</h2>
             </div>
 
             <div className="flex flex-col gap-3">
-              <button className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600 transition duration-200 font-semibold" onClick={handleEditQuota}>
-                Edit Quota
-              </button>
-              <button className="w-full px-4 py-3 bg-orange-500 text-white rounded-lg cursor-pointer hover:bg-orange-600 transition duration-200 font-semibold" onClick={handleResetPassword}>
-                Reset Password
-              </button>
-              <button className="w-full px-4 py-3 bg-red-500 text-white rounded-lg cursor-pointer hover:bg-red-600 transition duration-200 font-semibold" onClick={handleDelete}>
-                Delete User
-              </button>
+              <Button
+                text="Edit Quota"
+                onClick={handleEditQuota}
+                variant="secondary"
+              />
+
+              <Button
+                text="Reset Password"
+                onClick={handleResetPassword}
+                variant="danger"
+              />
+
+              <Button
+                text="Delete User"
+                onClick={handleDelete}
+                variant="danger"
+              />
             </div>
           </div>
         </>
       ) : (
-        <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900">
+        <div className="lg:w-150 w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-2xl p-6 bg-card dark:bg-card-dark">
           <p className="text-center text-zinc-500 dark:text-zinc-400">Loading user information...</p>
         </div>
       )}

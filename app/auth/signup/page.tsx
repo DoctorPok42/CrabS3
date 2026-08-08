@@ -66,7 +66,7 @@ function SignupForm() {
     return (
       <div className="w-full max-w-md flex flex-col gap-4 text-center my-auto">
         <h1 className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">Invitation Error</h1>
-        <div className="border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 rounded-2xl p-6">
+        <div className="border border-cardBorder dark:border-cardBorder-dark bg-card dark:bg-card-dark rounded-2xl p-6">
           <p className="text-zinc-500 dark:text-zinc-400">
             Please ask the administrator to send you a new invite or contact support if you believe this is an error.
           </p>
@@ -90,7 +90,7 @@ function SignupForm() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 border-2 border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 bg-zinc-50 dark:bg-zinc-900">
+      <div className="flex flex-col gap-4 border border-cardBorder dark:border-cardBorder-dark rounded-2xl p-6 bg-card dark:bg-card-dark">
         <div>
           <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Sign up</h2>
           {inviteEmail && (
