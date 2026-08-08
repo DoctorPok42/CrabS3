@@ -2,6 +2,7 @@
 
 import { Button, Input } from "@/components"
 import Toast, { ToastProps } from "@/components/Toast"
+import { formatSize } from "@/lib/format"
 import { faBug, faCircleXmark, faCloudArrowDown, faKey } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useQRCode } from "next-qrcode"
@@ -183,7 +184,7 @@ export default function Id() {
       )}
 
       {fileInfo?.exists && (
-        <div className="w-full mt-4 flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-[28px] p-6 bg-card dark:bg-card-dark gap-4">
+        <div className="w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-[28px] p-6 bg-card dark:bg-card-dark gap-4">
           <div className="flex flex-col gap-2">
             <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">{fileInfo.files[0].folderName || `File${fileInfo.files.length > 1 ? 's' : ''} Available`}</h2>
             <div className="flex flex-wrap gap-x-2 gap-y-2 items-center font-bold">
@@ -192,28 +193,27 @@ export default function Id() {
               }
 
               <span className="bg-input dark:bg-input-dark text-text dark:text-text-dark px-3.5 py-1.5 rounded-full text-[12.5px]">
-                Total Size: {fileInfo.files.reduce((acc, file) => acc + file.size, 0) > 1024 * 1024 * 1024
-                  ? (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / (1024 * 1024 * 1024)).toFixed(1) + ' GB'
-                  : fileInfo.files.reduce((acc, file) => acc + file.size, 0) > 1024 * 1024
-                    ? (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / (1024 * 1024)).toFixed(1) + ' MB'
-                    : (fileInfo.files.reduce((acc, file) => acc + file.size, 0) / 1024).toFixed(1) + ' KB'}
+                Total Size: {formatSize(fileInfo.files.reduce((acc, file) => acc + file.size, 0))}
               </span>
+
+              {fileInfo.files.some((f) => f.maxDownloads !== null) && (
+                <span className="bg-input dark:bg-input-dark text-text dark:text-text-dark px-3.5 py-1.5 rounded-full text-[12.5px]">
+                  {fileInfo.files[0].downloadCount} / {fileInfo.files[0].maxDownloads} downloads used
+                </span>
+              )}
+
+              {fileInfo.files.some((f) => f.infectedBy !== null) && (
+                <span className="text-[#a20519] bg-[#ffebe8]  px-3.5 py-1.5 rounded-full text-[12.5px] font-bold">
+                  Infected: {fileInfo.files.find((f) => f.infectedBy !== null)?.infectedBy}
+                </span>
+              )}
 
               {fileInfo.files.some((f) => f.hasPassword) && (
                 <span className="bg-[#f2e8d5] dark:bg-[#44310d] text-[#6a324b] dark:text-[#f7b833] px-3.5 py-1.5 rounded-full text-[12.5px]">
                   Password Protected
                 </span>
               )}
-              {fileInfo.files.some((f) => f.maxDownloads !== null) && (
-                <span className="bg-input dark:bg-input-dark text-text dark:text-text-dark px-3.5 py-1.5 rounded-full text-[12.5px]">
-                  {fileInfo.files[0].downloadCount} / {fileInfo.files[0].maxDownloads} downloads left
-                </span>
-              )}
-              {fileInfo.files.some((f) => f.infectedBy !== null) && (
-                <span className="text-[#a20519] bg-[#ffebe8]  px-3.5 py-1.5 rounded-full text-[12.5px] font-bold">
-                  Infected: {fileInfo.files.find((f) => f.infectedBy !== null)?.infectedBy}
-                </span>
-              )}
+
               <span className="bg-[#f2e8d5] dark:bg-[#44310d] text-[#6a324b] dark:text-[#f7b833] px-3.5 py-1.5 rounded-full text-[12.5px]">
                 Expires: {fileInfo.files[0].expiresAt ? Math.floor((new Date(fileInfo.files[0].expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) + ' days' : 'Never'}
               </span>
@@ -252,11 +252,7 @@ export default function Id() {
                       )}
                     </td>
                     <td className="p-4 hidden lg:block truncate text-zinc-700 dark:text-zinc-200">
-                      {file.size > 1024 * 1024 * 1024
-                        ? (file.size / (1024 * 1024 * 1024)).toFixed(1) + ' GB'
-                        : file.size > 1024 * 1024
-                          ? (file.size / (1024 * 1024)).toFixed(1) + ' MB'
-                          : (file.size / 1024).toFixed(1) + ' KB'}
+                      {formatSize(file.size)}
                     </td>
                     {fileInfo.files.length > 1 && <td className="px-2">
                       {(fileInfo.files.length > 1 && !file.infectedBy) && (

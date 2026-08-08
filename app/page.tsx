@@ -1,8 +1,9 @@
 "use client"
 
-import { Input, PopupStatus } from '@/components'
+import { Button, Input, PopupStatus } from '@/components'
 import { useMultipartUpload } from '@/hooks/useMultipartUpload'
-import { faArrowsDownToLine, faAt, faClockRotateLeft, faEnvelope, faFileCode, faFileImage, faFileText, faKey, faPen } from '@fortawesome/free-solid-svg-icons'
+import { formatSize } from '@/lib/format'
+import { faArrowsDownToLine, faAt, faClockRotateLeft, faFileCode, faFileImage, faFileText, faKey } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -22,23 +23,35 @@ export default function Home() {
   const [uploadResults, setUploadResults] = useState<number>(0)
   const [status, setStatus] = useState<{
     message: string
-    data?: string | null
     type: "success" | "error" | "info"
     fileId?: string
   } | null>(null)
   const uploadResultsRef = useRef<number>(0)
 
-  const { upload, progress, uploading, reset, error, prewarm, cancelPrewarm } = useMultipartUpload();
+  const { upload, progress, uploading, reset, error, prewarm, cancelPrewarm, cancelAllPrewarm } = useMultipartUpload();
+
+  useEffect(() => {
+    return () => {
+      cancelAllPrewarm()
+    }
+  }, [cancelAllPrewarm])
+
+  useEffect(() => {
+    const handlePageHide = () => {
+      cancelAllPrewarm()
+    }
+
+    window.addEventListener("pagehide", handlePageHide)
+    return () => window.removeEventListener("pagehide", handlePageHide)
+  }, [cancelAllPrewarm])
 
   useEffect(() => {
     if (!uploading && uploadResults > 0) {
       if (uploadResults === files.length && folderId) {
-        const link = `${globalThis.location.origin}/file/${folderId}`
         setStatus({
           message: `Successfully uploaded ${uploadResults} file${uploadResults > 1 ? 's' : ''}!`,
           type: "success",
           fileId: folderId,
-          data: link,
         })
 
         setFileMeta([])
@@ -56,7 +69,6 @@ export default function Home() {
           message: `Successfully uploaded ${uploadResults} of ${files.length} files`,
           type: "success",
           fileId: folderId,
-          data: folderId ? `${globalThis.location.origin}/file/${folderId}` : undefined,
         })
         setUploadResults(0)
         uploadResultsRef.current = 0
@@ -73,7 +85,7 @@ export default function Home() {
       setFolderId("")
       setUploadResults(0)
       uploadResultsRef.current = 0
-      setStatus({ message: error || "An error occurred during upload.", type: "error", data: null, fileId: undefined })
+      setStatus({ message: error || "An error occurred during upload.", type: "error", fileId: undefined })
     }
   }, [error])
 
@@ -134,6 +146,11 @@ export default function Home() {
   }
 
   const removeFile = (index: number) => {
+    const fileToRemove = files[index]
+    if (fileToRemove) {
+      cancelPrewarm(fileToRemove)
+    }
+
     setFileMeta(prev => prev.filter((_, i) => i !== index))
     setFiles(prev => prev.filter((_, i) => i !== index))
     if (fileMeta.length === 1) {
@@ -146,8 +163,7 @@ export default function Home() {
       {(status || uploading) && (
         <PopupStatus message={status?.message || "Uploading..."}
           type={status?.type || "info"}
-          data={status?.type === "error" ? undefined : (status?.data || (!uploading && folderId ? `${globalThis.location.origin}/file/${folderId}` : undefined))}
-          fileId={status?.type === "error" ? undefined : (status?.fileId || (uploading ? folderId : undefined))}
+          fileId={status?.type === "error" ? undefined : (status?.fileId || (uploading && folderId) || undefined)}
           uploading={uploading}
           fileMeta={fileMeta}
           progress={progress}
@@ -173,7 +189,7 @@ export default function Home() {
       </div>
 
       {
-        fileMeta.length > 0 && <div className="lg:w-150 w-full mt-5 flex flex-col border-cardBorder dark:border-cardBorder-dark border-2 rounded-2xl p-6 bg-card shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-card-dark transition duration-300">
+        fileMeta.length > 0 && <div className="lg:w-150 w-full mt-5 flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-3xl p-6 bg-card dark:bg-card-dark transition duration-300">
           <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Options</h2>
 
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 grid-rows-auto">
@@ -189,13 +205,13 @@ export default function Home() {
             />
 
             <div className="flex flex-col gap-1 col-span-1 lg:col-span-2">
-              <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Expire after (days)</label>
-              <div className='inputClass group h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
+              <label htmlFor="option1" className="text-[#5b544f] dark:text-[#a59d97] text-[13px] tracking-[0.001em] font-semibold">Expire after (days)</label>
+              <div className='group h-11.5 text-[15px] bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[1.5px] border-[#e9ebed] dark:border-[#383a42] rounded-2xl px-3 text-zinc-700! dark:text-[#d2d5da]! transition duration-300 inputClass'>
                 <FontAwesomeIcon icon={faClockRotateLeft} className='text-zinc-700 dark:text-[#d2d5da] w-3' size='xs' />
                 <select
                   id="option1"
                   name="option1"
-                  className="outline-none w-full bg-[#fafafa] dark:bg-[#1c1d21] text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
+                  className="outline-none w-full bg-input dark:bg-input-dark text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
                   value={expireAfter}
                   onChange={(e) => setExpireAfter(e.target.value as "1" | "7" | "14" | "21" | "30")}
                 >
@@ -231,62 +247,70 @@ export default function Home() {
             />
 
             {emailRecipient && <div className="flex flex-col col-span-1 md:col-span-2 lg:col-span-4 gap-1">
-              <label htmlFor="emailMessage" className="text-zinc-700 dark:text-zinc-300">Message to recipient</label>
-              <div className='inputClass w-full! items-start! text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-                <FontAwesomeIcon icon={faEnvelope} className='text-zinc-700 dark:text-[#d2d5da] pt-2' size='xs' />
+              <label htmlFor="emailMessage" className="text-[#5b544f] dark:text-[#a59d97] text-[13px] tracking-[0.001em] font-semibold">Message to recipient</label>
+              <div className='inputClass w-full! items-start! text-lg bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[1.5px] border-[#e9ebed]! dark:border-[#383a42]! rounded-2xl px-3 py-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
                 <textarea
                   id="emailMessage"
                   name="emailMessage"
                   placeholder='Optional message to recipient'
-                  className="outline-none bg-transparent resize-none h-20 w-full"
+                  className="outline-none bg-transparent resize-none h-20 w-full text-sm"
                   value={emailMessage}
                   onChange={(e) => setEmailMessage(e.target.value)}
                 />
               </div>
             </div>}
 
-            <div className='col-span-1 md:col-span-2 lg:col-span-4 flex flex-wrap justify-between border-t-2 border-zinc-200 dark:border-zinc-700 pt-4'>
+            <div className='col-span-1 md:col-span-2 lg:col-span-4 flex flex-wrap justify-between pt-5 mt-3 border-t border-cardBorder dark:border-cardBorder-dark'>
               <div className='flex flex-col w-full'>
-                <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Selected File{fileMeta.length > 1 ? 's' : ''} ({fileMeta.length})</h3>
+                <h3 className="text-[15px] font-bold text-zinc-700 dark:text-zinc-300">Selected File{fileMeta.length > 1 ? 's' : ''} ({fileMeta.length})</h3>
                 <div className='space-y-3 mt-3'>
                   {fileMeta.map((f, index) => (
-                    <div key={index + f.name} className='flex gap-2 items-start bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg'>
-                      <div className='flex-1'>
-                        <div className='flex gap-2 items-center'>
-                          {editingFileIndex === index ? (
-                            <input
-                              type="text"
-                              autoFocus
-                              className="h-8 text-lg outline-none bg-white dark:bg-zinc-700 rounded-md px-2 text-zinc-700 dark:text-zinc-300 transition duration-300 flex-1"
-                              value={f.name.replace(/\.[^/.]+$/, "")}
-                              onChange={(e) => setFileMeta(prev => {
-                                const updated = [...prev]
-                                updated[index] = { ...updated[index], name: e.target.value + f.name.slice(f.name.lastIndexOf('.')) }
-                                return updated
-                              })}
-                              onBlur={() => setEditingFileIndex(null)}
-                              onKeyDown={(e) => e.key === 'Enter' && setEditingFileIndex(null)}
-                            />
-                          ) : (
-                            <>
-                              <button onClick={() => setEditingFileIndex(index)} className="text-lg text-zinc-700 dark:text-zinc-300 cursor-pointer hover:text-blue-500 flex-1 text-left">{f.name}</button>
-                              <FontAwesomeIcon icon={faPen} color='gray' className='text-sm cursor-pointer hover:text-blue-500' onClick={() => setEditingFileIndex(index)} />
-                            </>
+                    <div key={index + f.name} className='flex gap-2 items-start bg-input dark:bg-input-dark dark:bg-input-darks p-3 rounded-2xl'>
+                      <div className='w-full flex items-center gap-3'>
+                        <div className='flex flex-1 min-w-0 gap-2 items-center'>
+                          {f.img && (
+                            <Link href={f.img} target="_blank" className='relative w-11 h-11 rounded-xl overflow-hidden'>
+                              <Image src={f.img} alt="Preview" className="rounded-xl" fill />
+                            </Link>
                           )}
+
+                          <div className='flex flex-col flex-1 min-w-0'>
+                            <div className='w-full'>
+                              {editingFileIndex === index ? (
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  className="w-full text-[14.5px] outline-none font-semibold bg-white dark:bg-black border-2 border-focus-border rounded-md px-2 text-zinc-700 dark:text-zinc-300 transition duration-300"
+                                  value={f.name.replace(/\.[^/.]+$/, "")}
+                                  onChange={(e) => setFileMeta(prev => {
+                                    const updated = [...prev]
+                                    updated[index] = { ...updated[index], name: e.target.value + f.name.slice(f.name.lastIndexOf('.')) }
+                                    return updated
+                                  })}
+                                  onBlur={() => setEditingFileIndex(null)}
+                                  onKeyDown={(e) => e.key === 'Enter' && setEditingFileIndex(null)}
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingFileIndex(index)}
+                                  className="w-full text-[14.5px] text-text dark:text-text-dark font-semibold cursor-pointer hover:text-blue-500 text-left"
+                                >
+                                  {f.name}
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-zinc-500 dark:text-zinc-400 text-[12.5px]">{formatSize(f.size)}</p>
+                          </div>
                         </div>
-                        <p className="text-zinc-500 dark:text-zinc-400 italic text-sm mt-1">{(f.size / 1024).toFixed(2)} KB</p>
-                        <button
+
+                        <Button
+                          text="Remove"
                           onClick={() => removeFile(index)}
-                          className="border border-red-500 text-red-500 hover:text-red-700 dark:hover:text-zinc-50 text-sm px-2 py-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 cursor-pointer mt-2 transitions duration-200"
-                        >
-                          Remove
-                        </button>
+                          variant='danger'
+                          divClass='shrink-0'
+                        />
                       </div>
-                      {f.img && (
-                        <Link href={f.img} target="_blank">
-                          <Image src={f.img} alt="Preview" className="rounded-md" width={80} height={80} />
-                        </Link>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -294,25 +318,24 @@ export default function Home() {
 
 
               <div className='w-full mt-4 flex gap-2'>
-                <button
+                <Button
+                  text="Clear"
                   onClick={() => {
+                    cancelAllPrewarm()
                     setFileMeta([])
                     setFiles([])
                     setFolderId("")
                     setStatus(null)
                   }}
-                  className="bg-zinc-400 hover:bg-zinc-500 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  variant='secondary'
                   disabled={uploading || files.length === 0}
-                >
-                  Clear
-                </button>
-                <button
+                />
+                <Button
+                  text={uploading ? "Uploading..." : `Upload File${fileMeta.length > 1 ? 's' : ''}`}
                   onClick={() => uploadFile()}
-                  className={`flex-1 bg-blue-500 text-white font-semibold py-2 px-4 cursor-pointer rounded-lg transition ${uploading ? 'opacity-50 cursor-not-allowed!' : 'hover:bg-blue-700'}`}
                   disabled={uploading || files.length === 0}
-                >
-                  {uploading ? "Uploading..." : `Upload File${fileMeta.length > 1 ? 's' : ''}`}
-                </button>
+                  divClass='w-full'
+                />
               </div>
             </div>
           </div>

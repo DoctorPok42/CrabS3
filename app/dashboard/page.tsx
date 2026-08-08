@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faAddressCard, faBug, faFingerprint, faKey, faSpinner } from "@fortawesome/free-solid-svg-icons"
+import { faAddressCard, faBug, faFingerprint, faSpinner } from "@fortawesome/free-solid-svg-icons"
 import { Button, Input, Toast } from "@/components"
+import { formatSize } from "@/lib/format"
 
 const DashboardPage = () => {
   const [dashboardData, setDashboardData] = useState<{
@@ -65,14 +65,6 @@ const DashboardPage = () => {
     fetchDashboardData()
   }, [page, type])
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-  }
-
   const handleDeleteFile = async (fileId: string, folderId: string) => {
     if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
       return
@@ -109,7 +101,7 @@ const DashboardPage = () => {
     setPage(1)
   }
 
-  const getFingerprintReport = async (id: string, type: "file" | "folder") => {
+  const getFingerprintReport = async (id: string, type: "file" | "folder", name?: string) => {
     try {
       setFetchingReport(id)
       const response = await fetch(`/api/fingerprint/${id}?type=${type}`)
@@ -120,7 +112,7 @@ const DashboardPage = () => {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${id}-${type}-fingerprint-report.json`
+      a.download = `${name || id}-${type}-fingerprint-report.json`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -306,14 +298,11 @@ const DashboardPage = () => {
 
                     <div className="flex flex-wrap gap-2 items-center">
                       {hasPassword && (
-                        <div className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-sm font-medium px-3 py-1.5 rounded-lg">
-                          <FontAwesomeIcon icon={faKey} size="xs" />
+                        <div className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-sm font-bold px-3 py-1.5 rounded-full">
                           <span>Protected</span>
                         </div>
                       )}
-                      <div className={`flex items-center text-sm font-bold px-3.5 py-1.5 rounded-full ${isFolderExpired ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-[#e1ede0] dark:bg-[#243b21] text-[#005500] dark:text-[#81dd6c]'}`}>
-                        {isFolderExpired ? 'Expired' : 'Active'}
-                      </div>
+
                       {folderFiles[0].infected && (
                         <div className="flex items-center text-sm font-bold px-3.5 py-1.5 rounded-full bg-[#f2e8d5] dark:bg-[#44310d] text-[#6a3200] dark:text-[#f7b83d]">
                           Infected
@@ -324,7 +313,7 @@ const DashboardPage = () => {
                     <div className="flex flex-wrap gap-2">
                       <Button
                         icon={fetchingReport === folderId ? faSpinner : faFingerprint}
-                        onClick={() => getFingerprintReport(folderId, "folder")}
+                        onClick={() => getFingerprintReport(folderId, "folder", folderName)}
                         variant="secondary"
                         title="Get Fingerprint Report"
                       />
@@ -375,8 +364,8 @@ const DashboardPage = () => {
                                 </span>
                               )}
                               <span className="hidden lg:flex">•</span>
-                              <span className="hidden lg:flex" title={formatBytes(file.size)}>
-                                {formatBytes(file.size)}
+                              <span className="hidden lg:flex" title={formatSize(file.size)}>
+                                {formatSize(file.size)}
                               </span>
                               {file.max_downloads && (
                                 <>
@@ -393,7 +382,7 @@ const DashboardPage = () => {
                           <div className="flex gap-2">
                             <Button
                               icon={(fetchingReport === file.id || fetchingReport === folderId) ? faSpinner : faFingerprint}
-                              onClick={() => getFingerprintReport(file.id, "file")}
+                              onClick={() => getFingerprintReport(file.id, "file", file.filename)}
                               variant="secondary"
                             />
 
@@ -434,11 +423,14 @@ const DashboardPage = () => {
 
       {
         dashboardData?.files.length === 0 && (
-          <div className="w-full max-w-2xl flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl p-12 bg-white dark:bg-zinc-900 transition duration-300 text-center">
-            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">You haven&apos;t uploaded any files yet.</p>
-            <Link href="/" className="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg transition w-fit mx-auto">
-              Start uploading
-            </Link>
+          <div className="w-full max-w-xl flex flex-col border border-cardBorder dark:border-cardBorder-dark rounded-2xl p-6 bg-card dark:bg-card-dark transition duration-300 text-center">
+            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
+              {type === "active" ? "You haven't uploaded any files yet." : "No expired files found."}
+            </p>
+            <Button
+              text="Start uploading"
+              onClick={() => window.location.href = '/'}
+            />
           </div>
         )
       }
