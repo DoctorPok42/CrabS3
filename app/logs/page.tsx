@@ -1,6 +1,6 @@
 "use client";
 
-import { Input, Log } from "@/components";
+import { Button, Input, Log } from "@/components";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { faCalendar, faChevronLeft, faChevronRight, faCodeBranch, faLevelUpAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -48,8 +48,7 @@ const LogsPage = () => {
       </div>
 
       <div className="w-full">
-        <div className="grid lg:grid-cols-8 items-center gap-4 mb-8 flex-wrap">
-
+        <div className="grid lg:grid-cols-8 items-end gap-4 mb-8 flex-wrap">
           <div className="flex flex-col gap-1 col-span-2">
             <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Level</label>
             <div className='group h-11.5 text-[15px] bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[1.5px] border-[#e9ebed] dark:border-[#383a42] rounded-2xl px-3 text-zinc-700! dark:text-[#d2d5da]! transition duration-300 inputClass'>
@@ -125,12 +124,10 @@ const LogsPage = () => {
             </div>
           </div>
 
-          <button
-            onClick={() => setPage(1)}
-            className="col-span-1 md:col-span-1 lg:col-span-2 h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md transition duration-300 mt-7 cursor-pointer"
-          >
-            Apply
-          </button>
+          <Button
+            text="Apply"
+            onClick={() => fetchLogs()}
+          />
         </div>
 
         <div className="flex flex-col gap-2.5">

@@ -176,6 +176,9 @@ export default function Id() {
                   errorCorrectionLevel: "H",
                   scale: 6,
                   quality: 0.8,
+                  color: {
+                    light: "#fdfbfa"
+                  }
                 }}
               />
             </div>
@@ -279,6 +282,7 @@ export default function Id() {
               name="password"
               placeholder="Enter password"
               value={password}
+              autoFocus
               icon={faKey}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && downloadFile()}

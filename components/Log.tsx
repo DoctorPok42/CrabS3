@@ -4,6 +4,7 @@ import { LogAction, LogLevel } from "@/types/log.types";
 import { JSONValue } from "next/dist/server/config-shared";
 import { useState } from "react";
 import { LogLevelsColors } from "./log-colors";
+import { formatDate } from "@/lib/format";
 
 export interface LogProps {
   level: LogLevel
@@ -25,6 +26,7 @@ export { LogLevelsColors };
 
 const Log = ({ level, action, message, meta, userId, createdAt }: LogProps) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
 
   return (
     <div className={`w-full rounded-[18px] ${LEVEL_COLORS[level]} cursor-pointer`}>
@@ -39,17 +41,19 @@ const Log = ({ level, action, message, meta, userId, createdAt }: LogProps) => {
             <p className="text-sm text-zinc-500 dark:text-zinc-300">{message}</p>
           </div>
         </div>
-        <span className="text-xs text-zinc-500 dark:text-zinc-300">
-          {new Date(createdAt).toLocaleString("en-US", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: false,
-          })}
-        </span>
+        <div className="w-33 text-right" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+          <span className="text-xs text-zinc-500 dark:text-zinc-300 text-left">
+            {isHovered ? formatDate(createdAt) : new Date(createdAt).toLocaleString("en-US", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              hour12: false,
+            })}
+          </span>
+        </div>
       </div>
 
       {isExpanded && (

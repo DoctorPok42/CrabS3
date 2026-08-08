@@ -3,11 +3,13 @@
 import { Button, Input } from "@/components"
 import { useEffect, useState } from "react"
 import { faDiscord, faMicrosoft, faSlack } from "@fortawesome/free-brands-svg-icons"
+import Toast, { ToastProps } from "@/components/Toast"
 
 const Communication = () => {
   const [discordWebhookURL, setDiscordWebhookURL] = useState<string | null>(null)
   const [slackWebhookURL, setSlackWebhookURL] = useState<string | null>(null)
   const [teamsWebhookURL, setTeamsWebhookURL] = useState<string | null>(null)
+  const [toast, setToast] = useState<ToastProps | null>(null)
 
   useEffect(() => {
     const fetchCommunicationSettings = async () => {
@@ -15,7 +17,6 @@ const Communication = () => {
         const response = await fetch("/api/communication")
         if (!response.ok) {
           console.error("Failed to fetch communication settings")
-          return
         }
 
         const data = await response.json()
@@ -33,6 +34,7 @@ const Communication = () => {
         }
       } catch (error) {
         console.error("Error fetching communication settings:", error)
+        setToast({ level: "error", message: "Error fetching communication settings" })
       }
     }
 
@@ -66,12 +68,14 @@ const Communication = () => {
         body: JSON.stringify(payload),
       })
       if (!response.ok) {
+        setToast({ level: "error", message: "Failed to save communication settings" })
         console.error("Failed to save communication settings")
-        return
+      } else {
+        setToast({ level: "success", message: "Communication settings saved successfully" })
       }
-      alert("Communication settings saved successfully!")
     } catch (error) {
       console.error("Error saving communication settings:", error)
+      setToast({ level: "error", message: "Error saving communication settings" })
     }
   }
 
@@ -82,6 +86,8 @@ const Communication = () => {
         <p className="text-zinc-500 dark:text-zinc-400">Notification settings for your instance.</p>
         <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
+
+      <Toast {...toast} />
 
       <div className="w-1/2 flex flex-col gap-6">
         <Input

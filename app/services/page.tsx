@@ -218,7 +218,7 @@ const Services = () => {
       )}
 
       <div className="w-full flex flex-col gap-4">
-        <div className="w-full flex flex-col bg-card dark:bg-card-dark gap-2 p-5.5 border border-cardBorder dark:border-cardBorder-darks rounded-2xl">
+        <div className="w-full flex flex-col bg-card dark:bg-card-dark gap-2 p-5.5 border border-cardBorder dark:border-cardBorder-dark rounded-2xl">
           <h2 className="text-[16px] font-bold text-text dark:text-text-dark">Create a New Service</h2>
           <p className="text-zinc-500 dark:text-zinc-400 text-[13.5px]">Each service has its own quota and access token.</p>
           <div className="w-full flex items-end gap-2 mt-2">

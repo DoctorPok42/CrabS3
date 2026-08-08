@@ -23,7 +23,7 @@ const Button = ({ text, onClick, onHover, variant = 'primary', icon, divClass, t
   if (!text && !icon) return null;
 
   return (
-    <div title={title} onClick={disabled ? undefined : onClick} onMouseEnter={onHover} className={`flex items-center justify-center text-[14.5px] py-2.25 px-5.5 rounded-full font-bold border transition duration-300 ${disabled ? colorClass.disabled : colorClass[variant] || colorClass.primary} ${divClass}`}>
+    <div title={title} onClick={disabled ? undefined : onClick} onMouseEnter={onHover} className={`flex items-center justify-center text-[14.5px] py-2.25 px-5.5 rounded-full font-bold border transition duration-300 ${disabled ? colorClass.disabled : colorClass[variant] || colorClass.primary} ${divClass}`} style={{ ...(disabled ? { cursor: 'not-allowed', userSelect: 'none' } : {}) }}>
       {icon && <FontAwesomeIcon icon={icon} />}
       {text && <span>{text}</span>}
     </div>

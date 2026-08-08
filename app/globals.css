@@ -124,6 +124,22 @@ body {
   }
 }
 
+.animation-toast {
+  animation: toast .2s ease-in-out forwards;
+}
+
+@keyframes toast {
+  from {
+    transform: translateX(50%);
+    opacity: 0.5;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 .striped-bg {
   background: repeating-linear-gradient(45deg,
       #fafafa,

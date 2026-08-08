@@ -2,6 +2,7 @@
 
 import { Button } from "@/components"
 import PopupStatus, { PopupStatusProps } from "@/components/PopupStatus"
+import Toast, { ToastProps } from "@/components/Toast"
 import { faShieldAlt, faUser } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useParams } from "next/navigation"
@@ -22,7 +23,7 @@ const User = () => {
     totalSecrets: number;
     sizeUsed: number;
   } | null>(null)
-  const [status, setStatus] = useState<PopupStatusProps | null>(null)
+  const [toast, setToast] = useState<ToastProps | null>(null)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -33,9 +34,11 @@ const User = () => {
           setUser(data)
         } else {
           console.error("Failed to fetch user:", response.statusText)
+          setToast({ level: "error", message: "Failed to fetch user information" })
         }
       } catch (error) {
         console.error("Error fetching user:", error)
+        setToast({ level: "error", message: "Error fetching user information" })
       }
     }
     fetchUser()
@@ -53,11 +56,11 @@ const User = () => {
       if (response.ok) {
         globalThis.location.href = "/admin/users"
       } else {
-        setStatus({ type: "error", message: "Failed to delete user. Please try again." })
+        setToast({ level: "error", message: "Failed to delete user. Please try again." })
         console.error("Failed to delete user:", response.statusText)
       }
     } catch (error) {
-      setStatus({ type: "error", message: "An error occurred while deleting the user. Please try again." })
+      setToast({ level: "error", message: "An error occurred while deleting the user. Please try again." })
       console.error("Error deleting user:", error)
     }
   }
@@ -78,13 +81,13 @@ const User = () => {
         body: JSON.stringify({ newPassword })
       })
       if (response.ok) {
-        alert("Password reset successfully.")
+        setToast({ level: "success", message: "Password reset successfully." })
       } else {
-        setStatus({ type: "error", message: "Failed to reset password. Please try again." })
+        setToast({ level: "error", message: "Failed to reset password. Please try again." })
         console.error("Failed to reset password:", response.statusText)
       }
     } catch (error) {
-      setStatus({ type: "error", message: "An error occurred while resetting the password. Please try again." })
+      setToast({ level: "error", message: "An error occurred while resetting the password. Please try again." })
       console.error("Error resetting password:", error)
     }
   }
@@ -104,32 +107,21 @@ const User = () => {
         body: JSON.stringify({ quota: Number(newQuota) })
       })
       if (response.ok) {
-        alert("Quota updated successfully.")
+        setToast({ level: "success", message: "Quota updated successfully." })
       } else {
-        setStatus({ type: "error", message: "Failed to update quota. Please try again." })
+        setToast({ level: "error", message: "Failed to update quota. Please try again." })
         console.error("Failed to edit quota:", response.statusText)
       }
     } catch (error) {
-      setStatus({ type: "error", message: "An error occurred while updating the quota. Please try again." })
+      setToast({ level: "error", message: "An error occurred while updating the quota. Please try again." })
       console.error("Error editing quota:", error)
     }
   }
 
-  useEffect(() => {
-    if (status) {
-      const timer = setTimeout(() => setStatus(null), 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [status])
-
   return (
     <main className="flex flex-col w-full max-w-[100em] gap-8 items-center px-4 sm:px-16 pt-10 mx-auto min-h-screen">
-      {status && (
-        <PopupStatus
-          type={status.type}
-          message={status.message}
-        />
-      )}
+
+      <Toast {...toast} />
 
       {user ? (
         <>

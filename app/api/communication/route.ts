@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     })
 
     const { webhook }: { webhook: Array<{ type: WebHookType; url: string }> } = await request.json()
-    if (!webhook?.length) {
+    if (!webhook?.length || !webhook.every(w => w.type && w.url)) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 })
     }
     for (const { type, url } of webhook) {

@@ -109,6 +109,9 @@ const PopupStatus = ({ message, type, fileId, uploading, progress, fileMeta, btn
                   errorCorrectionLevel: "H",
                   scale: 6,
                   quality: 0.8,
+                  color: {
+                    light: "#fdfbfa"
+                  }
                 }}
               />
             </div>
