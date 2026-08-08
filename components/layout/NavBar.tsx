@@ -31,7 +31,7 @@ const NavBar = () => {
     { name: "Dashboard", href: "/dashboard", icon: faGrip },
     { name: "Communication", href: "/communication", icon: faTowerCell },
     { name: "Account", href: "/me", icon: faUser },
-    {},
+    { adminOnly: true },
     { name: "Logs", href: "/logs", icon: faBarsStaggered, adminOnly: true },
     { name: "Services", href: "/services", icon: faCircleNodes, adminOnly: true },
     { name: "Admin", href: "/admin", icon: faShield, adminOnly: true },
@@ -64,7 +64,7 @@ const NavBar = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <p className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-bold">
-                  {user?.name.charAt(0).toUpperCase()}
+                  {user?.name.split(' ').map(n => n[0]).join('')}
                 </p>
                 <p className="text-sm font-semibold text-text dark:text-text-dark truncate">{user?.name || "Unknown User"}</p>
               </div>

@@ -12,9 +12,9 @@ export interface ToastProps {
   duration?: number;
 }
 
-const TOAST_LEVEL_COLORS: Record<ToastLevel, string> = {
+export const TOAST_LEVEL_COLORS: Record<ToastLevel, string> = {
   info: LogLevelsColors.INFO,
-  success: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200",
+  success: "bg-[#d0e3d0] text-green-800 dark:bg-green-950 dark:text-green-200",
   warning: LogLevelsColors.WARN,
   error: LogLevelsColors.ERROR,
 };
