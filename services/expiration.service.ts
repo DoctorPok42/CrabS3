@@ -2,9 +2,10 @@ import prisma from "@/lib/prisma";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
-import { DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 
 const POLICY = (process.env.EXPIRED_FILE_POLICY || "cold").toLowerCase(); // "delete" | "cold"
+const INCOMPLETE_UPLOAD_SCAN_LIMIT = 500;
 
 const BATCH_LIMIT = 1000;
 const CONCURRENCY = 5;
@@ -50,6 +51,22 @@ async function markAsCold(file: ExpiredFile) {
   });
 }
 
+async function deleteIncompleteUpload(file: ExpiredFile) {
+  await prisma.$transaction([
+    prisma.downloads.updateMany({ where: { file_id: file.id }, data: { file_id: null } }),
+    prisma.download_events.updateMany({ where: { file_id: file.id }, data: { file_id: null } }),
+    prisma.multipart_uploads.deleteMany({ where: { file_id: file.id } }),
+    prisma.files.deleteMany({ where: { id: file.id } }),
+  ]);
+
+  await log({
+    level: LogLevel.INFO,
+    action: LogAction.FILE_EXPIRED,
+    message: `Incomplete upload ${file.filename} removed`,
+    meta: { fileId: file.id, folderId: file.folder_id, policy: "incomplete-upload" },
+  });
+}
+
 async function processFile(file: ExpiredFile) {
   try {
     if (POLICY === "cold") {
@@ -89,4 +106,46 @@ export async function processExpiredFiles() {
   }
 
   return { processed: expired.length, policy: POLICY };
+}
+
+export async function cleanupIncompleteUploads() {
+  const recentFiles = await prisma.files.findMany({
+    where: {
+      storage: "hot",
+      uploaded_at: { not: null },
+    },
+    select: { id: true, folder_id: true, filename: true },
+    orderBy: { uploaded_at: "desc" },
+    take: INCOMPLETE_UPLOAD_SCAN_LIMIT,
+  });
+
+  if (recentFiles.length === 0) {
+    return { processed: 0, removed: 0 };
+  }
+
+  const multipartUploads = await prisma.multipart_uploads.findMany({
+    where: { file_id: { in: recentFiles.map((file) => file.id) } },
+    select: { file_id: true },
+  });
+
+  const multipartFileIds = new Set(multipartUploads.map((upload) => upload.file_id));
+  let removed = 0;
+
+  for (const file of recentFiles) {
+    if (multipartFileIds.has(file.id)) {
+      continue;
+    }
+
+    const objectExists = await s3Hot.send(new HeadObjectCommand({
+      Bucket: HOT_BUCKET,
+      Key: s3Key(file),
+    })).then(() => true).catch(() => false);
+
+    if (!objectExists) {
+      await deleteIncompleteUpload(file);
+      removed++;
+    }
+  }
+
+  return { processed: recentFiles.length, removed };
 }

@@ -128,6 +128,10 @@ export async function POST(request: Request) {
         email_message: metadata.emailMessage || null,
       },
     }).catch(console.error);
+
+    await prisma.multipart_uploads.deleteMany({
+      where: { file_id: fileId },
+    }).catch(() => { });
   } catch (error) {
     console.error("Complete error:", error);
     await log({

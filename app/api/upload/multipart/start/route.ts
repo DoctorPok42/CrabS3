@@ -98,9 +98,24 @@ export async function POST(request: Request) {
         content_type: contentType,
         folder_id: folderId,
         user_id: session.userId,
+        uploaded_at: null,
         storage: "hot"
       },
     }).catch(console.error);
+
+    await prisma.multipart_uploads.create({
+      data: {
+        file_id: fileId,
+        folder_id: folderId,
+        upload_id: UploadId,
+        filename,
+        chunk_size: 0,
+        total_size: fileSizeBytes,
+      },
+    }).catch(async (error) => {
+      await prisma.files.deleteMany({ where: { id: fileId } }).catch(() => { });
+      throw error;
+    });
 
     const token = signUploadToken({
       uid: session.userId,

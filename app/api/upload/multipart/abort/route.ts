@@ -34,6 +34,10 @@ export async function POST(request: Request) {
       where: { id: fileId },
     }).catch(console.error);
 
+    await prisma.multipart_uploads.deleteMany({
+      where: { file_id: fileId },
+    }).catch(() => { });
+
     return Response.json({ success: true });
   } catch (error) {
     console.error("Abort error:", error);
