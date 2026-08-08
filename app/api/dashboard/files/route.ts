@@ -71,7 +71,10 @@ export async function GET(request: Request) {
   const safePage = Number.isFinite(page) && page > 0 ? page : 1;
   const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 10;
 
-  const where = { user_id: session.userId };
+  const where = {
+    user_id: session.userId,
+    uploaded_at: { not: null },
+  };
 
   const [allFolderGroups, filesForStatus] = await Promise.all([
     prisma.files.groupBy({

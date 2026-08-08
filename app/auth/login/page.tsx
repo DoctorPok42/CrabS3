@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Button, Input } from "@/components"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -63,7 +64,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 border-2 border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 bg-zinc-50 dark:bg-zinc-900 overflow-hidden">
+      <div className="flex flex-col gap-4 border border-cardBorder dark:border-cardBorder-dark rounded-2xl p-6 bg-card dark:bg-card-dark overflow-hidden">
         <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Sign in</h2>
 
         {error && (
@@ -72,50 +73,52 @@ export default function LoginPage() {
 
         {!twoFactorRequired ? <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-zinc-600 dark:text-zinc-400">Email</label>
-            <input
+            <Input
+              label="Email"
+              id="email"
+              name="email"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSubmit()}
               placeholder="your@email.com"
-              className="h-9 outline-none bg-zinc-200 dark:bg-zinc-800 rounded-lg px-3 text-zinc-700 dark:text-zinc-300 transition"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-zinc-600 dark:text-zinc-400">Password</label>
-            <input
+            <Input
+              label="Password"
+              id="password"
+              name="password"
               type="password"
               value={password}
+              placeholder="Enter your password"
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleSubmit()}
-              className="h-9 outline-none bg-zinc-200 dark:bg-zinc-800 rounded-lg px-3 text-zinc-700 dark:text-zinc-300 transition"
             />
           </div>
         </div> : (
           <div className="flex flex-col gap-4 loginAnimation">
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-zinc-600 dark:text-zinc-400">2FA Token</label>
-              <input
+              <Input
+                label="2FA Token"
+                id="twoFactorToken"
+                name="twoFactorToken"
                 type="number"
                 value={twoFactorToken}
                 onChange={e => setTwoFactorToken(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleSubmit()}
-                className="h-9 outline-none bg-zinc-200 dark:bg-zinc-800 rounded-lg px-3 text-zinc-700 dark:text-zinc-300 transition"
+                placeholder="Enter your 2FA token"
               />
             </div>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">Please enter your 2FA token to continue.</p>
           </div>
         )}
 
-        <button
+        <Button
+          text={loading ? "Signing in…" : "Sign in"}
           onClick={handleSubmit}
           disabled={loading || !email || !password || (twoFactorRequired && !twoFactorToken)}
-          className="h-10 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition cursor-pointer disabled:cursor-not-allowed"
-        >
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
+        />
       </div>
     </div>
   )

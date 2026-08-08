@@ -72,26 +72,31 @@ export function useMultipartUpload() {
   const uploadCount = useRef(0);
   const prewarmedSessions = useRef(new Map<File, PrewarmEntry>());
 
+  const abortPrewarmedSession = useCallback((entry: PrewarmEntry) => {
+    entry.promise
+      .then(async ({ fileId, uploadId }) =>
+        await fetch("/api/upload/multipart/abort", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          keepalive: true,
+          body: JSON.stringify({ fileId, folderId: entry.folderId, uploadId }),
+        })
+      )
+      .catch(() => { });
+  }, []);
+
 
   const prewarm = useCallback((file: File, folderId: string, filename?: string) => {
     const name = filename?.trim() || file.name;
     const existing = prewarmedSessions.current.get(file);
 
-    if (existing && existing.filename === name && existing.folderId === folderId) {
+    if (existing?.filename === name && existing?.folderId === folderId) {
       return;
     }
 
     // Old session resolve then abort it in the background
     if (existing) {
-      existing.promise
-        .then(({ fileId, uploadId }) =>
-          fetch("/api/upload/multipart/abort", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fileId, folderId: existing.folderId, uploadId }),
-          })
-        )
-        .catch(() => { });
+      abortPrewarmedSession(existing);
     }
 
     prewarmedSessions.current.set(file, {
@@ -99,7 +104,7 @@ export function useMultipartUpload() {
       filename: name,
       folderId,
     });
-  }, []);
+  }, [abortPrewarmedSession]);
 
   // Discard a prewarmed session
   const cancelPrewarm = useCallback((file: File) => {
@@ -107,16 +112,17 @@ export function useMultipartUpload() {
     if (!entry) return;
     prewarmedSessions.current.delete(file);
 
-    entry.promise
-      .then(({ fileId, uploadId }) =>
-        fetch("/api/upload/multipart/abort", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileId, folderId: entry.folderId, uploadId }),
-        })
-      )
-      .catch(() => { });
-  }, []);
+    abortPrewarmedSession(entry);
+  }, [abortPrewarmedSession]);
+
+  const cancelAllPrewarm = useCallback(() => {
+    const entries = Array.from(prewarmedSessions.current.values());
+    prewarmedSessions.current.clear();
+
+    for (const entry of entries) {
+      abortPrewarmedSession(entry);
+    }
+  }, [abortPrewarmedSession]);
 
   const upload = useCallback(async (
     file: File,
@@ -147,15 +153,7 @@ export function useMultipartUpload() {
         prewarmedSessions.current.delete(file);
 
         if (!canReusePrewarm) {
-          prewarmed.promise
-            .then(({ fileId: staleId, uploadId: staleUploadId }) =>
-              fetch("/api/upload/multipart/abort", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ fileId: staleId, folderId: prewarmed.folderId, uploadId: staleUploadId }),
-              })
-            )
-            .catch(() => { });
+          abortPrewarmedSession(prewarmed);
         }
       }
 
@@ -255,9 +253,10 @@ export function useMultipartUpload() {
 
     } catch (err) {
       if (fileId && uploadId) {
-        fetch("/api/upload/multipart/abort", {
+        await fetch("/api/upload/multipart/abort", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          keepalive: true,
           body: JSON.stringify({ fileId, folderId, uploadId }),
         }).catch(console.error);
       }
@@ -277,7 +276,7 @@ export function useMultipartUpload() {
 
       return null;
     }
-  }, []);
+  }, [abortPrewarmedSession]);
 
   const reset = useCallback(() => {
     setProgress(0);
@@ -285,7 +284,7 @@ export function useMultipartUpload() {
     setError(null);
   }, []);
 
-  return { upload, progress, uploading, error, reset, prewarm, cancelPrewarm };
+  return { upload, progress, uploading, error, reset, prewarm, cancelPrewarm, cancelAllPrewarm };
 }
 
 function uploadChunk(

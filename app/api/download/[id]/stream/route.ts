@@ -9,7 +9,6 @@ import { sendAllActiveCommunications } from "@/lib/webhook";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { getIp } from "@/lib/ip";
-import { download_events } from "@/prisma/app/generated/prisma/client";
 
 const getFileData = async (folderId: string, fileId: string) => {
   const key = `${folderId}/${fileId}`;
@@ -231,13 +230,15 @@ export async function GET(
               ],
             }).catch(console.error);
 
+          const hash = await bcrypt.hash(`${folderId}/${files.map(f => f.id).join(",")}`, 10);
+
           await prisma.download_events.createMany({
             data: files.map(file => ({
               file_id: file.id,
               folder_id: folderId,
               ip: getIp(request).split(" |")[0],
               user_agent: getIp(request).split("| ")[1] || "unknown",
-              hash: bcrypt.hashSync(`${folderId}/${file.id}`, 10),
+              hash,
             })),
           }).catch(console.error);
 

@@ -18,6 +18,13 @@ export async function POST(request: Request) {
 
     const folderId = randomUUID();
 
+    await prisma.folders.create({
+      data: {
+        id: folderId,
+        name: body.name,
+      },
+    });
+
     const servicePrisma = await prisma.services.create({
       data: {
         name: body.name,

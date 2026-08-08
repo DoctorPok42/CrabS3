@@ -35,6 +35,7 @@ export const createTokenService = async (id: number, name: string, maxDuration?:
 
     return {
       id: response.id,
+      uuid: response.uuid,
       name: response.name,
       token: response.token,
       created_at: response.created_at,

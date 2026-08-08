@@ -1,8 +1,66 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
+@theme {
+  --background: #faf8f6;
   --foreground: #171717;
+
+  --color-primary-50: #ffece4;
+  --color-primary-100: #ffd9c8;
+  --color-primary-200: #ffbca1;
+  --color-primary-400: #fe8354;
+  --color-primary-500: #ed5f1e;
+  --color-primary-600: #d14300;
+  --color-primary-700: #aa2e00;
+
+  --color-secondary-50: #f2efff;
+  --color-secondary-100: #e5deff;
+  --color-secondary-200: #d2c6ff;
+  --color-secondary-400: #ae95ff;
+  --color-secondary-500: #9776fb;
+  --color-secondary-600: #805ddf;
+  --color-secondary-700: #6646b7;
+
+  /* white */
+  --color-uploadBg: #fae2d7;
+  --color-uploadColor: #d14400;
+  --color-focus-border: #ED5F1E;
+  --color-protectedBg: #B47900;
+  --color-activeBg: #409D48;
+  --color-metricsBg: #8C69ED;
+  --color-danger: #FFEBE8;
+  --color-btn-secondary: #FDFBFA;
+
+  /* black */
+  --color-uploadBg-dark: #351c0f;
+
+
+  /* white */
+  --color-page: #faf8f6;
+  --color-sidebar: #fdfbfa;
+  --color-card: #fdfbfa;
+  --color-input: #f4f1ee;
+  --color-border: #e4e0dd;
+  --color-text: #241e1a;
+
+  /* dark */
+  --color-page-dark: #0e0a08;
+  --color-sidebar-dark: #120f0c;
+  --color-card-dark: #191512;
+  --color-input-dark: #231e1b;
+  --color-border-dark: #302a26;
+  --color-text-dark: #e8e4e1;
+
+  --color-cardBorder: #e4e0dd;
+  --color-cardBorder-dark: #302a26;
+  --color-inputBorder: #d8d3cf;
+  --color-inputBorder-dark: #3a3430;
+
+  --color-semantic-success: #409D48;
+  --color-semantic-warning: #B47900;
+  --color-semantic-error: #D15C56;
+  --color-semantic-info: #008FD6;
+
+  --font-jetbrains-mono: "JetBrains Mono", monospace;
 }
 
 @theme inline {
@@ -22,27 +80,24 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Plus Jakarta Sans, sans-serif;
 }
 
 .inputClass {
   display: flex;
   align-items: center;
   gap: .75rem;
-  border: 1.5px solid transparent;
-  border-radius: .5rem;
-  padding: .5rem .75rem;
 }
 
 .inputClass:focus,
 .inputClass:active,
 .inputClass:focus-within {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 2px 1.5px #3b82f6aa !important;
+  border-color: var(--color-focus-border) !important;
+  box-shadow: 0 0 2px 1.5px #ED5F1Eaa !important;
 }
 
 .inputShadow {
-  animation: displayShadow .01s ease forwards;
+  animation: displayShadow .35s ease forwards;
 }
 
 .loginAnimation {
@@ -55,7 +110,7 @@ body {
   }
 
   to {
-    box-shadow: 0 0 100px 10px var(--shadow-color);
+    box-shadow: 0 0 100px 5px var(--shadow-color);
   }
 }
 

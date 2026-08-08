@@ -1,8 +1,8 @@
 "use client"
 
-import { Input } from "@/components";
+import { Button, Input } from "@/components";
+import Toast, { ToastProps } from "@/components/Toast";
 import { faCircleXmark, faEnvelope, faLock, faUser } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useQRCode } from "next-qrcode";
 import { useEffect, useState } from "react";
 
@@ -14,6 +14,7 @@ const Me = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [twoFactorSecret, setTwoFactorSecret] = useState<{ secret: string, uri: string } | null>(null)
+  const [toast, setToast] = useState<ToastProps | null>(null)
   const { Canvas } = useQRCode();
 
   useEffect(() => {
@@ -99,10 +100,10 @@ const Me = () => {
 
       if (response.ok) {
         setUser(prev => prev ? { ...prev, twoFactorEnabled: false } : null);
-        alert('Two-Factor Authentication has been disabled.');
+        setTwoFactorSecret(null);
+        setToast({ level: 'warning', message: 'Two-Factor Authentication has been disabled.' });
       } else {
-        const error = await response.json();
-        alert(error.error || 'Error disabling 2FA');
+        setToast({ level: 'error', message: 'Error disabling 2FA' });
       }
       return;
     }
@@ -118,27 +119,32 @@ const Me = () => {
       setTwoFactorSecret(data);
       setUser(prev => prev ? { ...prev, twoFactorEnabled: true } : null);
     } else {
-      const error = await response.json();
-      alert(error.error || 'Error enabling 2FA');
+      setToast({ level: 'error', message: 'Error enabling 2FA' })
     }
   }
 
   return (
     <div className="flex flex-col w-full max-w-8xl items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full mb-8 flex flex-col">
-        <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 mb-2">My Account</h1>
+        <h1 className="text-3xl font-extrabold text-zinc-700 dark:text-zinc-300 mb-2">My Account</h1>
         <p className="text-zinc-500 dark:text-zinc-400">Manage your account information and settings</p>
-        <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
+        <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
+
+      <Toast {...toast} />
 
       {twoFactorSecret && (
         <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/50 dark:bg-black/50 z-50">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow-lg w-96">
+          <div className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark p-6 rounded-2xl w-110">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">Two-Factor Authentication</h2>
-              <div className="flex items-center justify-center cursor-pointer" onClick={() => setTwoFactorSecret(null)}>
-                <FontAwesomeIcon icon={faCircleXmark} className="text-gray-700 dark:text-gray-300 scale-150 hover:text-gray-500 transition" />
-              </div>
+              <Button
+                onClick={() => { setTwoFactorSecret(null), setToast({ level: 'success', message: 'Two-Factor Authentication has been enabled!' }); }}
+                icon={faCircleXmark}
+                variant="ghost"
+                divClass="text-xl! p-0!"
+              />
+
             </div>
             <p className="text-zinc-500 dark:text-zinc-400 mb-4">Scan this QR code with your authenticator app to enable two-factor authentication for your account.</p>
             <div className="flex flex-col items-center justify-center gap-2">
@@ -158,7 +164,7 @@ const Me = () => {
         </div>
       )}
 
-      <div className="lg:w-150 w-full flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-white shadow-zinc-100 shadow dark:shadow-zinc-600 dark:bg-zinc-900 transition duration-300">
+      <div className="lg:w-150 w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-2xl p-6 bg-card dark:bg-card-dark transition duration-300">
         {profileMessage && (
           <div className={`mb-4 p-4 rounded-lg text-sm font-medium ${profileMessage.type === 'success'
             ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700'
@@ -217,28 +223,27 @@ const Me = () => {
             />
           )}
 
-          {/* 2FA */}
-          <div>
-            <h2 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Two-Factor Authentication (2FA)</h2>
-            <p className="text-zinc-500 dark:text-zinc-400 mb-4">Enhance the security of your account by enabling two-factor authentication.</p>
-            <div className="flex gap-3">
-              <button
+          <div className="flex flex-col">
+            <h2 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Two-Factor Authentication (2FA)</h2>
+            <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Enhance the security of your account by enabling two-factor authentication.</p>
+
+            <div className="flex mt-3">
+              <Button
                 onClick={handleEnable2FA}
-                className="flex-1 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 cursor-pointer"
-              >
-                {user?.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
-              </button>
+                text={user?.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
+                variant={user?.twoFactorEnabled ? 'danger' : 'secondary'}
+              />
             </div>
           </div>
 
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={handleSaveProfile}
+              text={isLoadingProfile ? 'Saving...' : 'Save changes'}
+              variant="primary"
+              divClass="flex-1"
               disabled={isLoadingProfile || (!editedName.trim() || (newPassword && (newPassword.length < 8 || newPassword !== confirmPassword))) || (user?.name === editedName.trim() && !newPassword)}
-              className="flex-1 bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition duration-300 cursor-pointer disabled:cursor-not-allowed"
-            >
-              {isLoadingProfile ? 'Saving...' : 'Save changes'}
-            </button>
+            />
           </div>
         </div>
       </div>

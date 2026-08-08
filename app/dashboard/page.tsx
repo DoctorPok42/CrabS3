@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faAddressCard, faBug, faCheckCircle, faFingerprint, faKey, faSpinner, faTimesCircle } from "@fortawesome/free-solid-svg-icons"
-import { Button, Input } from "@/components"
+import { faAddressCard, faBug, faFingerprint, faSpinner } from "@fortawesome/free-solid-svg-icons"
+import { Button, Input, Toast } from "@/components"
+import { formatSize } from "@/lib/format"
 
 const DashboardPage = () => {
   const [dashboardData, setDashboardData] = useState<{
@@ -36,13 +36,14 @@ const DashboardPage = () => {
   const [totalPages, setTotalPages] = useState<number>(0)
   const [type, setType] = useState<"active" | "expired">("active")
   const [fetchingReport, setFetchingReport] = useState<string>("")
+  const [toast, setToast] = useState<{ message: string; level: 'info' | 'success' | 'warning' | 'error', actionLabel?: string } | null>(null)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const response = await fetch(`/api/dashboard/files?page=${page}&limit=10&type=${type}`)
         if (!response.ok) {
-          throw new Error('Failed to fetch dashboard data')
+          setToast({ message: 'Error fetching dashboard data', level: 'error' })
         }
 
         const data = await response.json()
@@ -56,20 +57,13 @@ const DashboardPage = () => {
         setFolderNameEdits(nextFolderNames)
         setTotalPages(data.totalPages)
       } catch (error) {
+        setToast({ message: 'Error fetching dashboard data', level: 'error' })
         console.error('Error fetching dashboard data:', error)
       }
     }
 
     fetchDashboardData()
   }, [page, type])
-
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-  }
 
   const handleDeleteFile = async (fileId: string, folderId: string) => {
     if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
@@ -84,8 +78,7 @@ const DashboardPage = () => {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Error deleting file')
+        setToast({ message: 'Error deleting file', level: 'error' })
       }
 
       setDashboardData(prev => {
@@ -95,7 +88,10 @@ const DashboardPage = () => {
           files: prev.files.filter(file => file.id !== fileId)
         }
       })
+
+      setToast({ message: 'File deleted successfully', level: 'success' })
     } catch (error) {
+      setToast({ message: 'Error deleting file', level: 'error' })
       console.error('Error deleting file:', error)
     }
   }
@@ -105,18 +101,18 @@ const DashboardPage = () => {
     setPage(1)
   }
 
-  const getFingerprintReport = async (id: string, type: "file" | "folder") => {
+  const getFingerprintReport = async (id: string, type: "file" | "folder", name?: string) => {
     try {
       setFetchingReport(id)
       const response = await fetch(`/api/fingerprint/${id}?type=${type}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch fingerprint report')
+        setToast({ message: 'Error fetching fingerprint report', level: 'error' })
       }
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${id}-${type}-fingerprint-report.json`
+      a.download = `${name || id}-${type}-fingerprint-report.json`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -138,7 +134,7 @@ const DashboardPage = () => {
 
       if (!response.ok) {
         const error = await response.json()
-        alert('Error moving file to hot storage')
+        setToast({ message: 'Error moving file to hot storage', level: 'error' })
         throw new Error(error.error || 'Error moving file to hot storage')
       }
 
@@ -154,7 +150,10 @@ const DashboardPage = () => {
           })
         }
       })
+
+      setToast({ message: 'File moved to hot storage successfully', level: 'success' })
     } catch (error) {
+      setToast({ message: 'Error moving file to hot storage', level: 'error' })
       console.error('Error moving file to hot storage:', error)
     }
   }
@@ -172,8 +171,7 @@ const DashboardPage = () => {
       })
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}))
-        throw new Error(error.error || "Failed to rename folder")
+        setToast({ message: 'Error renaming folder', level: 'error' })
       }
 
       setDashboardData(prev => {
@@ -190,7 +188,9 @@ const DashboardPage = () => {
 
       setFolderNameEdits(prev => ({ ...prev, [folderId]: nextName }))
       setIsEditingFolderName(false)
+      setToast({ message: 'Folder renamed successfully', level: 'success' })
     } catch (error) {
+      setToast({ message: 'Error renaming folder', level: 'error' })
       console.error('Error renaming folder:', error)
     } finally {
       setSavingFolderId("")
@@ -200,17 +200,29 @@ const DashboardPage = () => {
   return (
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full flex flex-col">
-        <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 mb-2">Dashboard</h1>
+        <h1 className="text-3xl font-extrabold text-zinc-700 dark:text-zinc-300 mb-2">Dashboard</h1>
         <p className="text-zinc-500 dark:text-zinc-400">Manage your uploaded files, view statistics, and security settings.</p>
-        <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
+        <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
 
-      <div className="p-1 flex gap-1 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 text-sm font-medium max-w-6xl">
-        <div className={`px-12 py-1 font-bold cursor-pointer transition rounded-sm ${type === "active" && "bg-teal-500 text-white"}`} onClick={() => handleChangeType("active")}>
-          Active
-        </div>
-        <div className={`px-12 py-1 font-bold cursor-pointer transition rounded-sm ${type === "expired" && "bg-teal-500 text-white"}`} onClick={() => handleChangeType("expired")}>
-          Expired
+      <Toast
+        message={toast?.message || ""}
+        level={toast?.level || "info"}
+        actionLabel={toast?.actionLabel || ""}
+      />
+
+      <div className="w-full flex">
+        <div className="flex p-1 gap-1 bg-input dark:bg-input-dark border border-cardBorder dark:border-cardBorder-dark rounded-full">
+          <Button
+            text="Active"
+            onClick={() => handleChangeType("active")}
+            variant={type === "active" ? "primary" : "ghost"}
+          />
+          <Button
+            text="Expired"
+            onClick={() => handleChangeType("expired")}
+            variant={type === "expired" ? "primary" : "ghost"}
+          />
         </div>
       </div>
 
@@ -222,7 +234,7 @@ const DashboardPage = () => {
 
       {
         dashboardData && dashboardData.files.length > 0 && (
-          <div className="w-full flex flex-col gap-6 max-w-6xl">
+          <div className="w-full flex flex-col gap-6">
             {Object.entries(
               dashboardData.files.reduce((acc, file) => {
                 const folderId = file.folder_id || 'unknown'
@@ -243,7 +255,7 @@ const DashboardPage = () => {
               const hasPassword = folderFiles[0]?.password_hash !== null
 
               return (
-                <div key={folderId} className="flex flex-col shadow-lg dark:shadow-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 bg-white dark:bg-zinc-900 transition duration-300">
+                <div key={folderId} className="flex flex-col border border-cardBorder dark:border-cardBorder-dark rounded-3xl p-6 bg-card dark:bg-card-dark transition duration-300">
                   <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-4">
                     <div className="flex flex-col gap-1">
                       <button
@@ -286,18 +298,13 @@ const DashboardPage = () => {
 
                     <div className="flex flex-wrap gap-2 items-center">
                       {hasPassword && (
-                        <div className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-sm font-medium px-3 py-1.5 rounded-lg">
-                          <FontAwesomeIcon icon={faKey} size="xs" />
+                        <div className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-sm font-bold px-3 py-1.5 rounded-full">
                           <span>Protected</span>
                         </div>
                       )}
-                      <div className={`flex items-center text-sm font-medium px-3 py-1.5 rounded-lg ${isFolderExpired ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'}`}>
-                        <FontAwesomeIcon icon={isFolderExpired ? faTimesCircle : faCheckCircle} size="xs" className="mr-1" />
-                        {isFolderExpired ? 'Expired' : 'Active'}
-                      </div>
+
                       {folderFiles[0].infected && (
-                        <div className="flex items-center text-sm font-medium px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                          <FontAwesomeIcon icon={faBug} size="xs" className="mr-1" />
+                        <div className="flex items-center text-sm font-bold px-3.5 py-1.5 rounded-full bg-[#f2e8d5] dark:bg-[#44310d] text-[#6a3200] dark:text-[#f7b83d]">
                           Infected
                         </div>
                       )}
@@ -306,14 +313,15 @@ const DashboardPage = () => {
                     <div className="flex flex-wrap gap-2">
                       <Button
                         icon={fetchingReport === folderId ? faSpinner : faFingerprint}
-                        onClick={() => getFingerprintReport(folderId, "folder")}
+                        onClick={() => getFingerprintReport(folderId, "folder", folderName)}
                         variant="secondary"
+                        title="Get Fingerprint Report"
                       />
 
                       {isFolderExpired && (
                         <Button
                           text="Move to Hot Storage"
-                          variant="primary"
+                          variant="secondary"
                           onClick={() => moveFileToHotStorage(folderFiles[0].id, folderId)}
                         />
                       )}
@@ -327,6 +335,7 @@ const DashboardPage = () => {
                                 console.error('Error copying link')
                               })
                             }}
+                            variant="secondary"
                           />
                         </div>
                       )}
@@ -335,31 +344,28 @@ const DashboardPage = () => {
 
                   <div className="space-y-2">
                     {folderFiles.map((file) => {
-                      const isExpired = isFileExpired(file)
-                      let bgClass = 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                      let bgClass = 'bg-[#f4f1ee] dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700'
 
-                      if (isExpired) {
-                        bgClass = 'opacity-50 bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
-                      } else if (file.infected) {
-                        bgClass = 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30'
+                      if (file.infected) {
+                        bgClass = 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
                       }
 
                       return (
                         <div
                           key={file.id}
-                          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border transition duration-200 ${bgClass}`}
+                          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3 px-4 rounded-2xl transition duration-200 ${bgClass}`}
                         >
                           <div>
                             <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-200 text-sm">
-                              <p className="text-sm font-medium truncate">{file.filename}</p>
+                              <p className="text-sm font-bold truncate">{file.filename}</p>
                               {file.infected && (
                                 <span className="text-xs font-medium px-1.5 py-1 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400">
                                   <FontAwesomeIcon icon={faBug} size="xs" />
                                 </span>
                               )}
                               <span className="hidden lg:flex">•</span>
-                              <span className="hidden lg:flex" title={formatBytes(file.size)}>
-                                {formatBytes(file.size)}
+                              <span className="hidden lg:flex" title={formatSize(file.size)}>
+                                {formatSize(file.size)}
                               </span>
                               {file.max_downloads && (
                                 <>
@@ -376,7 +382,7 @@ const DashboardPage = () => {
                           <div className="flex gap-2">
                             <Button
                               icon={(fetchingReport === file.id || fetchingReport === folderId) ? faSpinner : faFingerprint}
-                              onClick={() => getFingerprintReport(file.id, "file")}
+                              onClick={() => getFingerprintReport(file.id, "file", file.filename)}
                               variant="secondary"
                             />
 
@@ -417,11 +423,14 @@ const DashboardPage = () => {
 
       {
         dashboardData?.files.length === 0 && (
-          <div className="w-full max-w-2xl flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl p-12 bg-white dark:bg-zinc-900 transition duration-300 text-center">
-            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">You haven&apos;t uploaded any files yet.</p>
-            <Link href="/" className="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg transition w-fit mx-auto">
-              Start uploading
-            </Link>
+          <div className="w-full max-w-xl flex flex-col border border-cardBorder dark:border-cardBorder-dark rounded-2xl p-6 bg-card dark:bg-card-dark transition duration-300 text-center">
+            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
+              {type === "active" ? "You haven't uploaded any files yet." : "No expired files found."}
+            </p>
+            <Button
+              text="Start uploading"
+              onClick={() => window.location.href = '/'}
+            />
           </div>
         )
       }

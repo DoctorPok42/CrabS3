@@ -27,8 +27,8 @@ export async function GET(request: Request) {
         },
         select: {
           folder: { select: { name: true } },
-          file_id: true,
           folder_id: true,
+          file_id: true,
           hash: true,
           ip: true,
           user_agent: true,
@@ -37,6 +37,14 @@ export async function GET(request: Request) {
         orderBy: {
           created_at: "desc",
         },
+      }).then((events) => {
+        return events.map(event => ({
+          folder_name: event.folder?.name || null,
+          ...event,
+          downloaded_at: event.created_at,
+          created_at: undefined,
+          folder: undefined,
+        }));
       });
 
       if (!report) {
@@ -48,8 +56,9 @@ export async function GET(request: Request) {
           folder_id: id,
         },
         select: {
-          file_id: true,
+          folder: { select: { name: true } },
           folder_id: true,
+          file_id: true,
           hash: true,
           ip: true,
           user_agent: true,
@@ -58,7 +67,16 @@ export async function GET(request: Request) {
         orderBy: {
           created_at: "desc",
         },
+      }).then((events) => {
+        return events.map(event => ({
+          folder_name: event.folder?.name || null,
+          ...event,
+          downloaded_at: event.created_at,
+          created_at: undefined,
+          folder: undefined,
+        }));
       });
+
       if (!report) {
         return new Response("Report not found", { status: 404 });
       }

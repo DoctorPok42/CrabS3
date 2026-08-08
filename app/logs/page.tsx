@@ -42,9 +42,9 @@ const LogsPage = () => {
   return (
     <div className="flex flex-col w-full max-w-8xl items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full mb-8 flex flex-col">
-        <h1 className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 mb-2">Logs</h1>
+        <h1 className="text-3xl font-extrabold text-zinc-700 dark:text-zinc-300 mb-2">Logs</h1>
         <p className="text-zinc-500 dark:text-zinc-400">View and manage your application logs</p>
-        <hr className="border-zinc-200 dark:border-zinc-700 mt-4" />
+        <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
 
       <div className="w-full">
@@ -52,12 +52,12 @@ const LogsPage = () => {
 
           <div className="flex flex-col gap-1 col-span-2">
             <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Level</label>
-            <div className='inputClass group h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
+            <div className='group h-11.5 text-[15px] bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[1.5px] border-[#e9ebed] dark:border-[#383a42] rounded-2xl px-3 text-zinc-700! dark:text-[#d2d5da]! transition duration-300 inputClass'>
               <FontAwesomeIcon icon={faLevelUpAlt} className='text-zinc-700 dark:text-[#d2d5da] w-3' size='xs' />
               <select
                 value={filters.level}
                 onChange={(e) => setFilters((f) => ({ ...f, level: e.target.value }))}
-                className="outline-none w-full bg-[#fafafa] dark:bg-[#1c1d21] text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
+                className="outline-none w-full bg-input dark:bg-input-dark text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
               >
                 <option value="">All Levels</option>
                 {Object.values(LogLevel).map((level) => (
@@ -69,14 +69,14 @@ const LogsPage = () => {
 
           <div className="flex flex-col gap-1 col-span-2">
             <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Action</label>
-            <div className='inputClass group h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
+            <div className='group h-11.5 text-[15px] bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[1.5px] border-[#e9ebed] dark:border-[#383a42] rounded-2xl px-3 text-zinc-700! dark:text-[#d2d5da]! transition duration-300 inputClass'>
               <FontAwesomeIcon icon={
                 faCodeBranch
               } className='text-zinc-700 dark:text-[#d2d5da] w-3' size='xs' />
               <select
                 value={filters.action}
                 onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
-                className="outline-none w-full bg-[#fafafa] dark:bg-[#1c1d21] text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
+                className="outline-none w-full bg-input dark:bg-input-dark text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
               >
                 <option value="">All Actions</option>
                 {Object.values(LogAction).map((action) => (
@@ -111,12 +111,12 @@ const LogsPage = () => {
 
           <div className="flex flex-col gap-1 col-span-1 lg:col-span-2">
             <label htmlFor="option1" className="text-zinc-700 dark:text-zinc-300">Min Level</label>
-            <div className='inputClass group h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
+            <div className='group h-11.5 text-[15px] bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[1.5px] border-[#e9ebed] dark:border-[#383a42] rounded-2xl px-3 text-zinc-700! dark:text-[#d2d5da]! transition duration-300 inputClass'>
               <FontAwesomeIcon icon={faLevelUpAlt} className='text-zinc-700 dark:text-[#d2d5da] w-3' size='xs' />
               <select
                 value={minLevel}
                 onChange={(e) => updateMinLevel(e.target.value as LogLevel)}
-                className="outline-none w-full bg-[#fafafa] dark:bg-[#1c1d21] text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
+                className="outline-none w-full bg-input dark:bg-input-dark text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
               >
                 {Object.values(LogLevel).map((level: LogLevel) => (
                   <option key={level} value={level}>{`Min Level: ${level}`}</option>
@@ -133,7 +133,7 @@ const LogsPage = () => {
           </button>
         </div>
 
-        <div>
+        <div className="flex flex-col gap-2.5">
           {logs.map((log) => (
             <Log key={log.id} action={log.action} level={log.level} message={log.message} meta={log.meta} createdAt={log.created_at} userId={log.user} />
           ))}
