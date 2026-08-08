@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faFile, faEnvelope, faUser, faHdd, faDownload, faClock, faTrash, faShieldAlt, faShare, faDatabase, faLock, faRulerVertical, faShield } from "@fortawesome/free-solid-svg-icons"
+import { faFile, faEnvelope, faUser, faHdd, faDownload, faTrash, faShieldAlt, faDatabase, faLock, faRulerVertical, faShield } from "@fortawesome/free-solid-svg-icons"
 import { StorageMetricCard } from "@/components/StorageMetricCard"
+import { Button, Input } from "@/components"
+import Toast, { ToastProps } from "@/components/Toast"
 
 interface User {
   id: string
@@ -38,6 +40,7 @@ const Admin = () => {
   const [loading, setLoading] = useState<boolean>(true)
   const [statsLoading, setStatsLoading] = useState<boolean>(true)
   const [emailInvite, setEmailInvite] = useState<string>("")
+  const [toast, setToast] = useState<ToastProps | null>(null)
 
   useEffect(() => {
     const fetchUsersDash = async () => {
@@ -94,11 +97,12 @@ const Admin = () => {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to send invite')
       }
-      alert('Invitation sent successfully!')
+
       setEmailInvite("")
+      setToast({ level: 'success', message: 'Invitation sent successfully!' })
     } catch (error: any) {
       console.error('Error sending invite:', error)
-      alert(`Error: ${error.message}`)
+      setToast({ level: 'error', message: `Error: ${error.message}` })
     }
   }
 
@@ -106,9 +110,11 @@ const Admin = () => {
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mx-auto">
       <div className="w-full flex flex-col">
         <h1 className="text-3xl font-extrabold text-zinc-700 dark:text-zinc-300 mb-2">Admin Panel</h1>
-        <p className="text-zinc-500 dark:text-zinc-400">Manage users and storage statistics for your CrabS3 instance.</p>
+        <p className="text-zinc-500 dark:text-zinc-400">Manage users and storage statistics.</p>
         <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
+
+      <Toast {...toast} />
 
       <div className="w-full flex flex-col">
         <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Storage Overview</h2>
@@ -181,35 +187,33 @@ const Admin = () => {
       </div>
 
       <div className="w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-3xl p-5.5 bg-card dark:bg-card-dark transition duration-300">
-        <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300 mb-4">Invite User</h2>
-        <p className="text-zinc-600 dark:text-zinc-400 mb-2">Send an invitation to a new user via email</p>
+        <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Invite a user</h2>
+        <p className="text-[13.5px] text-zinc-600 dark:text-zinc-400 mb-4">Send an invitation by email.</p>
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex flex-col w-full gap-1">
-            <label htmlFor="emailInvite" className="text-zinc-700 dark:text-zinc-300">Email</label>
-            <div className='inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-              <FontAwesomeIcon icon={faShare} className='text-zinc-700 dark:text-[#d2d5da] w-3' size='2xs' />
-              <input
-                type="email"
-                id="emailInvite"
-                name="emailInvite"
-                placeholder='Enter email to invite user'
-                className="outline-none w-full"
-                value={emailInvite}
-                onChange={(e) => setEmailInvite(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
+          <div className="flex w-full gap-2.5 items-end">
+            {!loading && <Input
+              label="Email"
+              type="email"
+              id="emailInvite"
+              name="emailInvite"
+              placeholder='new-user@example.com'
+              icon={faEnvelope}
+              value={emailInvite}
+              onChange={(e) => setEmailInvite(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  sendInvite()
+                }
+              }}
+              divClass="w-full"
+            />}
 
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={sendInvite}
-            disabled={!emailInvite}
-            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            Send Invite
-          </button>
+            <Button
+              text="Send"
+              onClick={sendInvite}
+              disabled={!emailInvite}
+            />
+          </div>
         </div>
       </div>
 
@@ -259,21 +263,19 @@ const Admin = () => {
                     onClick={() => globalThis.location.href = `/admin/users/${u.id}`}
                     className={`border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 cursor-pointer ${index % 2 === 0 ? 'bg-zinc-50 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'}`}
                   >
-                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs">{u.email}</td>
+                    <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs font-semibold">{u.email}</td>
                     <td className="px-2 sm:px-4 py-3 text-zinc-700 dark:text-zinc-200 text-xs">{u.name || '-'}</td>
                     <td className="px-2 sm:px-4 py-3">
                       {u.status === "pending" ? (
-                        <span className="inline-flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-1 rounded-full text-xs font-semibold">
-                          <FontAwesomeIcon icon={faClock} size="xs" />
+                        <span className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-3 py-1 rounded-full text-sm font-semibold">
                           Pending
                         </span>
                       ) : u.isAdmin ? (
-                        <span className="inline-flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-2 py-1 rounded-full text-xs font-semibold">
-                          <FontAwesomeIcon icon={faShieldAlt} size="xs" />
+                        <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-full text-sm font-semibold">
                           Admin
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-full text-xs font-semibold">
+                        <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-sm font-semibold">
                           User
                         </span>
                       )}

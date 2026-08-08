@@ -54,7 +54,6 @@
   --color-cardBorder-dark: #302a26;
   --color-inputBorder: #d8d3cf;
   --color-inputBorder-dark: #3a3430;
-  --color-focusBorder: #ed5f1e;
 
   --color-semantic-success: #409D48;
   --color-semantic-warning: #B47900;
@@ -88,14 +87,13 @@ body {
   display: flex;
   align-items: center;
   gap: .75rem;
-  border: 1.5px solid transparent;
 }
 
 .inputClass:focus,
 .inputClass:active,
 .inputClass:focus-within {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 2px 1.5px #3b82f6aa !important;
+  border-color: var(--color-focus-border) !important;
+  box-shadow: 0 0 2px 1.5px #ED5F1Eaa !important;
 }
 
 .inputShadow {

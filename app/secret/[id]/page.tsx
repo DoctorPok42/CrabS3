@@ -1,8 +1,7 @@
 "use client"
 
-import { PopupStatus } from "@/components"
-import { faKey } from "@fortawesome/free-solid-svg-icons"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { Button, Input, Toast } from "@/components"
+import { ToastProps } from "@/components/Toast"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
@@ -12,7 +11,7 @@ const SecretPage = () => {
   const [content, setContent] = useState<string>("")
   const [requiresPassword, setRequiresPassword] = useState<boolean | null>(null)
   const [password, setPassword] = useState<string>("")
-  const [notif, setNotif] = useState<{ type: "success" | "error" | "info", message: string } | null>(null)
+  const [toast, setToast] = useState<ToastProps | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
 
   useEffect(() => {
@@ -31,13 +30,11 @@ const SecretPage = () => {
         if (response.status === 200) {
           setRequiresPassword(data.requiresPassword)
         } else if (response.status !== 404 && response.status !== 410) {
-          setNotif({ type: "error", message: data.error || 'An error occurred while checking the secret.' })
-          setTimeout(() => setNotif(null), 3000)
+          setToast({ level: "error", message: data.error || 'An error occurred while checking the secret.' })
         }
       } catch (error) {
         console.error('Error checking secret:', error)
-        setNotif({ type: "error", message: 'An unexpected error occurred while checking the secret.' })
-        setTimeout(() => setNotif(null), 3000)
+        setToast({ level: "error", message: 'An unexpected error occurred while checking the secret.' })
       } finally {
         setIsLoading(false)
       }
@@ -48,7 +45,6 @@ const SecretPage = () => {
 
   const handleRetrieveSecret = async () => {
     try {
-      setNotif(null)
       const response = await fetch('/api/secret/get', {
         method: 'POST',
         headers: {
@@ -60,14 +56,12 @@ const SecretPage = () => {
       if (response.status === 200) {
         setContent(data.content)
       } else {
-        setNotif({ type: "error", message: data.error || 'An error occurred while retrieving the secret.' })
-        setTimeout(() => setNotif(null), 3000)
+        setToast({ level: "error", message: data.error || 'An error occurred while retrieving the secret.' })
       }
 
     } catch (error) {
       console.error('Error retrieving secret:', error)
-      setNotif({ type: "error", message: 'An unexpected error occurred while retrieving the secret.' })
-      setTimeout(() => setNotif(null), 3000)
+      setToast({ level: "error", message: 'An unexpected error occurred while retrieving the secret.' })
     } finally {
       setIsLoading(false)
     }
@@ -75,62 +69,56 @@ const SecretPage = () => {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(content)
-    setNotif({ type: "success", message: "Secret copied to clipboard!" })
-    setTimeout(() => setNotif(null), 3000)
+    setToast({ level: "success", message: "Secret copied to clipboard!" })
   }
 
   return (
     <div className="my-auto">
-      <h1 className="text-2xl font-bold text-center">Secret {requiresPassword ? "(Password Required)" : ""}</h1>
-      {notif && (
-        <PopupStatus
-          type={notif.type}
-          message={notif.message}
-        />
-      )}
+      <h1 className="text-2xl font-bold text-center mb-2">Secret {requiresPassword ? "(Password Required)" : ""}</h1>
+
+      <Toast {...toast} />
 
       {!isLoading && requiresPassword === null && (
-        <div className="p-6 border-2 border-zinc-200 dark:border-zinc-700 rounded-2xl bg-zinc-50 dark:bg-zinc-900">
+        <div className="p-6 border border-cardBorder dark:border-cardBorder-dark rounded-2xl bg-card dark:bg-card-dark">
           <p className="text-center text-zinc-500 dark:text-zinc-400">Secret not found. It may have been deleted, expired, or the link is incorrect.</p>
         </div>
       )}
 
       {!isLoading && requiresPassword !== null && (
-        <div className="lg:w-150 w-full mt-4 flex flex-col border-zinc-200 dark:border-zinc-700 border-2 rounded-2xl p-6 bg-zinc-50 dark:bg-zinc-900 gap-4">
+        <div className="lg:w-150 w-full mt-4 flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-2xl p-6 bg-card dark:bg-card-dark gap-4">
           <div className="w-full flex flex-col items-start gap-2">
-            <div className={`p-4 rounded-md w-full min-h-14 ${content ? 'bg-[#f4f4f6] dark:bg-[#25272c]' : 'striped-bg'} text-zinc-700 dark:text-[#d2d5da] whitespace-pre-wrap break-all transition duration-300`}>
+            <div className={`p-4 rounded-xl w-full min-h-14 ${content ? 'bg-[#f4f4f6] dark:bg-[#25272c]' : 'striped-bg'} text-zinc-700 dark:text-[#d2d5da] whitespace-pre-wrap break-all transition duration-300`}>
               {content}
             </div>
 
             {requiresPassword && (
               <div className="w-full flex flex-wrap items-center justify-between mt-2 gap-1">
-                <label htmlFor="password" className="font-semibold">This secret is password protected.</label>
-                <div className='w-full inputClass h-10 text-lg bg-[#fafafa] dark:bg-[#1c1d21] hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[#e9ebed]! dark:border-[#383a42]! rounded-md px-2 text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
-                  <FontAwesomeIcon icon={faKey} className='text-zinc-700 dark:text-[#d2d5da]' size='xs' />
-                  <input
-                    type="password"
-                    placeholder="Enter password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleRetrieveSecret()}
-                    className="outline-none w-full"
-                  />
-                </div>
+                <Input
+                  id="password"
+                  name="password"
+                  label="Password"
+                  type="password"
+                  placeholder="Enter password"
+                  autoFocus
+                  divClass="flex-1"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleRetrieveSecret()}
+                />
               </div>
             )}
 
           </div>
-          <button
+          <Button
+            text={content ? "Copy Secret" : "Retrieve Secret"}
             onClick={content ? copyToClipboard : handleRetrieveSecret}
             disabled={requiresPassword === null || (requiresPassword && !password)}
-            className="bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg cursor-pointer transition"
-          >
-            {content ? "Copy Secret" : "Retrieve Secret"}
-          </button>
+            divClass="flex-1"
+          />
         </div>)}
 
       {isLoading && (
-        <div className="mt-4 p-6 border-2 border-zinc-200 dark:border-zinc-700 rounded-2xl bg-zinc-50 dark:bg-zinc-900 animate-pulse">
+        <div className="mt-4 p-6 border border-cardBorder dark:border-cardBorder-dark rounded-2xl bg-card dark:bg-card-dark animate-pulse">
           <p className="text-center text-zinc-500 dark:text-zinc-400">Loading secret...</p>
         </div>
       )}

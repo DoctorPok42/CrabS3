@@ -23,7 +23,7 @@ const Input = ({ label, id, type, name, placeholder, class: inputClass, value, o
       <label htmlFor={id} className="text-[#5b544f] dark:text-[#a59d97] text-[13px] tracking-[0.001em] font-semibold">
         {label}
       </label>
-      <div className='inputClass h-11.5 px-2 text-[15px]! bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[1.5px] border-[#e9ebed]! dark:border-[#383a42]! rounded-2xl text-zinc-700! dark:text-[#d2d5da]! transition duration-300'>
+      <div className='h-11.5 px-2 text-[15px] bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[1.5px] border-[#e9ebed] dark:border-[#383a42] rounded-2xl text-zinc-700! dark:text-[#d2d5da]! transition duration-300 inputClass'>
         {icon && <FontAwesomeIcon icon={icon} className='text-zinc-700 dark:text-[#d2d5da] ml-1' size='sm' />}
         <input
           id={id}
