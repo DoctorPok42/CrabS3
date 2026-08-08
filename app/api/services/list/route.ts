@@ -5,6 +5,7 @@ export async function GET() {
     const services = await prisma.services.findMany({
       select: {
         id: true,
+        uuid: true,
         name: true,
         quota: true,
         created_at: true,

@@ -1,13 +1,14 @@
 "use client"
 
 import { Button, Input } from "@/components"
-import { faFileAlt, faGauge, faKey } from "@fortawesome/free-solid-svg-icons"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { useCallback, useEffect, useState } from "react"
+import Toast, { ToastProps } from "@/components/Toast"
+import { formatSize } from "@/lib/format"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useDropzone } from "react-dropzone"
 
 type Service = {
   id: number
+  uuid: string
   name: string
   status: string
   quota: number
@@ -25,6 +26,8 @@ const Services = () => {
   const [loading, setLoading] = useState<boolean>(true)
   const [invitationCode, setInvitationCode] = useState<string>("")
   const [serviceId, setServiceId] = useState<number | null>(null)
+  const invitationCodeRef = useRef<HTMLDivElement>(null)
+  const [toast, setToast] = useState<ToastProps | null>(null)
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -59,13 +62,13 @@ const Services = () => {
         const newService = await response.json()
         setServices((prevServices) => [...prevServices, newService])
         setServiceName("")
+        setToast({ message: `Service created successfully`, level: "success" })
       } else {
-        const errorData = await response.json()
-        alert(`Error creating service: ${errorData.message}`)
+        setToast({ message: `Error creating service, try again later`, level: "error" })
       }
     } catch (error) {
       console.error("Error creating service:", error)
-      alert("An error occurred while creating the service. Please try again.")
+      setToast({ message: `Error creating service, try again later`, level: "error" })
     }
   }
 
@@ -76,13 +79,13 @@ const Services = () => {
       })
       if (response.ok) {
         setServices((prevServices) => prevServices.filter((s) => s.id !== id))
+        setToast({ message: `Service deleted successfully`, level: "success" })
       } else {
-        const errorData = await response.json()
-        alert(`Error deleting service: ${errorData.error}`)
+        setToast({ message: `Error deleting service, try again later`, level: "error" })
       }
     } catch (error) {
       console.error("Error deleting service:", error)
-      alert("An error occurred while deleting the service. Please try again.")
+      setToast({ message: `Error deleting service, try again later`, level: "error" })
     }
   }
 
@@ -103,13 +106,14 @@ const Services = () => {
             service.id === id ? { ...service, status: newStatus.toUpperCase() } : service
           )
         )
+
+        setToast({ message: `Service status updated to ${newStatus}`, level: "success" })
       } else {
-        const errorData = await response.json()
-        alert(`Error updating service status: ${errorData.error}`)
+        setToast({ message: `Error updating service status, try again later`, level: "error" })
       }
     } catch (error) {
       console.error("Error updating service status:", error)
-      alert("An error occurred while updating the service status. Please try again.")
+      setToast({ message: `Error updating service status, try again later`, level: "error" })
     }
   }
 
@@ -127,23 +131,21 @@ const Services = () => {
         const data = await response.json()
         setInvitationCode(data.invitationCode)
       } else {
-        const errorData = await response.json()
-        alert(`Error creating invitation: ${errorData.error}`)
+        setToast({ message: `Error creating invitation, try again later`, level: "error" })
       }
     } catch (error) {
       console.error("Error creating invitation:", error)
-      alert("An error occurred while creating the invitation. Please try again.")
+      setToast({ message: `Error creating invitation, try again later`, level: "error" })
     }
   }
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     try {
       if (serviceId === null) {
-        alert("Please select a service before uploading an image.")
+        setToast({ message: "Please select a service before uploading an image.", level: "warning" })
         return
       }
 
-      console.log("Service ID for image upload:", serviceId)
       const response = await fetch("/api/services/update", {
         method: "PUT",
         headers: {
@@ -162,17 +164,32 @@ const Services = () => {
 
       if (response.ok) {
         globalThis.location.reload()
+        setToast({ message: `Service image updated successfully`, level: "success" })
       } else {
-        const errorData = await response.json()
-        alert(`Error updating service image: ${errorData.error}`)
+        setToast({ message: `Error updating service image, try again later`, level: "error" })
       }
     } catch (error) {
       console.error("Error updating service image:", error)
-      alert("An error occurred while updating the service image. Please try again.")
+      setToast({ message: `Error updating service image, try again later`, level: "error" })
     }
   }, [serviceId])
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop })
+
+  useEffect(() => {
+    if (invitationCodeRef.current) {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (invitationCodeRef.current && !invitationCodeRef.current.contains(event.target as Node)) {
+          setInvitationCode("")
+        }
+      }
+
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside)
+      }
+    }
+  }, [invitationCode])
 
   return (
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
@@ -182,14 +199,16 @@ const Services = () => {
         <hr className="border-cardBorder dark:border-cardBorder-dark mt-4" />
       </div>
 
+      <Toast {...toast} />
+
       {invitationCode && (
         <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/50 dark:bg-black/50 z-50">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300 mb-4">Invitation Code</h2>
+          <div ref={invitationCodeRef} className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark p-6 rounded-lg shadow-lg w-96">
+            <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Invitation Code</h2>
             <p className="text-zinc-500 dark:text-zinc-400 mb-4">Share this invitation code with others to allow them to join your service.</p>
             <div className="flex items-center justify-center gap-2">
               {invitationCode.split("").map((char, index) => (
-                <div key={index + char} className="px-4 py-2 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 rounded-md border border-zinc-300 dark:border-zinc-700 text-xl font-bold text-zinc-700 dark:text-zinc-300">
+                <div key={index + char} className="px-4.5 py-2.5 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 rounded-md border border-zinc-300 dark:border-zinc-700 text-xl font-bold text-zinc-700 dark:text-zinc-300">
                   {char}
                 </div>
               ))}
@@ -199,9 +218,9 @@ const Services = () => {
       )}
 
       <div className="w-full flex flex-col gap-4">
-        <div className="w-full flex flex-col gap-2 p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg">
-          <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">Create a New Service</h2>
-          <p className="text-zinc-500 dark:text-zinc-400">You can create a <span className="text-[#9f6afe]">new service</span> to integrate with CrabS3. Each service will have its own quota.</p>
+        <div className="w-full flex flex-col bg-card dark:bg-card-dark gap-2 p-5.5 border border-cardBorder dark:border-cardBorder-darks rounded-2xl">
+          <h2 className="text-[16px] font-bold text-text dark:text-text-dark">Create a New Service</h2>
+          <p className="text-zinc-500 dark:text-zinc-400 text-[13.5px]">Each service has its own quota and access token.</p>
           <div className="w-full flex items-end gap-2 mt-2">
             <Input
               id="service-name"
@@ -214,13 +233,11 @@ const Services = () => {
               divClass="w-full"
             />
 
-            <button
-              disabled={serviceName.trim() === ""}
-              className="w-45 h-10 bg-[#9f6afe] hover:bg-[#8a4df0] disabled:bg-[#c5b3ff] dark:disabled:bg-[#c5b3ff] cursor-pointer disabled:cursor-not-allowed text-white rounded-md transition duration-300"
+            <Button
+              text="Create Service"
               onClick={handleCreateService}
-            >
-              Create Service
-            </button>
+              divClass="shrink-0"
+            />
           </div>
         </div>
       </div>
@@ -234,79 +251,77 @@ const Services = () => {
         ) : (
           <div className="w-full flex flex-col gap-4">
             {services.map((service) => (
-              <div key={service.id} className="w-full flex flex-col gap-2 p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+              <div key={service.id} className="w-full flex flex-col p-5.5 bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark rounded-2xl">
                 <div className="flex gap-2 items-center justify-between">
                   <div className="flex gap-2 items-center">
-                    <p className={`w-2 h-2 rounded-full ${service.status.toLocaleLowerCase() === "active" ? "bg-green-300" : service.status.toLocaleLowerCase() === "inactive" ? "bg-yellow-300" : "bg-red-300"}`}></p>
-                    <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">{service.name}</h2>
+                    <p className={`w-2 h-2 rounded-full ${service.status.toLocaleLowerCase() === "active" ? "bg-[#4aa651]" : service.status.toLocaleLowerCase() === "inactive" ? "bg-yellow-300" : "bg-red-300"}`}></p>
+                    <h2 className="text-[16px] font-bold text-text dark:text-text-dark">{service.name}</h2>
                   </div>
-                  <span className={`px-2 py-1 rounded-md text-sm font-medium ${service.status.toLocaleLowerCase() === "active" ? "bg-green-100 text-green-800" : service.status.toLocaleLowerCase() === "inactive" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}`}>
+                  <span className={`px-3 py-1.5 rounded-full text-sm font-bold ${service.status.toLocaleLowerCase() === "active" ? "bg-green-100 text-green-800" : service.status.toLocaleLowerCase() === "inactive" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}`}>
                     {service.status}
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-2">
                   {service.token && (
-                    <div className="w-3/5 flex gap-2 items-center py-2 px-3 bg-zinc-100 dark:bg-zinc-800 rounded-md border-2 border-zinc-300 dark:border-zinc-700" onClick={() => { navigator.clipboard.writeText(service.token || ""), alert("Token copied to clipboard!") }}>
-                      <FontAwesomeIcon icon={faKey} size="sm" className="text-[#9f6afe]" />
+                    <div className="w-3/5 mt-2 flex py-2 px-3 bg-input dark:bg-input-dark rounded-2xl border border-inputBorder dark:border-inputBorder-dark" onClick={() => { navigator.clipboard.writeText(service.token || ""), setToast({ message: "Token copied to clipboard", level: "success" }) }}>
                       <p className="text-zinc-500 dark:text-zinc-400 text-sm truncate cursor-pointer">Token: {service.token}</p>
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-2 items-center border-b border-zinc-200 dark:border-zinc-700 pb-2">
-                    <div className="w-full">
-                      {service.image && (
+                  <div className="flex flex-wrap gap-2 items-center pb-2">
+                    {service.image && (
+                      <div className="w-full">
                         <img src={service.image} className="w-20 h-20 rounded-md object-cover" />
-                      )}
-                    </div>
-                    <div className="w-fit flex gap-2 items-center py-2 px-3 bg-zinc-100 dark:bg-zinc-800 rounded-md mt-2">
-                      <FontAwesomeIcon icon={faGauge} size="sm" className="text-[#9f6afe]" />
-                      <p className="text-zinc-500 dark:text-zinc-400 text-sm">Usage: {service.totalFilesSize && (service.totalFilesSize / 1024 / 1024 / 1024).toFixed(2) || 0} GB</p>
+                      </div>
+                    )}
+                    <div className="items-center py-2 px-3.5 text-[12.5px] font-medium bg-input dark:bg-input-dark rounded-[14px] mt-2">
+                      <p className="text-zinc-500 dark:text-zinc-400 text-sm">Usage: {formatSize(service.totalFilesSize || 0)}</p>
                     </div>
 
-                    <div className="w-fit flex gap-2 items-center py-2 px-3 bg-zinc-100 dark:bg-zinc-800 rounded-md mt-2">
-                      <FontAwesomeIcon icon={faFileAlt} size="sm" className="text-[#9f6afe]" />
+                    <div className="items-center py-2 px-3.5 text-[12.5px] font-medium bg-input dark:bg-input-dark rounded-[14px] mt-2">
                       <p className="text-zinc-500 dark:text-zinc-400 text-sm">Files: {service.files}</p>
                     </div>
 
-                    <div className="w-fit flex gap-2 items-center py-2 px-3 bg-zinc-100 dark:bg-zinc-800 rounded-md mt-2">
-                      <FontAwesomeIcon icon={faKey} size="sm" className="text-[#9f6afe]" />
+                    <div className="items-center py-2 px-3.5 text-[12.5px] font-medium bg-input dark:bg-input-dark rounded-[14px] mt-2">
                       <p className="text-zinc-500 dark:text-zinc-400 text-sm">Secrets: {service.secrets}</p>
                     </div>
                   </div>
 
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center pb-2">
                     <Button
                       text="Create Invitation"
                       onClick={() => handleCreateInvitation(service.id)}
-                      divClass="rounded-md!"
+                      variant="secondary"
                     />
 
                     <div {...getRootProps()}>
                       <Button
                         text="Upload Image"
-                        divClass="rounded-md!"
                         onClick={() => setServiceId(service.id)}
+                        variant="secondary"
                       />
                       <input {...getInputProps()} />
                     </div>
 
-                    <button
-                      className="w-fit px-3 py-2 cursor-pointer bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-100 rounded-md text-sm font-medium hover:bg-yellow-200 dark:hover:bg-yellow-700 transition duration-300"
+                    <Button
+                      text={service.status.toLocaleLowerCase() === "active" ? "Deactivate Service" : "Activate Service"}
                       onClick={() => handleToggleServiceStatus(service.id, service.status)}
-                    >
-                      {service.status.toLocaleLowerCase() === "active" ? "Deactivate Service" : "Activate Service"}
-                    </button>
+                      variant="secondary"
+                    />
 
-                    <button
-                      className="w-fit px-3 py-2 cursor-pointer bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-100 rounded-md text-sm font-medium hover:bg-red-200 dark:hover:bg-red-700 transition duration-300"
+                    <Button
+                      text="Delete Service"
                       onClick={() => handleDeleteService(service.id)}
-                    >
-                      Delete Service
-                    </button>
+                      variant="danger"
+                    />
                   </div>
                 </div>
-                <p className="text-zinc-500 dark:text-zinc-400 text-sm">Created at: {new Date(service.created_at).toLocaleString()}</p>
+
+                <div className="flex gap-2 items-center justify-between border-t border-cardBorder dark:border-cardBorder-dark pt-2 mt-2">
+                  <span className="text-zinc-500 dark:text-zinc-400 text-sm">Created at: {new Date(service.created_at).toLocaleString()}</span>
+                  <span className="text-zinc-500 dark:text-zinc-400 text-sm">ID: {service.id} | {service.uuid}</span>
+                </div>
               </div>
             ))}
           </div>
