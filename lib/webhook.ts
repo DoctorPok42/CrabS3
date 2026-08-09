@@ -27,6 +27,8 @@ export async function sendAllActiveCommunications(userId: number, payload: Disco
 }
 
 export async function createCommunication(userId: number, type: WebHookType, url: string) {
+  if (!userId || !type || !url) return null;
+
   return await prisma.communication.upsert({
     where: { user_id_type: { user_id: userId, type } },
     update: {

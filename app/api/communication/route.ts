@@ -1,6 +1,5 @@
 import { getSession } from "@/lib/auth";
 import { createCommunication, getActiveCommunication } from "@/lib/webhook";
-import { WebHookType } from "@/services/webhook.service";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 
@@ -48,10 +47,11 @@ export async function POST(request: Request) {
       userId: session.user.id,
     })
 
-    const { webhook }: { webhook: Array<{ type: WebHookType; url: string }> } = await request.json()
-    if (!webhook?.length || !webhook.every(w => w.type && w.url)) {
+    const { webhook } = await request.json()
+    if (!webhook) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 })
     }
+
     for (const { type, url } of webhook) {
       await createCommunication(session.user.id, type, url)
     }
