@@ -20,6 +20,7 @@ interface UploadOptions {
   filename?: string;
   folderId?: string;
   emailMessage?: string;
+  folderName?: string;
 }
 
 interface UploadResult {
@@ -38,6 +39,7 @@ interface PrewarmEntry {
   promise: Promise<StartSessionResult>;
   filename: string;
   folderId: string;
+  folderName?: string;
 }
 
 // Call on drop
@@ -49,7 +51,7 @@ async function startSession(
   const startRes = await fetch("/api/upload/multipart/start", {
     method: "POST",
     headers: {
-      "X-Filename": filename,
+      "X-Filename": encodeURIComponent(filename),
       "X-Folder-Id": folderId,
       "X-File-Size": file.size.toString(),
       "Content-Type": file.type || "application/octet-stream",
@@ -86,7 +88,7 @@ export function useMultipartUpload() {
   }, []);
 
 
-  const prewarm = useCallback((file: File, folderId: string, filename?: string) => {
+  const prewarm = useCallback((file: File, folderId: string, filename?: string, folderName?: string) => {
     const name = filename?.trim() || file.name;
     const existing = prewarmedSessions.current.get(file);
 
@@ -100,7 +102,10 @@ export function useMultipartUpload() {
     }
 
     prewarmedSessions.current.set(file, {
-      promise: startSession(file, name, folderId),
+      promise: startSession(file, name, folderId).catch((error) => {
+        prewarmedSessions.current.delete(file);
+        throw error;
+      }),
       filename: name,
       folderId,
     });
@@ -224,7 +229,7 @@ export function useMultipartUpload() {
       const completeRes = await fetch("/api/upload/multipart/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileId, folderId, uploadId, parts, metadata }),
+        body: JSON.stringify({ fileId, folderId, uploadId, parts, metadata, folderName: options.folderName || null }),
       });
 
       if (!completeRes.ok) throw new Error("Failed to complete upload");
@@ -236,7 +241,7 @@ export function useMultipartUpload() {
         const responseData = await fetch("/api/upload/multipart/finish", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folderId }),
+          body: JSON.stringify({ folderId, folderName: options.folderName || null }),
         });
 
         if (!responseData.ok) {

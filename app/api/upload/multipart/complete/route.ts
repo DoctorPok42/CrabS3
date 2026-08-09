@@ -12,7 +12,7 @@ import { handleScanResult } from "@/services/clamav.service";
 import { getIp } from "@/lib/ip";
 
 export async function POST(request: Request) {
-  const { fileId, folderId, uploadId, parts, metadata } = await request.json();
+  const { fileId, folderId, uploadId, parts, metadata, folderName } = await request.json();
   let response;
   const session = await getSession();
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       action: LogAction.UPLOAD,
       message: "Upload completion started",
       userId: session.userId,
-      meta: { fileId, folderId, partCount: parts.length }
+      meta: { fileId, folderId, partCount: parts.length, folderName }
     });
 
     const existingFile = await prisma.files.findFirst({
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         action: LogAction.UPLOAD,
         message: "Upload rejected: quota exceeded",
         userId: session.userId,
-        meta: { quotaGB, usedGB, fileGB, folderId, fileId }
+        meta: { quotaGB, usedGB, fileGB, folderId, fileId, folderName }
       });
 
       await s3Hot.send(new AbortMultipartUploadCommand({
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
         action: LogAction.UPLOAD,
         message: "S3 upload completion failed: no ETag returned",
         userId: session.userId,
-        meta: { folderId, fileId, uploadId }
+        meta: { folderId, fileId, uploadId, folderName }
       });
       await s3Hot.send(new AbortMultipartUploadCommand({
         Bucket: HOT_BUCKET,
@@ -111,6 +111,12 @@ export async function POST(request: Request) {
       }));
       return Response.json({ error: "Failed to complete upload" }, { status: 500 });
     }
+
+    await prisma.folders.upsert({
+      where: { id: folderId },
+      update: { name: folderName || "" },
+      create: { id: folderId, name: folderName || "" },
+    })
 
     await prisma.files.update({
       where: { id: fileId },
@@ -139,7 +145,7 @@ export async function POST(request: Request) {
       action: LogAction.UPLOAD,
       message: "Upload completion failed",
       userId: session?.userId,
-      meta: { error: error instanceof Error ? error.message : String(error), folderId, fileId }
+      meta: { error: error instanceof Error ? error.message : String(error), folderId, fileId, folderName }
     });
 
     try {
@@ -155,7 +161,7 @@ export async function POST(request: Request) {
         action: LogAction.UPLOAD,
         message: "Failed to abort upload after error",
         userId: session?.userId,
-        meta: { error: abortError instanceof Error ? abortError.message : String(abortError) }
+        meta: { error: abortError instanceof Error ? abortError.message : String(abortError), folderId, fileId, folderName }
       });
     }
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
@@ -165,6 +171,7 @@ export async function POST(request: Request) {
     folderId,
     etag: response.ETag,
     filename: metadata.filename,
+    folderName: folderName || null,
   });
 
   (async () => {

@@ -9,7 +9,7 @@ import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
 
 export async function POST(request: Request) {
   try {
-    const filename = request.headers.get("X-Filename");
+    const filename = decodeURIComponent(request.headers.get("X-Filename") || "").trim();
     const folderId = request.headers.get("X-Folder-Id") || randomUUID();
     const folderName = request.headers.get("X-Folder-Name")?.trim() || folderId;
     const fileSize = request.headers.get("X-File-Size");
