@@ -135,6 +135,7 @@ const PopupStatus = ({ message, type, fileId, uploading, progress, fileMeta, btn
             text={btnText || "Copy download link"}
             onClick={() => copyLink()}
             divClass='w-full'
+            variant='secondary'
           />
           <Button
             text="QR"

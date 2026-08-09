@@ -1,5 +1,5 @@
 import { s3Hot, HOT_BUCKET } from "@/services/s3.service";
-import { CreateMultipartUploadCommand } from "@aws-sdk/client-s3";
+import { AbortMultipartUploadCommand, CreateMultipartUploadCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -9,9 +9,8 @@ import { signUploadToken } from "@/lib/upload-token";
 
 export async function POST(request: Request) {
   try {
-    const filename = request.headers.get("X-Filename");
+    const filename = decodeURIComponent(request.headers.get("X-Filename") || "").trim();
     const folderId = request.headers.get("X-Folder-Id") || randomUUID();
-    const folderName = request.headers.get("X-Folder-Name")?.trim() || "";
     const fileSize = request.headers.get("X-File-Size");
     const contentType = request.headers.get("Content-Type") || "application/octet-stream";
 
@@ -33,7 +32,12 @@ export async function POST(request: Request) {
     await prisma.folders.upsert({
       where: { id: folderId },
       update: {},
-      create: { id: folderId, name: folderName },
+      create: { id: folderId, name: "" },
+    }).catch((error) => {
+      if (error.code === "P2002") {
+        return;
+      }
+      throw error;
     });
 
     const [user, userFiles] = await Promise.all([
@@ -113,6 +117,13 @@ export async function POST(request: Request) {
         total_size: fileSizeBytes,
       },
     }).catch(async (error) => {
+      if (error.code === "P2003") {
+        await s3Hot.send(new AbortMultipartUploadCommand({
+          Bucket: HOT_BUCKET,
+          Key: folderId + "/" + fileId,
+          UploadId: UploadId,
+        }));
+      }
       await prisma.files.deleteMany({ where: { id: fileId } }).catch(() => { });
       throw error;
     });

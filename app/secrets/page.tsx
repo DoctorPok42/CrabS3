@@ -18,6 +18,8 @@ const SecretPage = () => {
     setUploading(true)
     try {
       setPopupStatus({ message: "Creating secret...", type: "info" })
+      scrollTo({ top: 0, behavior: "smooth" })
+
       const response = await fetch("/api/secret/upload", {
         method: "POST",
         headers: {

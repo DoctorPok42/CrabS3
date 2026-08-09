@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { folderId } = await request.json();
+  const { folderId, folderName } = await request.json();
   if (!folderId) {
     return Response.json({ error: "Missing required fields" }, { status: 400 });
   }
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         level: LogLevel.INFO,
         message: `File${files.length > 1 ? 's' : ''} uploaded successfully`,
         userId: session.userId,
-        meta: { folderId, fileCount: files.length, filesId: files.map((f) => `${f.id} | ${f.filename}`), ip: getIp(request) },
+        meta: { folderName, folderId, fileCount: files.length, filesId: files.map((f) => `${f.id} | ${f.filename}`), ip: getIp(request) },
       });
 
       await sendNotificationEmail(session.email, folderId);
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
             description: `File${files.length > 1 ? 's' : ''} uploaded successfully!`,
             fields: [
               { name: "Folder ID", value: `\`${folderId}\``, inline: true },
+              { name: "Folder Name", value: `\`${folderName}\``, inline: true },
               { name: "File Count", value: files.length.toString(), inline: true },
               { name: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n"), inline: false },
               { name: "Download Link", value: `${process.env.BASE_URL}/file/${folderId}`, inline: false },
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
                   type: "FactSet",
                   facts: [
                     { title: "Folder ID", value: `\`${folderId}\`` },
+                    { title: "Folder Name", value: `\`${folderName}\`` },
                     { title: "File Count", value: files.length.toString() },
                     { title: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n") },
                     { title: "Download Link", value: `${process.env.BASE_URL}/file/${folderId}` },
@@ -95,6 +97,7 @@ export async function POST(request: Request) {
             type: "section",
             fields: [
               { type: "mrkdwn", text: `*Folder ID:*\n\`${folderId}\`` },
+              { type: "mrkdwn", text: `*Folder Name:*\n\`${folderName}\`` },
               { type: "mrkdwn", text: `*File Count:*\n${files.length}` },
               { type: "mrkdwn", text: `*Files ID:*\n${files.map((f) => `\`${f.id}\``).join("\n")}` },
               { type: "mrkdwn", text: `*Download Link:*\n${process.env.BASE_URL}/file/${folderId}` },
@@ -109,6 +112,7 @@ export async function POST(request: Request) {
             activitySubtitle: `File${files.length > 1 ? 's' : ''} uploaded successfully!`,
             facts: [
               { title: "Folder ID", value: `\`${folderId}\`` },
+              { title: "Folder Name", value: `\`${folderName}\`` },
               { title: "File Count", value: files.length.toString() },
               { title: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n") },
               { title: "Download Link", value: `${process.env.BASE_URL}/file/${folderId}` },

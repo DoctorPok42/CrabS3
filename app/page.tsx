@@ -3,7 +3,7 @@
 import { Button, Input, PopupStatus } from '@/components'
 import { useMultipartUpload } from '@/hooks/useMultipartUpload'
 import { formatSize } from '@/lib/format'
-import { faArrowsDownToLine, faAt, faClockRotateLeft, faFileCode, faFileImage, faFileText, faKey } from '@fortawesome/free-solid-svg-icons'
+import { faArrowsDownToLine, faAt, faClockRotateLeft, faFileCode, faFileImage, faFileText, faFolderOpen, faKey } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -16,6 +16,7 @@ export default function Home() {
   const [emailMessage, setEmailMessage] = useState<string>("")
   const [expireAfter, setExpireAfter] = useState<"1" | "7" | "14" | "21" | "30">("30")
   const [password, setPassword] = useState<string>("")
+  const [folderName, setFolderName] = useState<string>("")
   const [fileMeta, setFileMeta] = useState<{ name: string, size: number, img?: string }[]>([])
   const [editingFileIndex, setEditingFileIndex] = useState<number | null>(null)
   const [files, setFiles] = useState<File[]>([])
@@ -108,7 +109,7 @@ export default function Home() {
     setStatus(null)
 
     for (const file of acceptedFiles) {
-      prewarm(file, currentFolderId)
+      prewarm(file, currentFolderId, file.name, folderName)
     }
   }, [uploading, folderId, prewarm])
 
@@ -121,6 +122,8 @@ export default function Home() {
     setUploadResults(0)
     uploadResultsRef.current = 0
 
+    scrollTo({ top: 0, behavior: "smooth" })
+
     try {
       const results = await Promise.all(files.map((file, index) =>
         upload(file, {
@@ -131,6 +134,7 @@ export default function Home() {
           filename: fileMeta[index].name,
           folderId,
           emailMessage: emailMessage ? emailMessage.replaceAll('\n', String.raw`\n`) : undefined,
+          folderName,
         })
       ))
 
@@ -193,6 +197,19 @@ export default function Home() {
           <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Options</h2>
 
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 grid-rows-auto">
+            <Input
+              label="Name of folder"
+              id="folderName"
+              type="text"
+              name="folderName"
+              placeholder='Holiday Photos, Project Files, etc.'
+              value={folderName}
+              onChange={(e) => setFolderName(e.target.value)}
+              icon={faFolderOpen}
+              autoFocus
+              divClass='col-span-1 md:col-span-2 lg:col-span-4'
+            />
+
             <Input
               label="Max downloads"
               id="option1"
@@ -294,7 +311,7 @@ export default function Home() {
                                 <button
                                   type="button"
                                   onClick={() => setEditingFileIndex(index)}
-                                  className="w-full text-[14.5px] text-text dark:text-text-dark font-semibold cursor-pointer hover:text-blue-500 text-left"
+                                  className="w-full text-[14.5px] text-text dark:text-text-dark font-semibold cursor-pointer hover:text-blue-500 text-left transition duration-150"
                                 >
                                   {f.name}
                                 </button>

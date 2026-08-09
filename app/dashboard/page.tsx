@@ -49,6 +49,12 @@ const DashboardPage = () => {
         const data = await response.json()
         setDashboardData(data)
         const nextFolderNames: Record<string, string> = {}
+        if (!data.files || data.files?.length === 0) {
+          setFolderNameEdits({})
+          setTotalPages(0)
+          return
+        }
+
         for (const file of data.files as Array<{ folder_id: string | null; folder: { name: string } | null }>) {
           if (file.folder_id && !nextFolderNames[file.folder_id]) {
             nextFolderNames[file.folder_id] = file.folder?.name || file.folder_id
@@ -69,6 +75,8 @@ const DashboardPage = () => {
     if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
       return
     }
+
+    setToast({ message: '', level: 'info' })
 
     try {
       const response = await fetch('/api/delete', {
@@ -197,6 +205,34 @@ const DashboardPage = () => {
     }
   }
 
+  const deleteFolder = async (folderId: string) => {
+    if (!confirm('Are you sure you want to delete this folder and all its files? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/dashboard/folders/${folderId}`, {
+        method: "DELETE",
+      })
+      if (!response.ok) {
+        setToast({ message: 'Error deleting folder', level: 'error' })
+      }
+
+      setDashboardData(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          files: prev.files.filter(file => file.folder_id !== folderId)
+        }
+      })
+
+      setToast({ message: 'Folder deleted successfully', level: 'success' })
+    } catch (error) {
+      setToast({ message: 'Error deleting folder', level: 'error' })
+      console.error('Error deleting folder:', error)
+    }
+  }
+
   return (
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full flex flex-col">
@@ -233,7 +269,7 @@ const DashboardPage = () => {
       )}
 
       {
-        dashboardData && dashboardData.files.length > 0 && (
+        dashboardData?.files && dashboardData.files.length > 0 && (
           <div className="w-full flex flex-col gap-6">
             {Object.entries(
               dashboardData.files.reduce((acc, file) => {
@@ -312,6 +348,12 @@ const DashboardPage = () => {
 
                     <div className="flex flex-wrap gap-2">
                       <Button
+                        text="Delete Folder"
+                        variant="danger"
+                        onClick={() => deleteFolder(folderId)}
+                      />
+
+                      <Button
                         icon={fetchingReport === folderId ? faSpinner : faFingerprint}
                         onClick={() => getFingerprintReport(folderId, "folder", folderName)}
                         variant="secondary"
@@ -325,6 +367,7 @@ const DashboardPage = () => {
                           onClick={() => moveFileToHotStorage(folderFiles[0].id, folderId)}
                         />
                       )}
+
                       {!isFolderExpired && (
                         <div className="flex gap-2">
                           <Button
@@ -422,7 +465,7 @@ const DashboardPage = () => {
       }
 
       {
-        dashboardData?.files.length === 0 && (
+        dashboardData?.files && dashboardData?.files.length === 0 && (
           <div className="w-full max-w-xl flex flex-col border border-cardBorder dark:border-cardBorder-dark rounded-2xl p-6 bg-card dark:bg-card-dark transition duration-300 text-center">
             <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
               {type === "active" ? "You haven't uploaded any files yet." : "No expired files found."}

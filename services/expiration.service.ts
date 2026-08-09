@@ -26,6 +26,7 @@ async function deleteFile(file: ExpiredFile) {
   await prisma.$transaction([
     prisma.downloads.updateMany({ where: { file_id: file.id }, data: { file_id: null } }),
     prisma.download_events.updateMany({ where: { file_id: file.id }, data: { file_id: null } }),
+    prisma.multipart_uploads.deleteMany({ where: { file_id: file.id } }),
     prisma.files.delete({ where: { id: file.id } }),
   ]);
 
@@ -103,6 +104,20 @@ export async function processExpiredFiles() {
   for (let i = 0; i < expired.length; i += CONCURRENCY) {
     const slice = expired.slice(i, i + CONCURRENCY);
     await Promise.all(slice.map(processFile));
+  }
+
+  const orphanedFiles = await prisma.files.findMany({
+    where: {
+      folder: null,
+    },
+    select: { id: true, folder_id: true, filename: true },
+    orderBy: { uploaded_at: "asc" },
+    take: BATCH_LIMIT,
+  });
+
+  for (let i = 0; i < orphanedFiles.length; i += CONCURRENCY) {
+    const slice = orphanedFiles.slice(i, i + CONCURRENCY);
+    await Promise.all(slice.map(deleteFile));
   }
 
   return { processed: expired.length, policy: POLICY };
