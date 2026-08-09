@@ -55,7 +55,7 @@ model files {
   folder          folders?           @relation(fields: [folder_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   user            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user_id         Int?
-  service         services?          @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  service         services?          @relation(fields: [service_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   service_id      Int?
   type            UploadType         @default(USER)
   download_events download_events[]
@@ -90,7 +90,7 @@ model secrets {
 model multipart_uploads {
   file_id    String    @id
   folder_id  String?
-  folder     folders?  @relation(fields: [folder_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  folder     folders?  @relation(fields: [folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   upload_id  String
   filename   String
   chunk_size Int
@@ -163,6 +163,10 @@ enum LogAction {
   UPDATE_SERVICE
   SERVICE_UPLOAD
   SERVICE_DOWNLOAD
+  FOLDER_RENAMED
+  FOLDER_DELETED
+  SERVICE_INVITE_CREATED
+  SERVICE_INVITE_USED
 }
 
 model logs {
@@ -193,7 +197,7 @@ model services {
   name       String    @unique
   token      String    @unique
   folder_id  String?
-  folder     folders?  @relation(fields: [folder_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  folder     folders?  @relation(fields: [folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   image      String?
   files      files[]
   secrets    secrets[]
