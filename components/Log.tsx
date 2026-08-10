@@ -41,7 +41,7 @@ const Log = ({ level, action, message, meta, userId, createdAt }: LogProps) => {
             <p className="text-sm text-zinc-500 dark:text-zinc-300">{message}</p>
           </div>
         </div>
-        <div className="w-33 text-right" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+        <div className="w-34 text-right" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
           <span className="text-xs text-zinc-500 dark:text-zinc-300 text-left">
             {isHovered ? formatDate(createdAt) : new Date(createdAt).toLocaleString("en-US", {
               year: "numeric",

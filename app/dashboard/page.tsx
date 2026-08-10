@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faAddressCard, faBug, faFingerprint, faSpinner } from "@fortawesome/free-solid-svg-icons"
+import { faAddressCard, faBug, faChevronLeft, faChevronRight, faFingerprint, faSpinner } from "@fortawesome/free-solid-svg-icons"
 import { Button, Input, Toast } from "@/components"
 import { formatSize } from "@/lib/format"
 
@@ -450,16 +450,20 @@ const DashboardPage = () => {
 
       {
         totalPages > 1 && (
-          <div className="flex justify-center gap-2 mt-6">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-              <button
-                key={num}
-                onClick={() => setPage(num)}
-                className={`cursor-pointer px-3 py-1 rounded-md ${page === num ? 'bg-blue-500 text-white' : 'bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600'}`}
-              >
-                {num}
-              </button>
-            ))}
+          <div className="flex h-10 items-center justify-center gap-4 mt-4">
+            <Button
+              icon={faChevronLeft}
+              onClick={() => setPage(p => p - 1)}
+              disabled={page <= 1}
+            />
+            <span className="text-zinc-700 dark:text-zinc-300  flex items-center">
+              Page {page} of {Math.ceil((totalPages + 1) / 10)}
+            </span>
+            <Button
+              icon={faChevronRight}
+              onClick={() => setPage(p => p + 1)}
+              disabled={page >= Math.ceil((totalPages + 1) / 10)}
+            />
           </div>
         )
       }

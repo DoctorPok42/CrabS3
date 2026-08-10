@@ -12,8 +12,10 @@ const LogsPage = () => {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ level: "", action: "", from: "", to: "" });
   const [minLevel, setMinLevel] = useState<LogLevel>(LogLevel.INFO);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const fetchLogs = useCallback(async () => {
+    setLoading(true);
     const params = new URLSearchParams({
       page: String(page),
       ...(filters.level && { level: filters.level }),
@@ -25,6 +27,7 @@ const LogsPage = () => {
     const data = await res.json();
     setLogs(data.logs);
     setTotal(data.total);
+    setLoading(false);
   }, [page, filters]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -75,7 +78,7 @@ const LogsPage = () => {
               <select
                 value={filters.action}
                 onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
-                className="outline-none w-full bg-input dark:bg-input-dark text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
+                className="outline-none w-full max-h-10 overflow-hidden bg-input dark:bg-input-dark text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
               >
                 <option value="">All Actions</option>
                 {Object.values(LogAction).map((action) => (
@@ -135,32 +138,30 @@ const LogsPage = () => {
             <Log key={log.id} action={log.action} level={log.level} message={log.message} meta={log.meta} createdAt={log.created_at} userId={log.user} />
           ))}
 
-          {logs.length === 0 && (
-            <div className="w-full p-4 bg-yellow-500 opacity-80 border border-yellow-500 text-black font-bold rounded-md text-center">
+          {logs.length === 0 && !loading && (
+            <div className="w-full p-4 bg-yellow-500/40 border border-yellow-500 text-black font-bold rounded-2xl text-center">
               No logs found for the selected filters.
             </div>
           )}
         </div>
 
-        <div className="flex h-10 items-center justify-center gap-4 mt-4">
-          <button
-            disabled={page === 1}
+        {Math.ceil(total / 50) > 1 && <div className="flex h-10 items-center justify-center gap-4 mt-4">
+          <Button
+            icon={faChevronLeft}
             onClick={() => setPage(p => p - 1)}
-            className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition duration-300 mt-7 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FontAwesomeIcon icon={faChevronLeft} className="w-3" />
-          </button>
-          <span className="text-zinc-700 dark:text-zinc-300  flex items-center mt-6">
-            Page {page} / {Math.ceil(total / 50)} — {total} entrées
+            divClass="h-full"
+            disabled={page <= 1}
+          />
+          <span className="text-zinc-700 dark:text-zinc-300  flex items-center">
+            Page {page} of {Math.ceil(total / 50)}
           </span>
-          <button
-            disabled={page >= Math.ceil(total / 50)}
+          <Button
+            icon={faChevronRight}
             onClick={() => setPage(p => p + 1)}
-            className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition duration-300 mt-7 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FontAwesomeIcon icon={faChevronRight} className="w-3" />
-          </button>
-        </div>
+            divClass="h-full"
+            disabled={page >= Math.ceil(total / 50)}
+          />
+        </div>}
       </div>
     </div>
   );
