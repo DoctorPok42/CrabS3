@@ -121,10 +121,13 @@ const Admin = () => {
         {statsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {new Array(9).fill(0).map((_, i) => (
-              <div key={i + 1} className="col-span-1 rounded-lg p-4 animate-pulse bg-[#f1edf6] dark:bg-zinc-800">
-                <div className="h-4 bg-[#d8d3cf] dark:bg-zinc-700 rounded w-3/4 mb-3"></div>
-                <div className="h-8 bg-[#d8d3cf] dark:bg-zinc-700 rounded w-1/2"></div>
-              </div>
+              <StorageMetricCard
+                key={i + 1}
+                title="Loading..."
+                value="0"
+                subtitle="loading..."
+                loading={true}
+              />
             ))}
           </div>
         ) : stats && (

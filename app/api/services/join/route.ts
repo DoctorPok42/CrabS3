@@ -1,5 +1,8 @@
+import { getIp } from "@/lib/ip";
 import prisma from "@/lib/prisma";
 import { createTokenService } from "@/lib/service";
+import { log } from "@/services/log.service";
+import { LogAction, LogLevel } from "@/types/log.types";
 
 export async function POST(request: Request) {
   try {
@@ -25,12 +28,38 @@ export async function POST(request: Request) {
     }
 
     if (findInvitation.expires_at && findInvitation.expires_at < new Date()) {
+      (async () => {
+        log({
+          level: LogLevel.WARN,
+          action: LogAction.SERVICE_INVITE_USED,
+          message: `Invitation code ${findInvitation.code} has expired for service ${findInvitation.service.name}`,
+          meta: {
+            serviceId: findInvitation.service.id,
+            invitationId: findInvitation.id,
+            ip: getIp(request),
+          },
+        });
+      })();
+
       return new Response(JSON.stringify({ error: "Invitation code has expired" }), {
         status: 400,
       });
     }
 
     if (findInvitation.uses >= findInvitation.max_uses) {
+      (async () => {
+        log({
+          level: LogLevel.WARN,
+          action: LogAction.SERVICE_INVITE_USED,
+          message: `Invitation code ${findInvitation.code} has reached its maximum uses for service ${findInvitation.service.name}`,
+          meta: {
+            serviceId: findInvitation.service.id,
+            invitationId: findInvitation.id,
+            ip: getIp(request),
+          },
+        });
+      })();
+
       return new Response(JSON.stringify({ error: "Invitation code has reached its maximum uses" }), {
         status: 400,
       });
@@ -52,6 +81,19 @@ export async function POST(request: Request) {
       });
     }
 
+    (async () => {
+      log({
+        level: LogLevel.INFO,
+        action: LogAction.SERVICE_INVITE_USED,
+        message: `Invitation code ${findInvitation.code} used for service ${findInvitation.service.name}`,
+        meta: {
+          serviceId: findInvitation.service.id,
+          invitationId: findInvitation.id,
+          ip: getIp(request),
+        },
+      });
+    })();
+
     return new Response(
       JSON.stringify({
         token,
@@ -66,6 +108,17 @@ export async function POST(request: Request) {
       }
     );
   } catch (error) {
+    (async () => {
+      log({
+        level: LogLevel.ERROR,
+        action: LogAction.SERVICE_INVITE_USED,
+        message: `Failed to use invitation: ${error}`,
+        meta: {
+          ip: getIp(request),
+        },
+      });
+    })();
+
     console.error(error);
     return new Response(JSON.stringify({ error: "Failed to join service" }), {
       status: 500,

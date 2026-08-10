@@ -120,6 +120,15 @@ export async function GET(request: Request) {
       return new Response("Invalid link type", { status: 400 });
     }
   } catch (error) {
+    (async () => {
+      log({
+        level: LogLevel.ERROR,
+        action: LogAction.SERVICE_DOWNLOAD,
+        message: `Failed to download files: ${error}`,
+        meta: { ip: getIp(request) }
+      })
+    })();
+
     console.error(error);
     return new Response("Internal Server Error", { status: 500 });
   }
