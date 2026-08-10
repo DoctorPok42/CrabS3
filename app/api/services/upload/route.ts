@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
+import { getIp } from "@/lib/ip";
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +19,15 @@ export async function POST(request: Request) {
     const token = request.headers.get("Authorization")?.replace("Bearer ", "");
     const verifiedToken = await checkTokenService(token || "");
     if (!verifiedToken) {
+      (async () => {
+        log({
+          level: LogLevel.WARN,
+          action: LogAction.SERVICE_UPLOAD,
+          message: `Unauthorized upload attempt`,
+          meta: { ip: getIp(request) }
+        })
+      })();
+
       return new Response("Unauthorized", { status: 401 });
     }
 
@@ -59,6 +69,7 @@ export async function POST(request: Request) {
           action: LogAction.SERVICE_UPLOAD,
           message: `Service ${verifiedToken.id} exceeded quota. Used: ${usedGB.toFixed(2)} GB, Quota: ${quotaGB.toFixed(2)} GB, File Size: ${fileGB.toFixed(2)} GB`,
           userId: Number.parseInt(verifiedToken.id),
+          meta: { ip: getIp(request) }
         });
       })();
 
@@ -69,12 +80,15 @@ export async function POST(request: Request) {
     }
 
     if (service.status !== "ACTIVE") {
-      log({
-        level: LogLevel.WARN,
-        action: LogAction.SERVICE_UPLOAD,
-        message: `Service ${verifiedToken.id} attempted to upload while inactive.`,
-        userId: Number.parseInt(verifiedToken.id),
-      });
+      (async () => {
+        log({
+          level: LogLevel.WARN,
+          action: LogAction.SERVICE_UPLOAD,
+          message: `Service ${verifiedToken.id} attempted to upload while inactive.`,
+          userId: Number.parseInt(verifiedToken.id),
+          meta: { ip: getIp(request) }
+        });
+      })();
       return new Response("Service is not active", { status: 403 });
     }
 
@@ -124,6 +138,15 @@ export async function POST(request: Request) {
       { status: 200 }
     );
   } catch (error) {
+    (async () => {
+      log({
+        level: LogLevel.ERROR,
+        action: LogAction.SERVICE_UPLOAD,
+        message: `Failed to upload file: ${error}`,
+        meta: { ip: getIp(request) }
+      })
+    })();
+
     console.error(error);
     return new Response("Internal Server Error", { status: 500 });
   }
