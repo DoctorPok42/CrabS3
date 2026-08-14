@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       })();
 
       return Response.json({
-        url: process.env["BASE_URL"] + `/file/${folerId}`,
+        url: process.env["NEXT_PUBLIC_BASE_URL"] + `/file/${folerId}`,
       });
     } else if (linkType === "direct") {
       (async () => {
