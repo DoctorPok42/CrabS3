@@ -86,7 +86,7 @@ export interface TeamsAdaptiveCardBlock {
 }
 
 class WebHookService {
-  private readonly avatarUrl: string = "https://crabs3.doctorpok.io/favicon.png";
+  private readonly avatarUrl: string = "https://crabs3.doctorpok.io/icon0.svg";
   private readonly username: string = "CrabS3 Notifications";
   private readonly colorStatusMap: Record<string, number> = {
     "file uploaded": 0x1abc9c,

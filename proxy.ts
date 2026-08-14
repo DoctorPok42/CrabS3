@@ -16,6 +16,11 @@ const PUBLIC_ROUTES = [
   "/api/health",
   "/api/services/",
   "/api/cron/check-expired",
+  "/opengraph-image",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/favicon.png",
+  "/icon0.svg"
 ];
 
 export function proxy(request: NextRequest) {
