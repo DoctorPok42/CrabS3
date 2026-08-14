@@ -48,7 +48,7 @@ services:
       - clamav
     build: .
     ports:
-      - "5000:3000"
+      - "3000:3000"
     container_name: crabs3
     restart: unless-stopped
     environment:
@@ -65,7 +65,7 @@ services:
       - S3_REGION=us-east-1
 
       - DATABASE_URL=postgresql://user:password@db:5432/crabs3
-      - BASE_URL=http://localhost:5000
+      - NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
       - SMTP_HOST=your.smtp.host
       - SMTP_USER=your_smtp_user
