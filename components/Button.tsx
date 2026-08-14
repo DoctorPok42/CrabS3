@@ -8,6 +8,7 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   disabled?: boolean;
   icon?: FontAwesomeIconProps['icon'];
+  responsiveIcon?: FontAwesomeIconProps['icon'];
   divClass?: string
 }
 
@@ -19,13 +20,18 @@ const colorClass = {
   "disabled": "text-[#a8a8a8] bg-[#f0f0f0] border-[#dcdcdc] cursor-not-allowed dark:text-[#5c5c5c] dark:bg-[#2c2c2c] dark:border-[#3d3d3d] cursor-pointer"
 }
 
-const Button = ({ text, onClick, onHover, variant = 'primary', icon, divClass, title, disabled }: ButtonProps) => {
+const Button = ({ text, onClick, onHover, variant = 'primary', icon, responsiveIcon, divClass, title, disabled }: ButtonProps) => {
   if (!text && !icon) return null;
 
   return (
     <div title={title} onClick={disabled ? undefined : onClick} onMouseEnter={onHover} className={`flex items-center justify-center text-[14.5px] py-2.25 px-5.5 rounded-full font-bold border transition duration-300 ${disabled ? colorClass.disabled : colorClass[variant] || colorClass.primary} ${divClass}`} style={{ ...(disabled ? { cursor: 'not-allowed', userSelect: 'none' } : {}) }}>
       {icon && <FontAwesomeIcon icon={icon} />}
-      {text && <span>{text}</span>}
+      {responsiveIcon && (
+        <div className="md:hidden">
+          <FontAwesomeIcon icon={responsiveIcon} />
+        </div>
+      )}
+      {text && <span className={`${responsiveIcon && "md:flex hidden"}`}>{text}</span>}
     </div>
   );
 };

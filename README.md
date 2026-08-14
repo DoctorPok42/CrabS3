@@ -1,116 +1,197 @@
-# CrabS3 ![Status](https://uptime.doctorpok.io/api/badge/24/status) ![Uptime](https://uptime.doctorpok.io/api/badge/24/uptime) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<div align="center">
 
-CrabS3 is a transfert platform for S3 compatible storage. It is designed to be simple, efficient and easy to use.
+# 🦀 CrabS3
 
-It is built with **RustFS**, a high-performance file system written in Rust, and provides a web interface for uploading and downloading files. It also supports multipart uploads for large files, allowing users to upload files in chunks and track their progress.
+**Send big files and secrets from your own S3 bucket.**
+No cloud vendor, no monthly bill, no upload limit but the one you set.
 
-Users can upload files through the web interface or via API, and can generate secure, downloadable links for sharing files. Users can also set **a maximum number of downloads** for each file, after which the file will be **automatically** deleted from the storage.
+![Status](https://uptime.doctorpok.io/api/badge/24/status)
+![Uptime](https://uptime.doctorpok.io/api/badge/24/uptime)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-CrabS3 is compatible with any S3 compatible storage backend, making it a versatile solution for file storage and sharing needs.
+[Quick start](#quick-start) · [Configuration](#configuration) · [API](#api) · [How it works](#how-it-works)
 
-## Features
-
-- 🚀 **Fast**: Built with RustFS and optimized for performance.
-- 🔥 **Hot and Cold Storage**: Supports both hot and cold storage options for efficient file management.
-- 🗝️ **Secret Sharing**: Allows users to share secrets securely with password protection and time-limited access.
-- 📁 **Multipart Uploads**: Supports large file uploads with resumable multipart uploads.
-- 🔒 **Secure**: Generate secure, time-limited links for sharing files
-- 📧 **Email Notifications**: Notify users when their files are uploaded or downloaded.
-- 📊 **Progress Tracking**: Real-time upload progress tracking for better user experience.
-- 📦 **S3 Compatible**: Works with any S3 compatible storage backend.
-- 🗑️ **Automatic Deletion**: Automatically deletes files after reaching the maximum number of downloads.
-- 👤 **User Dashboard**: Each user has a dashboard to manage their files and view download statistics.
-
-## Usage
-
-To run CrabS3, you can use the provided [Docker Compose configuration](./compose.yml). Make sure you have Docker and Docker Compose installed on your system. Then, simply run the following command in the root directory of the project:
-
-```bash
-docker pull doctorpok/crabs3:latest
-docker-compose up -d
-```
-
-This will start the CrabS3 service along with a PostgreSQL database. The web interface will be accessible at `http://localhost:3000`.  
-You can upload files through the web interface or use the API endpoints for programmatic access.
-
-## Configuration
-
-CrabS3 can be configured using environment variables:
-
-Change the `.env.example` file to set your own configuration and rename it to `.env`.  
-**OR**  
-The project come whith doppler configuration, you can set your environment variables in Doppler and the application will automatically pick them up.
-
-If the cold storage configuration is not provided, CrabS3 will default to using the hot storage for all operations.
-If you want to use the same storage for both hot and cold, simply set the same configuration for both.
-
-It use 2 buckets: one for hot storage and one for cold storage.
-Also use postgres for metadata storage, user management and secret sharing.
-
-File is automatically copied from hot storage to cold storage with rustfs [replication feature](https://docs.rustfs.com/features/replication/), so you don't have to worry about it.
-
-## API
-
-This project use a middleware to handle API requests, the endpoints are as follows:
-
-### Health
-
-- `GET /api/health`: Check the health status of the application and database connectivity.
-
-### Upload
-
-- `POST /api/upload/multipart/start`: Initiate a multipart upload session.
-- `POST /api/upload/multipart/part`: Upload a single part of the file.
-- `POST /api/upload/multipart/complete`: Complete the multipart upload with metadata.
-- `POST /api/upload/multipart/abort`: Abort an ongoing multipart upload.
-
-### Files
-
-- `GET /api/checkfile`: Check if a file with the same hash already exists.
-- `POST /api/download/:id`: Check if a file exists and retrieve its metadata by its ID.
-- `GET /api/download/:id/stream`: Stream the file content for download.
-- `DELETE /api/delete`: Delete a file from storage.
-
-### Authentication
-
-- `GET /api/auth/check-invite`: Check if an invitation token is valid.
-- `POST /api/auth/invite`: Send an invitation email to a new user (admin only).
-- `POST /api/auth/login`: Authenticate a user and create a session.
-- `POST /api/auth/logout`: Log out the current user and destroy the session.
-- `GET /api/auth/me`: Retrieve the current authenticated user's information.
-- `POST /api/auth/signup`: Create a new user account and session using an invitation token.
-
-### Dashboard
-
-- `GET /api/dashboard/files`: Retrieve a list of files uploaded by the authenticated user.
-- `PATCH /api/dashboard/me`: Update the current user's profile information (name, password).
-
-### Secrets
-
-- `POST /api/secret/upload`: Upload a secret and obtain a sharing link.
-- `POST /api/secret/check`: Check if a secret exists and if it requires a password.
-- `POST /api/secret/get`: Retrieve the content of a secret by providing the password if necessary.
-
-### Communications
-
-- `GET /api/communication`: Retrieve user webhook communications settings.
-- `POST /api/communication`: Create user webhook communications for notifications.
-
-### Admin (Requires Admin Privileges)
-
-- `GET /api/admin/logs`: Retrieve system audit logs with optional filtering by level, action, and date range.
-- `PATCH /api/admin/logs`: Update the minimum log level for system logging.
-- `GET /api/admin/stats`: Retrieve system statistics including storage usage, file counts, and user metrics.
-- `GET /api/admin/users`: Retrieve a list of all users and pending invitations with usage metrics.
-- `GET /api/admin/users/[id]`: Retrieve detailed information about a specific user.
-- `DELETE /api/admin/users/[id]`: Delete a user account and associated data.
-- `PUT /api/admin/users/[id]/edit-quota`: Update a user's storage quota.
-- `POST /api/admin/users/[id]/reset-password`: Reset a user's password.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+</div>
 
 ---
 
-No cloud. No bill. Just S3 buckets full of crabs. 🦀
+CrabS3 is a self-hosted transfer platform for any S3-compatible storage. Drop files in the browser or push them through the API, get a shareable link back, and let the file delete itself after a deadline or a download count you choose.
+
+It runs on **RustFS** by default, but any S3-compatible backend works — MinIO, Ceph, Wasabi, AWS S3.
+
+```
+Upload  →  hot bucket  →  share link  →  N downloads or T days  →  gone
+                ↓
+          cold bucket (replicated, optional)
+```
+
+## Why
+
+| | |
+|---|---|
+| 📦 **Your storage** | Any S3-compatible backend. Your keys, your bucket, your retention rules. |
+| 🚀 **Big files** | Resumable multipart uploads with live progress — a dropped connection does not restart the transfer. |
+| 🔥 **Hot & cold** | Serve from fast storage, archive to cheap storage. Replication is handled by the backend, not by the app. |
+| 🗝️ **Secrets** | Share a password, a token, a note. Password-protected, time-limited, gone after reading. |
+| 🗑️ **Self-destruct** | Set a max download count; the file is deleted from storage automatically when it is reached. |
+| 🛡️ **Malware scan** | Every upload goes through ClamAV; infected files are flagged and blocked from download. |
+| 🔒 **Real accounts** | Invite-only signup, sessions, 2FA (TOTP), per-user storage quotas. |
+| 📧 **Notifications** | Email on upload, download and share; webhooks for your own integrations. |
+| 📊 **Dashboard** | Per-user file list and download stats; admin view for storage, users and audit logs. |
+
+## Quick start
+
+Requires Docker and Docker Compose.
+
+```bash
+git clone https://github.com/DoctorPok42/CrabS3.git
+cd CrabS3
+cp .env.example .env      # then edit it — see Configuration
+docker compose up -d
+```
+
+The interface is on **http://localhost:3000**. Health check: `GET /api/health`.
+
+Prefer the published image? `docker pull doctorpok/crabs3:latest`, then point `compose.yml` at it instead of `build: .`.
+
+<details>
+<summary><b>Running from source (development)</b></summary>
+
+```bash
+npm install
+npx prisma migrate deploy
+npm run dev               # http://localhost:3000
+```
+
+You still need a reachable Postgres instance and an S3 endpoint.
+</details>
+
+## Configuration
+
+Everything is environment variables — put them in `.env`, or manage them in Doppler (a `doppler.yaml` is included and picked up automatically).
+
+**Storage** — two buckets, hot and cold. Leave the cold block unset to use hot for everything, or point both at the same bucket.
+
+| Variable | Example |
+|---|---|
+| `S3_HOT_ENDPOINT` | `http://192.168.1.100:9000` |
+| `S3_HOT_ACCESS_KEY_ID` / `S3_HOT_SECRET_ACCESS_KEY` | your keys |
+| `S3_HOT_BUCKET_NAME` | `crabs3` |
+| `S3_COLD_ENDPOINT` … `S3_COLD_BUCKET_NAME` | same shape, archive tier |
+| `S3_REGION` | `us-east-1` |
+| `EXPIRED_FILE_POLICY` | `cold` (move) or `delete` |
+
+**App**
+
+| Variable | Example |
+|---|---|
+| `DATABASE_URL` | `postgresql://user:password@db:5432/crabs3` |
+| `NEXT_PUBLIC_BASE_URL` | `https://files.example.com` — used in share links and emails |
+| `JWT_SECRET` | a long random string |
+| `LOG_MIN_LEVEL` | `DEBUG` · `INFO` · `WARN` · `ERROR` |
+
+**Email & scanning**
+
+| Variable | Example |
+|---|---|
+| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | your mail relay |
+| `SMTP_FROM` | `CrabS3 Notifications <bot@example.com>` |
+| `CLAMAV_HOST` / `CLAMAV_PORT` | `clamav` / `3310` |
+| `CRON_SECRET` | shared secret for the expiry job container |
+
+> **First user:** signup is invite-only. Create the first account from the invite link generated by the admin panel, or seed one directly in the database.
+
+## How it works
+
+1. The browser asks for a multipart session, uploads parts in parallel, and completes the upload — the server only holds presigned URLs and metadata.
+2. Metadata (owner, size, hash, expiry, download quota, password hash) lives in Postgres; file bytes only ever live in your buckets.
+3. ClamAV scans the object; a hit marks the file infected and download is refused for infected files.
+4. The cron container calls the expiry endpoint on a schedule. Files past their deadline or download quota are moved to cold storage or deleted, per `EXPIRED_FILE_POLICY`.
+5. Duplicate uploads are detected by hash, so the same file is not stored twice.
+
+Files are replicated from hot to cold by the storage layer itself — see RustFS [replication](https://docs.rustfs.com/features/replication/). The app never copies bytes between buckets.
+
+## API
+
+Everything the UI does is available over HTTP. Public endpoints need no session; the rest use the session cookie, and admin endpoints additionally require an admin account.
+
+**Health** · `GET /api/health`
+
+**Upload**
+
+```
+POST /api/upload/multipart/start        open a session
+POST /api/upload/multipart/part         upload one part
+POST /api/upload/multipart/complete     finish + attach metadata
+POST /api/upload/multipart/abort        cancel
+```
+
+**Files**
+
+```
+GET    /api/checkfile                   does this hash already exist?
+POST   /api/download/:id                metadata for a share link
+GET    /api/download/:id/stream         stream the bytes
+DELETE /api/delete                      remove a file
+```
+
+**Secrets**
+
+```
+POST /api/secret/upload                 store a secret, get a link
+POST /api/secret/check                  exists? password required?
+POST /api/secret/get                    read it
+```
+
+**Auth**
+
+```
+POST /api/auth/login · logout · signup
+GET  /api/auth/me · check-invite
+POST /api/auth/invite                   (admin)
+```
+
+**Dashboard & communication**
+
+```
+GET   /api/dashboard/files
+PATCH /api/dashboard/me
+GET   /api/communication                webhook settings
+POST  /api/communication
+```
+
+**Admin**
+
+```
+GET   /api/admin/stats                  storage, files, users
+GET   /api/admin/users
+GET   /api/admin/users/:id
+DELETE /api/admin/users/:id
+PUT   /api/admin/users/:id/edit-quota
+POST  /api/admin/users/:id/reset-password
+GET   /api/admin/logs                   filter by level, action, date
+PATCH /api/admin/logs                   set minimum log level
+```
+
+OpenAPI-ish request collections live in [`doc/api`](./doc/api).
+
+## Stack
+
+Next.js (App Router) · React · Tailwind CSS · Prisma + PostgreSQL · AWS SDK for S3 · ClamAV · Nodemailer · Docker
+
+## Contributing
+
+Issues and pull requests are welcome. Keep changes focused, run `npm run lint` before opening a PR, and describe what you tested.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
+
+---
+
+<div align="center">
+
+**No cloud. No bill. Just S3 buckets full of crabs.** 🦀
+
+![CrabS3](https://crabs3.doctorpok.io/opengraph-image)
+</div>

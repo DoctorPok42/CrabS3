@@ -1,7 +1,6 @@
 "use client"
 
 import { Button } from "@/components"
-import PopupStatus, { PopupStatusProps } from "@/components/PopupStatus"
 import Toast, { ToastProps } from "@/components/Toast"
 import { faShieldAlt, faUser } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
@@ -119,7 +118,7 @@ const User = () => {
   }
 
   return (
-    <main className="flex flex-col w-full max-w-[100em] gap-8 items-center px-4 sm:px-16 pt-10 mx-auto min-h-screen">
+    <main className="flex flex-col w-full max-w-[100em] gap-4 items-center px-4 sm:px-16 pt-10 mx-auto min-h-screen">
 
       <Toast {...toast} />
 

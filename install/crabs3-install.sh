@@ -124,7 +124,7 @@ services:
       - S3_HOT_BUCKET_NAME=${S3_HOT_BUCKET_NAME}
       - S3_REGION=us-east-1
       - DATABASE_URL=postgresql://crabs3:${DB_PASSWORD}@db:5432/crabs3
-      - BASE_URL=${BASE_URL}
+      - NEXT_PUBLIC_BASE_URL=${BASE_URL}
       - CLAMAV_HOST=clamav
       - CLAMAV_PORT=3310
       - JWT_SECRET=${JWT_SECRET}

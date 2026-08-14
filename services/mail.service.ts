@@ -34,7 +34,7 @@ transporter.verify().then(() => {
 
 export async function sendNotificationEmail(to: string, fileId: string) {
   const from = process.env.SMTP_FROM || "<EMAIL>";
-  const downloadLink = `${process.env.BASE_URL || "http://localhost:3000"}/file/${fileId}`;
+  const downloadLink = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/file/${fileId}`;
 
   try {
     await transporter.sendMail({
@@ -111,7 +111,7 @@ export async function sendDownloadNotificationEmail(to: string, fileId: string) 
   }
 
   const from = process.env.SMTP_FROM || "<EMAIL>";
-  const downloadLink = `${process.env.BASE_URL || "http://localhost:3000"}/file/${fileId}`;
+  const downloadLink = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/file/${fileId}`;
 
   try {
     await transporter.sendMail({
@@ -188,7 +188,7 @@ export async function sendRecipientNotificationEmail(to: string, fileId: string,
   }
 
   const from = process.env.SMTP_FROM || "<EMAIL>";
-  const downloadLink = `${process.env.BASE_URL || "http://localhost:3000"}/file/${fileId}`;
+  const downloadLink = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/file/${fileId}`;
 
   try {
     await transporter.sendMail({
@@ -261,7 +261,7 @@ export async function sendRecipientNotificationEmail(to: string, fileId: string,
 
 export async function sendInvitationEmail(email: string, token: string) {
   const from = process.env.SMTP_FROM || "<EMAIL>";
-  const link = `${process.env.BASE_URL}/auth/signup?token=${token}`;
+  const link = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/signup?token=${token}`;
 
   try {
     await transporter.sendMail({

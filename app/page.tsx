@@ -3,7 +3,7 @@
 import { Button, Input, PopupStatus } from '@/components'
 import { useMultipartUpload } from '@/hooks/useMultipartUpload'
 import { formatSize } from '@/lib/format'
-import { faArrowsDownToLine, faAt, faClockRotateLeft, faFileCode, faFileImage, faFileText, faFolderOpen, faKey } from '@fortawesome/free-solid-svg-icons'
+import { faArrowsDownToLine, faAt, faClockRotateLeft, faFileCode, faFileImage, faFileText, faFolderOpen, faKey, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -162,8 +162,23 @@ export default function Home() {
     }
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "CrabS3",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Any (self-hosted, Docker)",
+    description: "Self-hosted file and secret sharing on any S3-compatible storage.",
+    url: "https://crabs3.doctorpok.io",
+    license: "https://opensource.org/licenses/MIT",
+    codeRepository: "https://github.com/DoctorPok42/CrabS3",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    featureList: ["Resumable multipart uploads", "Download limits with auto-deletion", "Password-protected secret sharing", "Hot and cold storage", "Two-factor authentication"],
+  };
+
   return (
     <main className={`flex flex-col ${fileMeta.length > 0 ? 'pt-10 pb-2' : 'my-auto justify-center'} w-full max-w-7xl items-center md:px-16 px-4`}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {(status || uploading) && (
         <PopupStatus message={status?.message || "Uploading..."}
           type={status?.type || "info"}
@@ -194,7 +209,7 @@ export default function Home() {
 
       {
         fileMeta.length > 0 && <div className="lg:w-150 w-full mt-5 flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-3xl p-6 bg-card dark:bg-card-dark transition duration-300">
-          <h2 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Options</h2>
+          <h3 className="text-lg font-bold text-zinc-700 dark:text-zinc-300">Options</h3>
 
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 grid-rows-auto">
             <Input
@@ -287,12 +302,12 @@ export default function Home() {
                         <div className='flex flex-1 min-w-0 gap-2 items-center'>
                           {f.img && (
                             <Link href={f.img} target="_blank" className='relative w-11 h-11 rounded-xl overflow-hidden'>
-                              <Image src={f.img} alt="Preview" className="rounded-xl" fill />
+                              <Image src={f.img} alt={`Preview of ${f.name}`} className="rounded-xl" fill />
                             </Link>
                           )}
 
                           <div className='flex flex-col flex-1 min-w-0'>
-                            <div className='w-full'>
+                            <div>
                               {editingFileIndex === index ? (
                                 <input
                                   type="text"
@@ -311,7 +326,8 @@ export default function Home() {
                                 <button
                                   type="button"
                                   onClick={() => setEditingFileIndex(index)}
-                                  className="w-full text-[14.5px] text-text dark:text-text-dark font-semibold cursor-pointer hover:text-blue-500 text-left transition duration-150"
+                                  title={f.name}
+                                  className="w-full text-[14.5px] text-text truncate dark:text-text-dark font-semibold cursor-pointer hover:text-blue-500 text-left transition duration-150"
                                 >
                                   {f.name}
                                 </button>
@@ -326,6 +342,7 @@ export default function Home() {
                           onClick={() => removeFile(index)}
                           variant='danger'
                           divClass='shrink-0'
+                          responsiveIcon={faTrash}
                         />
                       </div>
                     </div>
@@ -360,7 +377,7 @@ export default function Home() {
       }
 
       <div className='flex flex-col items-center gap-2 mt-4 -mb-4'>
-        <h2 className="text-md italic text-zinc-500 dark:text-zinc-400">Or send a secret</h2>
+        <h3 className="text-md italic text-zinc-500 dark:text-zinc-400">Or send a secret</h3>
         <Link href="/secrets" className='text-sm py-2 px-4 rounded-full font-bold bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark text-zinc-800 dark:text-zinc-200 hover:border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150'>
           Send a Secret
         </Link>

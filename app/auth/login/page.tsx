@@ -36,7 +36,13 @@ export default function LoginPage() {
         return
       }
 
-      window.location.href = "/"
+      const nextUrl = new URL(window.location.href).searchParams.get("next")
+      if (nextUrl) {
+        window.location.href = nextUrl
+      } else {
+        window.location.href = "/"
+      }
+
     } catch {
       setError("Network error")
       setTimeout(() => setError(null), 3000)

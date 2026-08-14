@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { getPublicFolder } from "@/lib/files";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 
@@ -18,46 +18,12 @@ export async function GET(request: Request) {
       meta: { folderId }
     });
 
-    const files = await prisma.files.findMany({
-      where: { folder_id: folderId },
-      select: {
-        id: true,
-        password_hash: true,
-        filename: true,
-        size: true,
-        expires_at: true,
-        download_count: true,
-        max_downloads: true,
-        infected_by: true,
-        scanned_at: true,
-        folder: { select: { name: true } }
-      },
-    })
+    const folder = await getPublicFolder(folderId);
 
-    if (!files || files.length === 0) {
-      return Response.json({ exists: false, files: [] }, { status: 200 });
-    }
-
-    const validFiles = files.filter(file =>
-      file.expires_at! > new Date() &&
-      (file.max_downloads === null || file.download_count! < file.max_downloads)
-    ).map(file => ({
-      id: file.id,
-      hasPassword: !!file.password_hash,
-      filename: file.filename,
-      size: Number(file.size),
-      maxDownloads: file.max_downloads,
-      downloadCount: file.download_count,
-      infectedBy: file.infected_by,
-      scannedAt: file.scanned_at,
-      expiresAt: file.expires_at,
-      folderName: file.folder?.name || null
-    }));
-
-    return Response.json({
-      exists: validFiles.length > 0,
-      files: validFiles
-    }, { status: 200 });
+    return Response.json(folder, {
+      status: 200,
+      headers: { "X-Robots-Tag": "noindex, nofollow" },
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Checkfile error:", errorMessage);

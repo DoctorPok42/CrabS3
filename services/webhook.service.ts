@@ -109,15 +109,18 @@ class WebHookService {
   private constructBody(payload: WebHookPayload): DiscordWebHookPayload | SlackWebHookPayload | TeamsAdaptiveCardPayload {
     switch (this.instanceType) {
       case 'discord':
-        return {
-          ...(payload as DiscordWebHookPayload),
-          username: (payload as DiscordWebHookPayload).username || this.username,
-          avatar_url: (payload as DiscordWebHookPayload).avatar_url || this.avatarUrl,
-          embeds: (payload as DiscordWebHookPayload).embeds?.map(embed => ({
-            ...embed,
-            color: embed.color || this.colorStatusMap[embed.title?.toLocaleLowerCase() || ""] || 0xcccccc,
-          })) || [],
-        };
+        {
+          const { content, embeds, username, avatar_url } = payload as DiscordWebHookPayload;
+          return {
+            content,
+            username: username || this.username,
+            avatar_url: avatar_url || this.avatarUrl,
+            embeds: embeds?.map(embed => ({
+              ...embed,
+              color: embed.color || this.colorStatusMap[embed.title?.toLocaleLowerCase() || ""] || 0xcccccc,
+            })) || [],
+          };
+        }
       case 'slack':
         return {
           ...(payload as SlackWebHookPayload),

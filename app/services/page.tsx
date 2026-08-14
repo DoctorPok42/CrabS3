@@ -3,6 +3,7 @@
 import { Button, Input } from "@/components"
 import Toast, { ToastProps } from "@/components/Toast"
 import { formatSize } from "@/lib/format"
+import Image from "next/image"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useDropzone } from "react-dropzone"
 
@@ -272,7 +273,7 @@ const Services = () => {
                   <div className="flex flex-wrap gap-2 items-center pb-2">
                     {service.image && (
                       <div className="w-full">
-                        <img src={service.image} className="w-20 h-20 rounded-md object-cover" />
+                        <Image src={service.image} className="w-20 h-20 rounded-md object-cover" width={80} height={80} alt="Service Image" />
                       </div>
                     )}
                     <div className="items-center py-2 px-3.5 text-[12.5px] font-medium bg-input dark:bg-input-dark rounded-[14px] mt-2">

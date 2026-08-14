@@ -59,7 +59,7 @@ const Toast = ({
       <div className="flex flex-col gap-2.5 max-w-150">
         {Array.from(toastList.values()).map((toast, index) => (
           <div key={index + 0} className={`flex flex-col gap-2.5 max-w-150 py-4 px-4.5 rounded-[20px] border ${bgColors[toast.level || "info"]} animation-toast`}>
-            <div className="flex gap-3">
+            <div className="flex h-6 gap-3">
               <div className={`py-1 px-2.5 text-[10.5px] uppercase tracking-[0.03em] shrink-0 font-extrabold rounded-full ${TOAST_LEVEL_COLORS[toast.level || "info"]}`}>
                 {toast.level}
               </div>
