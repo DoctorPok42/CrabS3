@@ -5,6 +5,9 @@ import { useQRCode } from 'next-qrcode';
 import { useEffect, useRef, useState } from "react"
 import Button from './Button';
 import { TOAST_LEVEL_COLORS } from './Toast';
+import dynamic from 'next/dynamic';
+
+const QrCodePopup = dynamic(() => import("@/components/QrCodePopup"), { ssr: false })
 
 export interface PopupStatusProps {
   message: string
@@ -92,32 +95,7 @@ const PopupStatus = ({ message, type, fileId, uploading, progress, fileMeta, btn
         {uploading && <span className="text-sm font-semibold">{status?.progress}%</span>}
       </div>
 
-      {qrcodePopup && (
-        <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/50 dark:bg-black/50 z-50">
-          <div ref={qrCodeRef} className="bg-card dark:bg-card-dark border border-card dark:border-card-dark p-6 rounded-lg shadow-lg w-96">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">QR Code</h2>
-              <div className="flex items-center justify-center cursor-pointer" onClick={() => setQrcodePopup(null)}>
-                <FontAwesomeIcon icon={faCircleXmark} className="text-gray-700 dark:text-gray-300 scale-150 hover:text-gray-500 transition" />
-              </div>
-            </div>
-            <p className="text-zinc-500 dark:text-zinc-400 mb-4">Scan this QR code to access the file.</p>
-            <div className="flex items-center justify-center gap-2">
-              <Canvas
-                text={qrcodePopup}
-                options={{
-                  errorCorrectionLevel: "H",
-                  scale: 6,
-                  quality: 0.8,
-                  color: {
-                    light: "#fdfbfa"
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      {qrcodePopup && <QrCodePopup link={qrcodePopup} onClose={() => setQrcodePopup(null)} />}
 
       {uploading && (
         <div className="mt-2 w-full">
