@@ -4,7 +4,7 @@ const PUBLIC_ROUTES = [
   "/auth/login",
   "/auth/signup",
   "/file/",
-  "secret/",
+  "/secret/",
   "/api/auth/login",
   "/api/auth/signup",
   "/api/auth/logout",
@@ -29,7 +29,7 @@ export function proxy(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+    return NextResponse.redirect(new URL("/auth/login?next=" + encodeURIComponent(request.url), request.url));
   }
 
   return NextResponse.next();
