@@ -40,6 +40,15 @@ jobs:
   build_pr:
     runs-on: self-hosted
     if: github.event_name == 'pull_request'
+    strategy:
+      matrix:
+        include:
+          - name: web
+            context: .
+            image: crabs3
+          - name: cron
+            context: ./cron
+            image: crabs3-cron
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -53,9 +62,9 @@ jobs:
       - name: Build (no push)
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ matrix.context }}
           push: false
-          tags: ${{ vars.DOCKERHUB_USERNAME }}/crabs3:pr-${{ github.event.pull_request.number }}
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/${{ matrix.image }}:pr-${{ github.event.pull_request.number }}
           platforms: linux/amd64
 
   update_latest:
