@@ -16,6 +16,7 @@ const PUBLIC_ROUTES = [
   "/api/health",
   "/api/services/",
   "/api/cron/check-expired",
+  "/opengraph-image"
 ];
 
 export function proxy(request: NextRequest) {
@@ -37,5 +38,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|_next/webpack|favicon.ico|api/upload|.*\\.svg|.*\\.png|.*\\.ico|.*\\.css|.*\\.js).*)"],
+    "/((?!_next/static|_next/image|_next/webpack|favicon.ico|api/upload|opengraph-image|.*\\.svg|.*\\.png|.*\\.ico|.*\\.css|.*\\.js).*)"],
 };
