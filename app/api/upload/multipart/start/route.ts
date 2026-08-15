@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { signUploadToken } from "@/lib/upload-token";
+import { getChunkSize } from "@/lib/chunk-size";
 
 export async function POST(request: Request) {
   try {
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
     }
 
     const fileId = randomUUID();
+    const chunkSize = getChunkSize(Number(fileSizeBytes));
 
     const { UploadId } = await s3Hot.send(
       new CreateMultipartUploadCommand({
@@ -113,7 +115,7 @@ export async function POST(request: Request) {
         folder_id: folderId,
         upload_id: UploadId,
         filename,
-        chunk_size: 0,
+        chunk_size: chunkSize,
         total_size: fileSizeBytes,
       },
     }).catch(async (error) => {
@@ -135,7 +137,7 @@ export async function POST(request: Request) {
       upl: UploadId,
     });
 
-    return Response.json({ fileId, uploadId: UploadId, token }, { status: 200 });
+    return Response.json({ fileId, uploadId: UploadId, token, chunkSize }, { status: 200 });
   } catch (error) {
     console.error("Start error:", error);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });

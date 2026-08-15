@@ -1,7 +1,7 @@
 "use client"
 
 import { Button, Input, PopupStatus } from '@/components'
-import { useMultipartUpload } from '@/hooks/useMultipartUpload'
+import { useMultipartUpload, peekPersistedFolderId } from '@/hooks/useMultipartUpload'
 import { formatSize } from '@/lib/format'
 import { faArrowsDownToLine, faAt, faClockRotateLeft, faFileCode, faFileImage, faFileText, faFolderOpen, faKey, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -83,17 +83,31 @@ export default function Home() {
 
   useEffect(() => {
     if (error) {
-      setFolderId("")
       setUploadResults(0)
       uploadResultsRef.current = 0
-      setStatus({ message: error || "An error occurred during upload.", type: "error", fileId: undefined })
+      setStatus({ message: error || "An error occurred during upload. You can retry - completed parts won't be re-uploaded.", type: "error", fileId: undefined })
     }
   }, [error])
+
+  useEffect(() => {
+    const handleOnline = () => {
+      if (!uploading && error && files.length > 0) {
+        uploadFile()
+      }
+    }
+
+    window.addEventListener("online", handleOnline)
+    return () => window.removeEventListener("online", handleOnline)
+  })
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (uploading) return;
 
-    const currentFolderId = folderId || crypto.randomUUID();
+    const recoveredFolderId = !folderId
+      ? acceptedFiles.map(f => peekPersistedFolderId(f)).find(Boolean)
+      : undefined;
+
+    const currentFolderId = folderId || recoveredFolderId || crypto.randomUUID();
     if (!folderId) {
       setFolderId(currentFolderId);
     }
