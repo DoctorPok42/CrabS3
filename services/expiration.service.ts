@@ -2,10 +2,11 @@ import prisma from "@/lib/prisma";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
-import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { AbortMultipartUploadCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 
 const POLICY = (process.env.EXPIRED_FILE_POLICY || "cold").toLowerCase(); // "delete" | "cold"
 const INCOMPLETE_UPLOAD_SCAN_LIMIT = 500;
+const STALE_MULTIPART_MAX_AGE_MS = 48 * 60 * 60 * 1000; // 48 hours
 
 const BATCH_LIMIT = 1000;
 const CONCURRENCY = 5;
@@ -163,4 +164,45 @@ export async function cleanupIncompleteUploads() {
   }
 
   return { processed: recentFiles.length, removed };
+}
+
+export async function reapStaleMultipartUploads() {
+  const cutoff = new Date(Date.now() - STALE_MULTIPART_MAX_AGE_MS);
+
+  const stale = await prisma.multipart_uploads.findMany({
+    where: { created_at: { lt: cutoff } },
+    take: BATCH_LIMIT,
+  });
+
+  let removed = 0;
+
+  for (const pending of stale) {
+    const key = `${pending.folder_id}/${pending.file_id}`;
+
+    await s3Hot.send(new AbortMultipartUploadCommand({
+      Bucket: HOT_BUCKET,
+      Key: key,
+      UploadId: pending.upload_id,
+    })).catch(() => { });
+
+    await prisma.$transaction([
+      prisma.downloads.updateMany({ where: { file_id: pending.file_id }, data: { file_id: null } }),
+      prisma.download_events.updateMany({ where: { file_id: pending.file_id }, data: { file_id: null } }),
+      prisma.multipart_uploads.deleteMany({ where: { file_id: pending.file_id } }),
+      prisma.files.deleteMany({ where: { id: pending.file_id, uploaded_at: null } }),
+    ]).catch(() => { });
+
+    removed++;
+  }
+
+  if (removed > 0) {
+    await log({
+      level: LogLevel.INFO,
+      action: LogAction.FILE_EXPIRED,
+      message: `Reaped ${removed} stale/abandoned multipart upload${removed > 1 ? "s" : ""}`,
+      meta: { removed },
+    });
+  }
+
+  return { processed: stale.length, removed };
 }

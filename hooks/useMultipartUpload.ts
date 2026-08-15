@@ -1,16 +1,9 @@
 import { useState, useCallback, useRef } from "react";
 
-const MAX_PARALLEL_CHUNKS = 6; // Upload multiple chunks in parallel for better performance
-
-function getChunkSize(fileSize: number): number {
-  if (fileSize < 10 * 1024 * 1024) return fileSize; // < 10 MB - no chunking
-  if (fileSize < 100 * 1024 * 1024) return 15 * 1024 * 1024; // < 100 MB - 15 MB chunks
-  if (fileSize < 500 * 1024 * 1024) return 50 * 1024 * 1024; // < 500 MB - 50 MB chunks
-  if (fileSize < 1024 * 1024 * 1024) return 50 * 1024 * 1024; // < 1 GB - 50 MB chunks
-  if (fileSize < 3 * 1024 * 1024 * 1024) return 75 * 1024 * 1024; // 1-3 GB - 75 MB chunks
-  if (fileSize < 5 * 1024 * 1024 * 1024) return 100 * 1024 * 1024; // 3-5 GB - 100 MB chunks
-  return 150 * 1024 * 1024; // > 5 GB - 150 MB chunks
-}
+const MAX_PARALLEL_CHUNKS = 50;
+const PART_RETRIES = 6;
+const STORAGE_PREFIX = "crabs3:mpu:";
+const STORAGE_MAX_AGE = 24 * 60 * 60 * 1000; // 24h
 
 interface UploadOptions {
   maxDownloads?: number | null;
@@ -29,25 +22,112 @@ interface UploadResult {
   filename: string;
 }
 
-interface StartSessionResult {
+interface ResumablePart {
+  PartNumber: number;
+  ETag: string;
+  Size: number;
+}
+
+interface SessionResult {
   fileId: string;
   uploadId: string;
   token: string;
+  chunkSize: number;
+  uploadedParts: ResumablePart[];
+  signature: string;
+  folderId: string;
+  resumed: boolean;
 }
 
 interface PrewarmEntry {
-  promise: Promise<StartSessionResult>;
+  promise: Promise<SessionResult>;
   filename: string;
   folderId: string;
   folderName?: string;
+  signature: string;
 }
 
-// Call on drop
+interface PersistedSession {
+  fileId: string;
+  folderId: string;
+  uploadId: string;
+  filename: string;
+  chunkSize: number;
+  savedAt: number;
+}
+
+class UploadFlowError extends Error {
+  fatal: boolean;
+  constructor(message: string, fatal: boolean) {
+    super(message);
+    this.name = "UploadFlowError";
+    this.fatal = fatal;
+  }
+}
+
+function isFatalStatus(status: number) {
+  return status >= 400 && status < 500;
+}
+
+function getFileSignature(file: File, filename: string): string {
+  return `${filename}::${file.size}::${file.lastModified}`;
+}
+
+function hasStorage() {
+  return typeof window !== "undefined" && !!window.localStorage;
+}
+
+function loadPersistedSession(signature: string): PersistedSession | null {
+  if (!hasStorage()) return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + signature);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedSession;
+    if (Date.now() - parsed.savedAt > STORAGE_MAX_AGE) {
+      localStorage.removeItem(STORAGE_PREFIX + signature);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function savePersistedSession(signature: string, data: Omit<PersistedSession, "savedAt">) {
+  if (!hasStorage()) return;
+  try {
+    localStorage.setItem(STORAGE_PREFIX + signature, JSON.stringify({ ...data, savedAt: Date.now() }));
+  } catch {}
+}
+
+function clearPersistedSession(signature: string) {
+  if (!hasStorage()) return;
+  try {
+    localStorage.removeItem(STORAGE_PREFIX + signature);
+  } catch { }
+}
+
+export function peekPersistedFolderId(file: File, filename?: string): string | undefined {
+  const saved = loadPersistedSession(getFileSignature(file, filename?.trim() || file.name));
+  return saved?.folderId;
+}
+
+function waitForOnline(): Promise<void> {
+  if (typeof navigator === "undefined" || navigator.onLine) return Promise.resolve();
+  return new Promise((resolve) => {
+    const handler = () => {
+      window.removeEventListener("online", handler);
+      resolve();
+    };
+    window.addEventListener("online", handler);
+  });
+}
+
 async function startSession(
   file: File,
   filename: string,
   folderId: string
-): Promise<StartSessionResult> {
+): Promise<{ fileId: string; uploadId: string; token: string; chunkSize: number }> {
   const startRes = await fetch("/api/upload/multipart/start", {
     method: "POST",
     headers: {
@@ -60,10 +140,88 @@ async function startSession(
 
   if (!startRes.ok) {
     const errorData = await startRes.json().catch(() => ({}));
-    throw new Error(errorData.error || "Failed to start upload");
+    throw new UploadFlowError(errorData.error || "Failed to start upload", isFatalStatus(startRes.status));
   }
 
   return startRes.json();
+}
+
+async function fetchResume(fileId: string): Promise<{
+  fileId: string;
+  folderId: string;
+  uploadId: string;
+  token: string;
+  chunkSize: number;
+  uploadedParts: ResumablePart[];
+} | null> {
+  const res = await fetch("/api/upload/multipart/resume", {
+    method: "POST",
+    headers: { "X-File-Id": fileId },
+  });
+
+  if (res.status === 404 || res.status === 409 || res.status === 410) {
+    return null;
+  }
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new UploadFlowError(errorData.error || "Failed to resume upload", isFatalStatus(res.status));
+  }
+
+  return res.json();
+}
+
+async function resolveSession(file: File, filename: string, folderId: string): Promise<SessionResult> {
+  const signature = getFileSignature(file, filename);
+  const saved = loadPersistedSession(signature);
+
+  if (saved) {
+    try {
+      const resumed = await fetchResume(saved.fileId);
+      if (resumed) {
+        savePersistedSession(signature, {
+          fileId: resumed.fileId,
+          folderId: resumed.folderId,
+          uploadId: resumed.uploadId,
+          filename,
+          chunkSize: resumed.chunkSize,
+        });
+        return {
+          fileId: resumed.fileId,
+          uploadId: resumed.uploadId,
+          token: resumed.token,
+          chunkSize: resumed.chunkSize,
+          uploadedParts: resumed.uploadedParts,
+          signature,
+          folderId: resumed.folderId,
+          resumed: true,
+        };
+      }
+      clearPersistedSession(signature);
+    } catch (err) {
+      if (err instanceof UploadFlowError && err.fatal) throw err;
+    }
+  }
+
+  const fresh = await startSession(file, filename, folderId);
+  savePersistedSession(signature, {
+    fileId: fresh.fileId,
+    folderId,
+    uploadId: fresh.uploadId,
+    filename,
+    chunkSize: fresh.chunkSize,
+  });
+
+  return {
+    fileId: fresh.fileId,
+    uploadId: fresh.uploadId,
+    token: fresh.token,
+    chunkSize: fresh.chunkSize,
+    uploadedParts: [],
+    signature,
+    folderId,
+    resumed: false,
+  };
 }
 
 export function useMultipartUpload() {
@@ -74,19 +232,19 @@ export function useMultipartUpload() {
   const uploadCount = useRef(0);
   const prewarmedSessions = useRef(new Map<File, PrewarmEntry>());
 
-  const abortPrewarmedSession = useCallback((entry: PrewarmEntry) => {
+  const abortPrewarmedSession = useCallback((entry: PrewarmEntry, dropSession: boolean) => {
     entry.promise
-      .then(async ({ fileId, uploadId }) =>
-        await fetch("/api/upload/multipart/abort", {
+      .then(async ({ fileId, uploadId, folderId }) => {
+        if (dropSession) clearPersistedSession(entry.signature);
+        return fetch("/api/upload/multipart/abort", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           keepalive: true,
-          body: JSON.stringify({ fileId, folderId: entry.folderId, uploadId }),
-        })
-      )
+          body: JSON.stringify({ fileId, folderId, uploadId }),
+        });
+      })
       .catch(() => { });
   }, []);
-
 
   const prewarm = useCallback((file: File, folderId: string, filename?: string, folderName?: string) => {
     const name = filename?.trim() || file.name;
@@ -96,28 +254,27 @@ export function useMultipartUpload() {
       return;
     }
 
-    // Old session resolve then abort it in the background
     if (existing) {
-      abortPrewarmedSession(existing);
+      abortPrewarmedSession(existing, true);
     }
 
     prewarmedSessions.current.set(file, {
-      promise: startSession(file, name, folderId).catch((error) => {
+      promise: resolveSession(file, name, folderId).catch((error) => {
         prewarmedSessions.current.delete(file);
         throw error;
       }),
       filename: name,
       folderId,
+      signature: getFileSignature(file, name),
     });
   }, [abortPrewarmedSession]);
 
-  // Discard a prewarmed session
   const cancelPrewarm = useCallback((file: File) => {
     const entry = prewarmedSessions.current.get(file);
     if (!entry) return;
     prewarmedSessions.current.delete(file);
 
-    abortPrewarmedSession(entry);
+    abortPrewarmedSession(entry, true);
   }, [abortPrewarmedSession]);
 
   const cancelAllPrewarm = useCallback(() => {
@@ -125,7 +282,7 @@ export function useMultipartUpload() {
     prewarmedSessions.current.clear();
 
     for (const entry of entries) {
-      abortPrewarmedSession(entry);
+      abortPrewarmedSession(entry, true);
     }
   }, [abortPrewarmedSession]);
 
@@ -145,8 +302,9 @@ export function useMultipartUpload() {
 
     let uploadId: string | null = null;
     let fileId: string | null = null;
+    let signature: string | null = null;
     const filename = options.filename?.trim() || file.name;
-    const folderId = options.folderId || crypto.randomUUID();
+    let folderId = options.folderId || crypto.randomUUID();
 
     try {
       const prewarmed = prewarmedSessions.current.get(file);
@@ -158,22 +316,32 @@ export function useMultipartUpload() {
         prewarmedSessions.current.delete(file);
 
         if (!canReusePrewarm) {
-          abortPrewarmedSession(prewarmed);
+          abortPrewarmedSession(prewarmed, true);
         }
       }
 
-      let token: string;
-      ({ fileId, uploadId, token } = canReusePrewarm
+      const session = canReusePrewarm
         ? await prewarmed!.promise
-        : await startSession(file, filename, folderId));
+        : await resolveSession(file, filename, folderId);
+
+      ({ fileId, uploadId, signature } = session);
+      folderId = session.folderId;
+      const token = session.token;
 
       uploads.set(fileId!, 0);
 
-      const CHUNK_SIZE = getChunkSize(file.size);
+      const CHUNK_SIZE = session.chunkSize;
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
       const parts: { PartNumber: number; ETag: string }[] = [];
 
       const chunkProgress = new Array(totalChunks).fill(0);
+      const alreadyUploaded = new Map(session.uploadedParts.map((p) => [p.PartNumber, p.ETag]));
+
+      for (const [partNumber, etag] of alreadyUploaded) {
+        parts.push({ PartNumber: partNumber, ETag: etag });
+        if (partNumber - 1 < totalChunks) chunkProgress[partNumber - 1] = 100;
+      }
+
       const updateProgress = (index: number, pct: number) => {
         chunkProgress[index] = pct;
         const fileProgress = Math.round(
@@ -187,13 +355,17 @@ export function useMultipartUpload() {
         setProgress(overallProgress);
       };
 
-      // Upload chunks in parallel batches for better performance
       for (let i = 0; i < totalChunks; i += MAX_PARALLEL_CHUNKS) {
         const batchPromises = [];
 
         for (let j = 0; j < MAX_PARALLEL_CHUNKS && i + j < totalChunks; j++) {
           const chunkIndex = i + j;
           const partNumber = chunkIndex + 1;
+
+          if (alreadyUploaded.has(partNumber)) {
+            continue;
+          }
+
           const start = chunkIndex * CHUNK_SIZE;
           const end = Math.min(start + CHUNK_SIZE, file.size);
           const chunk = file.slice(start, end);
@@ -208,11 +380,11 @@ export function useMultipartUpload() {
           );
         }
 
-        // Wait for batch to complete before starting next batch
         const batchResults = await Promise.all(batchPromises);
-        parts.push(...batchResults.sort((a, b) => a.partNumber - b.partNumber)
-          .map(r => ({ PartNumber: r.partNumber, ETag: r.etag })));
+        parts.push(...batchResults.map(r => ({ PartNumber: r.partNumber, ETag: r.etag })));
       }
+
+      const sortedParts = [...parts].sort((a, b) => a.PartNumber - b.PartNumber);
 
       const metadata = {
         filename,
@@ -229,10 +401,15 @@ export function useMultipartUpload() {
       const completeRes = await fetch("/api/upload/multipart/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileId, folderId, uploadId, parts, metadata, folderName: options.folderName || null }),
+        body: JSON.stringify({ fileId, folderId, uploadId, parts: sortedParts, metadata, folderName: options.folderName || null }),
       });
 
-      if (!completeRes.ok) throw new Error("Failed to complete upload");
+      if (!completeRes.ok) {
+        const errorData = await completeRes.json().catch(() => ({}));
+        throw new UploadFlowError(errorData.error || "Failed to complete upload", isFatalStatus(completeRes.status));
+      }
+
+      clearPersistedSession(signature);
 
       uploads.delete(fileId!);
       uploadCount.current--;
@@ -257,13 +434,17 @@ export function useMultipartUpload() {
       return result;
 
     } catch (err) {
-      if (fileId && uploadId) {
+      const fatal = err instanceof UploadFlowError ? err.fatal : false;
+
+      if (fatal && fileId && uploadId) {
         await fetch("/api/upload/multipart/abort", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           keepalive: true,
           body: JSON.stringify({ fileId, folderId, uploadId }),
         }).catch(console.error);
+
+        if (signature) clearPersistedSession(signature);
       }
 
       if (fileId) {
@@ -297,7 +478,7 @@ function uploadChunk(
   token: string,
   partNumber: number,
   onProgress: (pct: number) => void,
-  retries = 3
+  retries = PART_RETRIES
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const attempt = (remaining: number, delay: number = 500) => {
@@ -309,6 +490,12 @@ function uploadChunk(
         }
       });
 
+      const retry = () => {
+        waitForOnline().then(() => {
+          setTimeout(() => attempt(remaining - 1, Math.min(delay * 2, 5000)), delay);
+        });
+      };
+
       xhr.addEventListener("load", () => {
         if (xhr.status === 200) {
           try {
@@ -319,7 +506,7 @@ function uploadChunk(
           }
         } else if (remaining > 0) {
           console.warn(`Part ${partNumber} failed (${xhr.status}), retry in ${delay}ms… (${remaining} left)`);
-          setTimeout(() => attempt(remaining - 1, Math.min(delay * 2, 5000)), delay);
+          retry();
         } else {
           reject(new Error(`Part ${partNumber} failed after retries: ${xhr.status}`));
         }
@@ -328,7 +515,7 @@ function uploadChunk(
       xhr.addEventListener("error", () => {
         if (remaining > 0) {
           console.warn(`Part ${partNumber} network error, retry in ${delay}ms… (${remaining} left)`);
-          setTimeout(() => attempt(remaining - 1, Math.min(delay * 2, 5000)), delay);
+          retry();
         } else {
           reject(new Error(`Part ${partNumber} network error after retries`));
         }
