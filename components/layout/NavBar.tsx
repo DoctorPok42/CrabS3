@@ -13,6 +13,8 @@ interface NavBarProps {
 const NavBar = ({ user }: NavBarProps) => {
   const pathname = usePathname()
 
+  if (!user) return null
+
   const links = [
     { name: "Upload", href: "/", icon: faUpload },
     { name: "Secrets", href: "/secrets", icon: faLock },
@@ -30,7 +32,7 @@ const NavBar = ({ user }: NavBarProps) => {
     window.location.href = "/auth/login"
   }
 
-  const ignoredPaths = ["auth", "file", "secret"]
+  const ignoredPaths = ["auth", "file", "secret", "docs", "self-hosted"]
 
   if (ignoredPaths.includes(pathname.split("/")[1])) return null
 

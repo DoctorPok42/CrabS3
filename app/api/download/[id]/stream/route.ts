@@ -1,4 +1,4 @@
-import { s3Hot, s3Cold, HOT_BUCKET, COLD_BUCKET } from "@/services/s3.service";
+import { s3Hot, HOT_BUCKET, COLD_BUCKET } from "@/services/s3.service";
 import { DeleteObjectsCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
@@ -15,19 +15,6 @@ const getFileData = async (folderId: string, fileId: string) => {
   try {
     const url = await s3Hot.send(new GetObjectCommand({
       Bucket: HOT_BUCKET,
-      Key: key,
-    }));
-
-    return url;
-  } catch (err: any) {
-    if (err?.name !== "NotFound" && err?.name !== "NoSuchKey") {
-      throw err;
-    }
-  }
-
-  try {
-    const url = await s3Cold.send(new GetObjectCommand({
-      Bucket: COLD_BUCKET,
       Key: key,
     }));
 
@@ -196,7 +183,7 @@ export async function GET(
                   contentType: "application/vnd.microsoft.card.adaptive",
                   contentUrl: null,
                   content: {
-                    $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                    $schema: "https://adaptivecards.io/schemas/adaptive-card.json",
                     type: "AdaptiveCard",
                     version: "1.2",
                     body: [
@@ -423,7 +410,7 @@ export async function GET(
                 contentType: "application/vnd.microsoft.card.adaptive",
                 contentUrl: null,
                 content: {
-                  $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                  $schema: "https://adaptivecards.io/schemas/adaptive-card.json",
                   type: "AdaptiveCard",
                   version: "1.2",
                   body: [
