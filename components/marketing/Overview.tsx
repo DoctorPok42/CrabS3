@@ -66,7 +66,7 @@ const Overview = () => {
       operatingSystem: "Any (self-hosted, Docker)",
       description: "Self-hosted file and secret sharing on any S3-compatible storage.",
       url: SITE_URL,
-      license: "https://opensource.org/licenses/MIT",
+      license: "https://opensource.org/licenses/Apache-2.0",
       codeRepository: "https://github.com/DoctorPok42/CrabS3",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       featureList: features.map((f) => f.title),
@@ -94,7 +94,7 @@ const Overview = () => {
         <div>
           <p className="flex items-center gap-2.5 font-mono text-[11.5px] tracking-[0.14em] uppercase text-primary-700 dark:text-primary-400 mb-5 m-0">
             <span aria-hidden="true" className="w-6 h-[3px] bg-primary-500 rounded-full" />
-            Open source · MIT · Docker
+            Open source · Apache-2.0 · Docker
           </p>
           <h1 className="text-[40px] md:text-[52px] font-extrabold leading-[1.06] tracking-[-0.035em] m-0 mb-5 text-pretty">
             Send files from your own S3 bucket.

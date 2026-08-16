@@ -7,7 +7,7 @@ No cloud vendor, no monthly bill, no upload limit but the one you set.
 
 ![Status](https://uptime.doctorpok.io/api/badge/24/status)
 ![Uptime](https://uptime.doctorpok.io/api/badge/24/uptime)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 [Quick start](#quick-start) · [Configuration](#configuration) · [API](#api) · [How it works](#how-it-works)
 
@@ -184,7 +184,7 @@ Issues and pull requests are welcome. Keep changes focused, run `npm run lint` b
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+Apache 2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 ---
 

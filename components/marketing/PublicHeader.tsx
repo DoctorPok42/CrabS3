@@ -14,8 +14,8 @@ const PublicHeader = ({ signedIn }: { signedIn: boolean }) => {
   const pathname = usePathname()
 
   return (
-    <header className="w-full sticky top-0 z-50 border-b border-cardBorder dark:border-cardBorder-dark bg-page/[.88] dark:bg-page-dark/[.88] backdrop-blur-xl">
-      <div className="w-[1120px] mx-auto px-8 h-17 flex items-center justify-between gap-6">
+    <header className="w-full sticky top-0 z-50 border-b border-cardBorder dark:border-cardBorder-dark bg-page/88 dark:bg-page-dark/88 backdrop-blur-xl">
+      <div className="w-280 mx-auto px-8 h-17 flex items-center justify-between gap-6">
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
           <Image src="/web-app-manifest-192x192.png" alt="" aria-hidden="true" width={32} height={32} className="rounded-[9px]" priority />
           <span className="text-[17px] font-extrabold tracking-tight">CrabS3</span>

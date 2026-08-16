@@ -3,7 +3,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 
 # Copyright (c) 2021-2026 community-scripts ORG (adapted)
 # Author: DoctorPok42
-# License: MIT
+# License: Apache-2.0
 # Source: https://github.com/DoctorPok42/crabS3
 
 APP="CrabS3"

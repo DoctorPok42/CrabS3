@@ -4,14 +4,14 @@ import Link from "next/link";
 const PublicFooter = () => {
   return (
     <footer className="w-full mt-24 border-t border-cardBorder dark:border-cardBorder-dark bg-card dark:bg-card-dark">
-      <div className="max-w-[1120px] mx-auto px-8 pt-13 pb-9 grid gap-10 grid-cols-1 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
+      <div className="max-w-280 mx-auto px-8 pt-13 pb-9 grid gap-10 grid-cols-1 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
         <div>
           <div className="flex items-center gap-2.5 mb-3">
             <Image src="/web-app-manifest-192x192.png" alt="" aria-hidden="true" width={28} height={28} className="rounded-lg" />
             <span className="text-base font-extrabold">CrabS3</span>
           </div>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-[26em]">
-            Self-hosted file and secret sharing on any S3-compatible storage. MIT licensed.
+            Self-hosted file and secret sharing on any S3-compatible storage. Apache-2.0 licensed.
           </p>
         </div>
 
@@ -43,10 +43,10 @@ const PublicFooter = () => {
         </nav>
       </div>
 
-      <div className="max-w-[1120px] mx-auto px-8 pb-10">
+      <div className="max-w-280 mx-auto px-8 pb-10">
         <div className="border-t border-cardBorder dark:border-cardBorder-dark pt-6 flex justify-between gap-5 flex-wrap text-[13px] text-zinc-500 dark:text-zinc-400">
           <p className="m-0">No cloud. No bill. Just S3 buckets full of crabs. 🦀</p>
-          <p className="m-0 font-mono">MIT · self-hosted</p>
+          <p className="m-0 font-mono">Apache-2.0 · self-hosted</p>
         </div>
       </div>
     </footer>

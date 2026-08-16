@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Copyright (c) 2021-2026 community-scripts ORG (adapted)
 # Author: DoctorPok42
-# License: MIT
+# License: Apache-2.0
 # Source: https://github.com/DoctorPok42/CrabS3
 
 # --- petit système de logging minimal, sans dépendance externe ---

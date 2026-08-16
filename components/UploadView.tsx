@@ -184,7 +184,7 @@ export default function Home() {
     operatingSystem: "Any (self-hosted, Docker)",
     description: "Self-hosted file and secret sharing on any S3-compatible storage.",
     url: "https://crabs3.doctorpok.io",
-    license: "https://opensource.org/licenses/MIT",
+    license: "https://opensource.org/licenses/Apache-2.0",
     codeRepository: "https://github.com/DoctorPok42/CrabS3",
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     featureList: ["Resumable multipart uploads", "Download limits with auto-deletion", "Password-protected secret sharing", "Hot and cold storage", "Two-factor authentication"],
