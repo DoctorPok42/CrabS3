@@ -15,30 +15,18 @@ function createHandler() {
   });
 }
 
-export const HOT_BUCKET = process.env.S3_HOT_BUCKET_NAME || "hot-bucket";
-export const COLD_BUCKET = process.env.S3_COLD_BUCKET_NAME || process.env.S3_HOT_BUCKET_NAME || "hot-bucket";
+export const HOT_BUCKET = process.env.S3_BUCKET_NAME || "hot-bucket";
+export const COLD_BUCKET = process.env.S3_COLD_BUCKET_NAME || process.env.S3_BUCKET_NAME || "hot-bucket";
 
 export const s3Hot = new S3Client({
-  endpoint: process.env.S3_HOT_ENDPOINT || "http://localhost:9000",
+  endpoint: process.env.S3_ENDPOINT || "http://localhost:9000",
   region: process.env.S3_REGION || "us-east-1",
   credentials: {
-    accessKeyId: process.env.S3_HOT_ACCESS_KEY_ID || "rustfskey",
-    secretAccessKey: process.env.S3_HOT_SECRET_ACCESS_KEY || "rustfssecret",
+    accessKeyId: process.env.S3_ACCESS_KEY_ID || "rustfskey",
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "rustfssecret",
   },
   forcePathStyle: true,
   requestHandler: createHandler(),
   maxAttempts: 3,
 });
 
-// If cold storage is not configured, use hot storage for all operations
-export const s3Cold = process.env.S3_COLD_ENDPOINT ? new S3Client({
-  endpoint: process.env.S3_COLD_ENDPOINT || "http://localhost:9000",
-  region: process.env.S3_REGION || "us-east-1",
-  credentials: {
-    accessKeyId: process.env.S3_COLD_ACCESS_KEY_ID || "rustfskey",
-    secretAccessKey: process.env.S3_COLD_SECRET_ACCESS_KEY || "rustfssecret",
-  },
-  forcePathStyle: true,
-  requestHandler: createHandler(),
-  maxAttempts: 3,
-}) : s3Hot;

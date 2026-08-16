@@ -1,5 +1,5 @@
 import * as net from "node:net";
-import { s3Hot, s3Cold, HOT_BUCKET, COLD_BUCKET } from "@/services/s3.service";
+import { s3Hot, HOT_BUCKET } from "@/services/s3.service";
 import { GetObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import prisma from "@/lib/prisma";
 import { log } from "@/services/log.service";
@@ -78,16 +78,9 @@ export async function handleScanResult(
       Bucket: HOT_BUCKET,
       Key: `${folderId}/${fileId}`,
     }));
-  } catch {
-    try {
-      fileResponse = await s3Cold.send(new GetObjectCommand({
-        Bucket: COLD_BUCKET,
-        Key: `${folderId}/${fileId}`,
-      }));
-    } catch (err) {
-      console.error("File not found in S3:", err);
-      return;
-    }
+  } catch (err) {
+    console.error("File not found in S3:", err);
+    return;
   }
 
   if (!fileResponse?.Body) {
@@ -123,16 +116,10 @@ export async function handleScanResult(
       meta: { folderId, fileId, ip, filename, virus: sanitizedVirus },
     });
 
-    await Promise.allSettled([
-      s3Hot.send(new DeleteObjectsCommand({
+    await s3Hot.send(new DeleteObjectsCommand({
         Bucket: HOT_BUCKET,
         Delete: { Objects: [{ Key: `${folderId}/${fileId}` }] },
-      })),
-      s3Cold.send(new DeleteObjectsCommand({
-        Bucket: COLD_BUCKET,
-        Delete: { Objects: [{ Key: `${folderId}/${fileId}` }] },
-      })),
-    ]);
+      }));
 
     await prisma.files.update({
       where: { id: fileId },

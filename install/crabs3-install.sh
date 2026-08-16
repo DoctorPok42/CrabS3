@@ -58,10 +58,10 @@ CRON_SECRET=$(openssl rand -hex 32)
 read -rp "DockerHub image [doctorpok/crabs3]: " CRABS3_IMAGE
 CRABS3_IMAGE="${CRABS3_IMAGE:-doctorpok/crabs3}"
 
-read -rp "S3 Hot endpoint (ex: http://192.168.1.100:9000): " S3_HOT_ENDPOINT
-read -rp "S3 Hot access key: " S3_HOT_ACCESS_KEY_ID
-read -rp "S3 Hot secret key: " S3_HOT_SECRET_ACCESS_KEY
-read -rp "S3 Hot bucket name [crabs3]: " S3_HOT_BUCKET_NAME
+read -rp "S3 Hot endpoint (ex: http://192.168.1.100:9000): " S3_ENDPOINT
+read -rp "S3 Hot access key: " S3_ACCESS_KEY_ID
+read -rp "S3 Hot secret key: " S3_SECRET_ACCESS_KEY
+read -rp "S3 Hot bucket name [crabs3]: " S3_BUCKET_NAME
 S3_HOT_BUCKET_NAME="${S3_HOT_BUCKET_NAME:-crabs3}"
 
 read -rp "Public base URL (ex: https://transfer.example.com): " BASE_URL
@@ -118,10 +118,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - S3_HOT_ENDPOINT=${S3_HOT_ENDPOINT}
-      - S3_HOT_ACCESS_KEY_ID=${S3_HOT_ACCESS_KEY_ID}
-      - S3_HOT_SECRET_ACCESS_KEY=${S3_HOT_SECRET_ACCESS_KEY}
-      - S3_HOT_BUCKET_NAME=${S3_HOT_BUCKET_NAME}
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
       - S3_REGION=us-east-1
       - DATABASE_URL=postgresql://crabs3:${DB_PASSWORD}@db:5432/crabs3
       - NEXT_PUBLIC_BASE_URL=${BASE_URL}

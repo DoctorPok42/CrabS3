@@ -31,7 +31,7 @@ Upload  →  hot bucket  →  share link  →  N downloads or T days  →  gone
 |---|---|
 | 📦 **Your storage** | Any S3-compatible backend. Your keys, your bucket, your retention rules. |
 | 🚀 **Big files** | Resumable multipart uploads with live progress — a dropped connection does not restart the transfer. |
-| 🔥 **Hot & cold** | Serve from fast storage, archive to cheap storage. Replication is handled by the backend, not by the app. |
+| 🔥 **Hot & cold** | Serve from fast storage, archive to cheap storage. Replication is handled by the S3 Provider. |
 | 🗝️ **Secrets** | Share a password, a token, a note. Password-protected, time-limited, gone after reading. |
 | 🗑️ **Self-destruct** | Set a max download count; the file is deleted from storage automatically when it is reached. |
 | 🛡️ **Malware scan** | Every upload goes through ClamAV; infected files are flagged and blocked from download. |
@@ -70,14 +70,13 @@ You still need a reachable Postgres instance and an S3 endpoint.
 
 Everything is environment variables — put them in `.env`, or manage them in Doppler (a `doppler.yaml` is included and picked up automatically).
 
-**Storage** — two buckets, hot and cold. Leave the cold block unset to use hot for everything, or point both at the same bucket.
+**Storage** — One hot bucket is required; cold bucket is just a class of storage, and can be the same bucket if you want. CrabS3 does not copy bytes between buckets; it relies on your S3 provider to replicate them.
 
 | Variable | Example |
 |---|---|
-| `S3_HOT_ENDPOINT` | `http://192.168.1.100:9000` |
-| `S3_HOT_ACCESS_KEY_ID` / `S3_HOT_SECRET_ACCESS_KEY` | your keys |
-| `S3_HOT_BUCKET_NAME` | `crabs3` |
-| `S3_COLD_ENDPOINT` … `S3_COLD_BUCKET_NAME` | same shape, archive tier |
+| `S3_ENDPOINT` | `http://192.168.1.100:9000` |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | your keys |
+| `S3_BUCKET_NAME` | `crabs3` |
 | `S3_REGION` | `us-east-1` |
 | `EXPIRED_FILE_POLICY` | `cold` (move) or `delete` |
 

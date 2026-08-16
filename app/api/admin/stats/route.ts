@@ -1,7 +1,5 @@
 import prisma from "@/lib/prisma"
 import { NextResponse } from "next/server"
-import { s3Cold, COLD_BUCKET } from "@/services/s3.service"
-import { HeadBucketCommand } from "@aws-sdk/client-s3"
 import { log } from "@/services/log.service"
 import { LogAction, LogLevel } from "@/types/log.types"
 import { getSession } from "@/lib/auth"
@@ -13,15 +11,6 @@ export async function GET() {
       action: LogAction.ADMIN_ACTION,
       message: "Admin stats request",
     })
-
-    let coldStorageActive = false
-    try {
-      const command = new HeadBucketCommand({ Bucket: COLD_BUCKET })
-      await s3Cold.send(command)
-      coldStorageActive = true
-    } catch {
-      coldStorageActive = false
-    }
 
     const files = await prisma.files.findMany({
       select: {
@@ -78,7 +67,6 @@ export async function GET() {
     return NextResponse.json({
       totalStorageUsed,
       expiredStorageSize: totalExpiredStorageSize,
-      coldStorageActive,
 
       totalFiles: totalFilesCount,
       activeFiles: totalActiveFiles,
