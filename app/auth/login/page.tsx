@@ -87,6 +87,7 @@ export default function LoginPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
+              autoFocus
             />
           </div>
 
@@ -114,6 +115,7 @@ export default function LoginPage() {
                 onChange={e => setTwoFactorToken(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleSubmit()}
                 placeholder="Enter your 2FA token"
+                autoFocus
               />
             </div>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">Please enter your 2FA token to continue.</p>

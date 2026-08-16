@@ -73,15 +73,17 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <main className="min-h-screen flex max-w-450 mx-auto text-text dark:text-text-dark">
+        <div className="min-h-screen flex mx-auto text-text dark:text-text-dark">
           <NavBar user={user} />
-          <div className=" mx-auto flex-1 flex flex-col overflow-hidden bg-page dark:bg-page-dark">
-            <div className="flex-1 overflow-y-auto flex items-center flex-col">
-              {children}
-              <Footer />
+          <div className="mx-auto flex-1 flex flex-col bg-page dark:bg-page-dark">
+            <div className="flex-1 flex items-center flex-col">
+              <main id="content" className="w-full flex-1 flex flex-col items-center relative">
+                {children}
+              </main>
+              {user && <Footer />}
             </div>
           </div>
-        </main>
+        </div>
       </body>
     </html>
   );

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const PUBLIC_EXACT = new Set(["/", "/docs", "/self-hosting"]);
+
 const PUBLIC_ROUTES = [
   "/auth/login",
   "/auth/signup",
@@ -26,7 +28,7 @@ const PUBLIC_ROUTES = [
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublic = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+  const isPublic = PUBLIC_EXACT.has(pathname) || PUBLIC_ROUTES.some(route => pathname.startsWith(route));
   if (isPublic) return NextResponse.next();
 
   const session = request.cookies.get("session");
