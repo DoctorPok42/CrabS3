@@ -84,6 +84,11 @@ body {
   font-family: var(--font-sans);
 }
 
+body::selection {
+  background-color: var(--color-primary-500);
+  color: var(--foreground);
+}
+
 .inputClass {
   display: flex;
   align-items: center;

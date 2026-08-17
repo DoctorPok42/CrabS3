@@ -36,7 +36,7 @@ export function proxy(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.redirect(new URL("/auth/login?next=" + encodeURIComponent(request.url), request.url));
+    return NextResponse.redirect(new URL("/auth/login?next=" + encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search), request.url));
   }
 
   return NextResponse.next();

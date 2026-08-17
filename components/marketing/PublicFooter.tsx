@@ -20,7 +20,7 @@ const PublicFooter = () => {
           <ul className="flex flex-col gap-2.5 text-sm list-none p-0 m-0">
             <li><Link href="/" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Overview</Link></li>
             <li><Link href="/auth/login" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Send a file</Link></li>
-            <li><Link href="/auth/login" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Send a secret</Link></li>
+            <li><Link href="/secrets" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Send a secret</Link></li>
           </ul>
         </nav>
 
@@ -38,7 +38,7 @@ const PublicFooter = () => {
           <ul className="flex flex-col gap-2.5 text-sm list-none p-0 m-0">
             <li><a href="https://github.com/DoctorPok42/CrabS3" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">GitHub ↗</a></li>
             <li><a href="https://github.com/DoctorPok42/CrabS3/issues" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Report an issue ↗</a></li>
-            <li><a href="https://uptime.doctorpok.io" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Status ↗</a></li>
+            <li><a href="https://uptime.doctorpok.io/status/crabs3" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Status ↗</a></li>
           </ul>
         </nav>
       </div>
