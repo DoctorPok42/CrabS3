@@ -2,7 +2,8 @@ import prisma from "@/lib/prisma";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
-import { AbortMultipartUploadCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { AbortMultipartUploadCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { deleteStorageObjectIfUnreferenced, resolveStorageKey } from "@/lib/storage-key";
 
 const POLICY = (process.env.EXPIRED_FILE_POLICY || "cold").toLowerCase(); // "delete" | "cold"
 const INCOMPLETE_UPLOAD_SCAN_LIMIT = 500;
@@ -15,14 +16,11 @@ interface ExpiredFile {
   id: string;
   folder_id: string | null;
   filename: string;
-}
-
-function s3Key(file: ExpiredFile) {
-  return `${file.folder_id}/${file.id}`;
+  storage_key: string | null;
 }
 
 async function deleteFile(file: ExpiredFile) {
-  await s3Hot.send(new DeleteObjectCommand({ Bucket: HOT_BUCKET, Key: s3Key(file) })).catch(() => { });
+  const objectRemoved = await deleteStorageObjectIfUnreferenced(file);
 
   await prisma.$transaction([
     prisma.downloads.updateMany({ where: { file_id: file.id }, data: { file_id: null } }),
@@ -34,8 +32,10 @@ async function deleteFile(file: ExpiredFile) {
   await log({
     level: LogLevel.INFO,
     action: LogAction.FILE_EXPIRED,
-    message: `File ${file.filename} expired and deleted`,
-    meta: { fileId: file.id, folderId: file.folder_id, policy: "delete" },
+    message: objectRemoved
+      ? `File ${file.filename} expired and deleted`
+      : `File ${file.filename} expired and its metadata removed - content preserved because another file still shares it`,
+    meta: { fileId: file.id, folderId: file.folder_id, policy: "delete", objectRemoved },
   });
 }
 
@@ -97,7 +97,7 @@ export async function processExpiredFiles() {
       expires_at: { lt: new Date() },
       storage: "hot",
     },
-    select: { id: true, folder_id: true, filename: true },
+    select: { id: true, folder_id: true, filename: true, storage_key: true },
     orderBy: { expires_at: "asc" },
     take: BATCH_LIMIT,
   });
@@ -111,7 +111,7 @@ export async function processExpiredFiles() {
     where: {
       folder: null,
     },
-    select: { id: true, folder_id: true, filename: true },
+    select: { id: true, folder_id: true, filename: true, storage_key: true },
     orderBy: { uploaded_at: "asc" },
     take: BATCH_LIMIT,
   });
@@ -130,7 +130,7 @@ export async function cleanupIncompleteUploads() {
       storage: "hot",
       uploaded_at: { not: null },
     },
-    select: { id: true, folder_id: true, filename: true },
+    select: { id: true, folder_id: true, filename: true, storage_key: true },
     orderBy: { uploaded_at: "desc" },
     take: INCOMPLETE_UPLOAD_SCAN_LIMIT,
   });
@@ -152,10 +152,13 @@ export async function cleanupIncompleteUploads() {
       continue;
     }
 
-    const objectExists = await s3Hot.send(new HeadObjectCommand({
-      Bucket: HOT_BUCKET,
-      Key: s3Key(file),
-    })).then(() => true).catch(() => false);
+    const key = resolveStorageKey(file);
+    const objectExists = key
+      ? await s3Hot.send(new HeadObjectCommand({
+          Bucket: HOT_BUCKET,
+          Key: key,
+        })).then(() => true).catch(() => false)
+      : false;
 
     if (!objectExists) {
       await deleteIncompleteUpload(file);

@@ -28,9 +28,11 @@ services:
       - CLAMD_CONF_ScanPDF=true
       - CLAMD_CONF_ScanXMLDOCS=true
       - CLAMD_CONF_MaxRecursion=10
-      - CLAMD_CONF_MaxFileSize=104857600
-      - CLAMD_CONF_MaxScanSize=419430400
+      - CLAMD_CONF_StreamMaxLength=1900M
+      - CLAMD_CONF_MaxFileSize=1900M
+      - CLAMD_CONF_MaxScanSize=1900M
       - CLAMD_CONF_AlertBrokenExecutables=true
+      - CLAMD_CONF_ReadTimeout=600
     volumes:
       - clamav_data:/var/lib/clamav
     networks:
@@ -44,8 +46,10 @@ services:
 
   web:
     depends_on:
-      - db
-      - clamav
+      db:
+        condition: service_started
+      clamav:
+        condition: service_healthy
     build: .
     ports:
       - "3000:3000"
@@ -71,6 +75,7 @@ services:
 
       - CLAMAV_HOST=clamav
       - CLAMAV_PORT=3310
+      - CLAMAV_MAX_SCAN_SIZE=1992294400
 
       - JWT_SECRET=your_jwt_secret
       - EXPIRED_FILE_POLICY=cold
@@ -87,12 +92,13 @@ services:
   cron:
     build:
       context: ./cron
+    depends_on:
+      web:
+        condition: service_healthy
     container_name: crabs3-cron
     environment:
       CRON_SECRET: testsecret
       APP_INTERNAL_URL: http://web:3000
-    depends_on:
-      - web
     restart: unless-stopped
 
 networks:
