@@ -1,10 +1,9 @@
 import { getIp } from "@/lib/ip";
 import prisma from "@/lib/prisma";
 import { log } from "@/services/log.service";
-import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
 import { LogAction, LogLevel } from "@/types/log.types";
-import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import bcrypt from "bcrypt";
+import { deleteStorageObjectIfUnreferenced } from "@/lib/storage-key";
 
 export async function POST(
   request: Request,
@@ -27,7 +26,7 @@ export async function POST(
       if (fileId) {
         const file = await prisma.files.findUnique({
           where: { id: fileId },
-          select: { folder_id: true, password_hash: true, filename: true, size: true, max_downloads: true, download_count: true, expires_at: true, scanned_at: true, infected: true },
+          select: { id: true, folder_id: true, password_hash: true, filename: true, size: true, max_downloads: true, download_count: true, expires_at: true, scanned_at: true, infected: true, storage_key: true },
         });
 
         if (!file) {
@@ -39,10 +38,7 @@ export async function POST(
         }
 
         if (file.expires_at! < new Date()) {
-          await s3Hot.send(new DeleteObjectCommand({
-            Bucket: HOT_BUCKET,
-            Key: `${folderId}/${fileId}`,
-          })).catch(console.error);
+          await deleteStorageObjectIfUnreferenced({ id: fileId, folder_id: file.folder_id, storage_key: file.storage_key }).catch(console.error);
 
           await log({
             level: LogLevel.INFO,
@@ -75,10 +71,7 @@ export async function POST(
         }
 
         if (file.max_downloads !== null && file.download_count! >= file.max_downloads) {
-          await s3Hot.send(new DeleteObjectCommand({
-            Bucket: HOT_BUCKET,
-            Key: `${folderId}/${fileId}`,
-          })).catch(console.error);
+          await deleteStorageObjectIfUnreferenced({ id: fileId, folder_id: file.folder_id, storage_key: file.storage_key }).catch(console.error);
           return Response.json({ error: "Download limit exceeded" }, { status: 410 });
         }
 
@@ -95,7 +88,7 @@ export async function POST(
       } else {
         const files = await prisma.files.findMany({
           where: { folder_id: folderId },
-          select: { id: true, password_hash: true, expires_at: true, max_downloads: true, download_count: true },
+          select: { id: true, folder_id: true, password_hash: true, expires_at: true, max_downloads: true, download_count: true, storage_key: true },
         });
 
         if (files.length === 0) {
@@ -119,18 +112,12 @@ export async function POST(
 
         for (const file of files) {
           if (file.expires_at! < new Date()) {
-            await s3Hot.send(new DeleteObjectCommand({
-              Bucket: HOT_BUCKET,
-              Key: `${folderId}/${file.id}`,
-            })).catch(console.error);
+            await deleteStorageObjectIfUnreferenced(file).catch(console.error);
             return Response.json({ error: "One or more files have expired" }, { status: 410 });
           }
 
           if (file.max_downloads !== null && file.download_count! >= file.max_downloads) {
-            await s3Hot.send(new DeleteObjectCommand({
-              Bucket: HOT_BUCKET,
-              Key: `${folderId}/${file.id}`,
-            })).catch(console.error);
+            await deleteStorageObjectIfUnreferenced(file).catch(console.error);
             return Response.json({ error: "Download limit exceeded for one or more files" }, { status: 410 });
           }
         }

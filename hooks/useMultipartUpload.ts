@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
+import { computeFileHash } from "@/lib/file-hash";
 
-const MAX_PARALLEL_CHUNKS = 50;
+const MAX_PARALLEL_CHUNKS = 6;
 const PART_RETRIES = 6;
 const STORAGE_PREFIX = "crabs3:mpu:";
 const STORAGE_MAX_AGE = 24 * 60 * 60 * 1000; // 24h
@@ -97,7 +98,7 @@ function savePersistedSession(signature: string, data: Omit<PersistedSession, "s
   if (!hasStorage()) return;
   try {
     localStorage.setItem(STORAGE_PREFIX + signature, JSON.stringify({ ...data, savedAt: Date.now() }));
-  } catch {}
+  } catch { }
 }
 
 function clearPersistedSession(signature: string) {
@@ -126,7 +127,8 @@ function waitForOnline(): Promise<void> {
 async function startSession(
   file: File,
   filename: string,
-  folderId: string
+  folderId: string,
+  contentHash: string
 ): Promise<{ fileId: string; uploadId: string; token: string; chunkSize: number }> {
   const startRes = await fetch("/api/upload/multipart/start", {
     method: "POST",
@@ -134,6 +136,7 @@ async function startSession(
       "X-Filename": encodeURIComponent(filename),
       "X-Folder-Id": folderId,
       "X-File-Size": file.size.toString(),
+      "X-Content-Hash": contentHash,
       "Content-Type": file.type || "application/octet-stream",
     },
   });
@@ -171,7 +174,7 @@ async function fetchResume(fileId: string): Promise<{
   return res.json();
 }
 
-async function resolveSession(file: File, filename: string, folderId: string): Promise<SessionResult> {
+async function resolveSession(file: File, filename: string, folderId: string, contentHash: string = ""): Promise<SessionResult> {
   const signature = getFileSignature(file, filename);
   const saved = loadPersistedSession(signature);
 
@@ -203,7 +206,7 @@ async function resolveSession(file: File, filename: string, folderId: string): P
     }
   }
 
-  const fresh = await startSession(file, filename, folderId);
+  const fresh = await startSession(file, filename, folderId, contentHash);
   savePersistedSession(signature, {
     fileId: fresh.fileId,
     folderId,
@@ -222,6 +225,53 @@ async function resolveSession(file: File, filename: string, folderId: string): P
     folderId,
     resumed: false,
   };
+}
+
+interface DedupeMetadata {
+  filename: string;
+  contentType: string;
+  size: string;
+  maxDownloads?: string | null;
+  emailRecipient?: string;
+  expireAfter: UploadOptions["expireAfter"];
+  password?: string;
+  emailMessage?: string;
+}
+
+interface DedupeResult {
+  duplicate: boolean;
+  fileId?: string;
+  folderId?: string;
+  filename?: string;
+  folderName?: string | null;
+  etag?: string;
+}
+
+async function checkDedupe(
+  hash: string,
+  folderId: string,
+  folderName: string | undefined,
+  metadata: DedupeMetadata
+): Promise<DedupeResult> {
+  const res = await fetch("/api/upload/dedupe-check", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hash, folderId, folderName: folderName || null, metadata }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new UploadFlowError(errorData.error || "Failed to check for a duplicate", isFatalStatus(res.status));
+  }
+
+  return res.json();
+}
+
+function attachHash(fileId: string, contentHash: string) {
+  return fetch("/api/upload/multipart/set-hash", {
+    method: "POST",
+    headers: { "X-File-Id": fileId, "X-Content-Hash": contentHash },
+  }).catch(() => { });
 }
 
 export function useMultipartUpload() {
@@ -306,7 +356,59 @@ export function useMultipartUpload() {
     const filename = options.filename?.trim() || file.name;
     let folderId = options.folderId || crypto.randomUUID();
 
+    const finishBatchIfDone = async () => {
+      uploadCount.current--;
+
+      if (uploadCount.current === 0) {
+        const responseData = await fetch("/api/upload/multipart/finish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folderId, folderName: options.folderName || null }),
+        }).catch(() => null);
+
+        if (!responseData?.ok) {
+          const errorData = await responseData?.json().catch(() => ({})) ?? {};
+          setError(errorData.error || "Failed to finalize upload");
+        }
+
+        setProgress(100);
+        setUploading(false);
+      }
+    };
+
     try {
+      const metadata = {
+        filename,
+        contentType: file.type || "application/octet-stream",
+        size: file.size.toString(),
+        ...(options.maxDownloads ? { maxDownloads: options.maxDownloads.toString() } : { maxDownloads: null }),
+        ...(options.emailRecipient && { emailRecipient: options.emailRecipient }),
+        ...(options.expireAfter && { expireAfter: options.expireAfter || "30" }),
+        ...(options.password && { password: options.password }),
+        ...(options.emailMessage && { emailMessage: options.emailMessage }),
+      };
+
+      const contentHash = await computeFileHash(file);
+      const dedupe = await checkDedupe(contentHash, folderId, options.folderName, metadata as DedupeMetadata);
+
+      if (dedupe.duplicate && dedupe.fileId) {
+        const prewarmedForDedupe = prewarmedSessions.current.get(file);
+        if (prewarmedForDedupe) {
+          prewarmedSessions.current.delete(file);
+          abortPrewarmedSession(prewarmedForDedupe, true);
+        }
+        clearPersistedSession(getFileSignature(file, filename));
+
+        folderId = dedupe.folderId || folderId;
+        await finishBatchIfDone();
+
+        return {
+          fileId: dedupe.fileId,
+          etag: dedupe.etag || "deduplicated",
+          filename: dedupe.filename || filename,
+        };
+      }
+
       const prewarmed = prewarmedSessions.current.get(file);
       const canReusePrewarm = !!prewarmed
         && prewarmed.filename === filename
@@ -322,11 +424,13 @@ export function useMultipartUpload() {
 
       const session = canReusePrewarm
         ? await prewarmed!.promise
-        : await resolveSession(file, filename, folderId);
+        : await resolveSession(file, filename, folderId, contentHash);
 
       ({ fileId, uploadId, signature } = session);
       folderId = session.folderId;
       const token = session.token;
+
+      await attachHash(fileId, contentHash);
 
       uploads.set(fileId!, 0);
 
@@ -386,18 +490,6 @@ export function useMultipartUpload() {
 
       const sortedParts = [...parts].sort((a, b) => a.PartNumber - b.PartNumber);
 
-      const metadata = {
-        filename,
-        contentType: file.type || "application/octet-stream",
-        size: file.size.toString(),
-        folderId,
-        ...(options.maxDownloads ? { maxDownloads: options.maxDownloads.toString() } : { maxDownloads: null }),
-        ...(options.emailRecipient && { emailRecipient: options.emailRecipient }),
-        ...(options.expireAfter && { expireAfter: options.expireAfter || "30" }),
-        ...(options.password && { password: options.password }),
-        ...(options.emailMessage && { emailMessage: options.emailMessage }),
-      };
-
       const completeRes = await fetch("/api/upload/multipart/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -410,25 +502,9 @@ export function useMultipartUpload() {
       }
 
       clearPersistedSession(signature);
-
       uploads.delete(fileId!);
-      uploadCount.current--;
 
-      if (uploadCount.current === 0) {
-        const responseData = await fetch("/api/upload/multipart/finish", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folderId, folderName: options.folderName || null }),
-        });
-
-        if (!responseData.ok) {
-          const errorData = await responseData.json();
-          setError(errorData.error || "Failed to finalize upload");
-        }
-
-        setProgress(100);
-        setUploading(false);
-      }
+      await finishBatchIfDone();
 
       const result = await completeRes.json();
       return result;

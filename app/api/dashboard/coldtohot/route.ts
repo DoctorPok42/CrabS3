@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { resolveStorageKey } from "@/lib/storage-key";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
 import { CopyObjectCommand } from "@aws-sdk/client-s3";
 
@@ -15,6 +16,19 @@ export async function POST(request: Request) {
       return Response.json({ error: "Invalid folder ID" }, { status: 400 });
     }
 
+    const folder = await prisma.folders.findFirst({
+      where: {
+        id: folderId,
+        OR: [
+          { user_id: session.userId },
+          { files: { some: { user_id: session.userId } } }
+        ]
+      },
+    });
+    if (!folder) {
+      return Response.json({ error: "Folder not found" }, { status: 404 });
+    }
+
     const findFiles = await prisma.files.findMany({
       where: { folder_id: folderId, user_id: session.userId },
     });
@@ -22,8 +36,11 @@ export async function POST(request: Request) {
       return Response.json({ error: "Folder not found" }, { status: 404 });
     }
 
-    for (const file of findFiles) {
-      const key = `${folderId}/${file.id}`;
+    const uniqueKeys = new Set(
+      findFiles.map((f) => resolveStorageKey(f)).filter((k): k is string => !!k)
+    );
+
+    for (const key of uniqueKeys) {
       await s3Hot.send(new CopyObjectCommand({
         Bucket: HOT_BUCKET,
         CopySource: `/${HOT_BUCKET}/${encodeURIComponent(key)}`,
@@ -34,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     const updateFiles = await prisma.files.updateMany({
-      where: { folder_id: folderId, user_id: session.userId },
+      where: { storage_key: { in: Array.from(uniqueKeys) }, user_id: session.userId },
       data: { storage: "hot" },
     });
     if (updateFiles.count === 0) {

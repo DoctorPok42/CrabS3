@@ -93,8 +93,8 @@ const Overview = () => {
       <section className="max-w-280 mx-auto px-8 pt-19 grid gap-14 items-center grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
         <div>
           <p className="flex items-center gap-2.5 font-mono text-[11.5px] tracking-[0.14em] uppercase text-primary-700 dark:text-primary-400 mb-5 m-0">
-            <span aria-hidden="true" className="w-6 h-[3px] bg-primary-500 rounded-full" />
-            Open source · Apache-2.0 · Docker
+            <span aria-hidden="true" className="w-6 h-0.75 bg-primary-500 rounded-full" />
+            <span className="select-none">Open source · Apache-2.0 · Docker</span>
           </p>
           <h1 className="text-[40px] md:text-[52px] font-extrabold leading-[1.06] tracking-[-0.035em] m-0 mb-5 text-pretty">
             Send files from your own S3 bucket.
@@ -120,7 +120,7 @@ const Overview = () => {
         </div>
 
         {/* Illustration */}
-        <div aria-hidden="true" className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark rounded-[28px] p-6 shadow-[0_20px_48px_oklch(40%_0.01_55/0.09)]">
+        <div aria-hidden="true" className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark rounded-[28px] p-6 shadow-[0_20px_48px_oklch(40%_0.01_55/0.09)] select-none">
           <div className="border-[1.5px] border-dashed border-inputBorder dark:border-inputBorder-dark rounded-[20px] bg-input dark:bg-input-dark px-6 py-11 text-center">
             <p className="w-13 h-13 rounded-2xl bg-uploadBg dark:bg-uploadBg-dark text-uploadColor flex items-center justify-center mx-auto mb-4 text-[22px] font-extrabold">↑</p>
             <p className="m-0 mb-1.5 text-base font-bold">Drop files here</p>
@@ -153,7 +153,7 @@ const Overview = () => {
         <ul className="grid gap-5 grid-cols-1 md:grid-cols-3 list-none p-0 m-0">
           {differentiators.map((d) => (
             <li key={d.n} className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark rounded-[28px] p-7">
-              <p className="font-mono text-xs font-bold text-primary-500 m-0 mb-3.5">{d.n}</p>
+              <p className="font-mono text-xs font-bold text-primary-500 m-0 mb-3.5 select-none">{d.n}</p>
               <h3 className="text-[19px] font-extrabold m-0 mb-2.5 tracking-[-0.01em]">{d.title}</h3>
               <p className="m-0 text-[14.5px] text-zinc-600 dark:text-zinc-400">{d.body}</p>
             </li>
@@ -179,13 +179,16 @@ const Overview = () => {
             <li aria-hidden="true" className="text-[#7d7269]">→</li>
             <li className="px-3.5 py-1.75 rounded-full bg-[#453b34] text-[#e0d8d2]">N downloads or T days</li>
             <li aria-hidden="true" className="text-[#7d7269]">→</li>
-            <li className="px-3.5 py-1.75 rounded-full bg-[oklch(62%_0.15_25/0.22)] text-[#f0958d] font-bold">deleted or archived</li>
+            <li className="px-3.5 py-1.75 rounded-full bg-[oklch(62%_0.15_25/0.22)] text-[#f0958d] font-bold relative overflow-hidden">
+              <span className="absolute left-0 top-0 w-[52.5%] h-full mt-[0.4%] bg-[#194f6a] rounded-l-2xl z-0" />
+              <span className="relative z-10 text-white">archive or delete</span>
+            </li>
           </ol>
 
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {pipeline.map((p) => (
               <div key={p.step}>
-                <p className="font-mono text-xs text-primary-500 font-bold m-0 mb-2.5">{p.step}</p>
+                <p className="font-mono text-xs text-primary-500 font-bold m-0 mb-2.5 select-none">{p.step}</p>
                 <h3 className="text-[17px] font-extrabold m-0 mb-2">{p.title}</h3>
                 <p className="m-0 text-sm text-[#b0a49b]">{p.body}</p>
               </div>
@@ -203,7 +206,7 @@ const Overview = () => {
         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-cardBorder dark:bg-cardBorder-dark border border-cardBorder dark:border-cardBorder-dark rounded-[28px] overflow-hidden list-none p-0 m-0">
           {features.map((f) => (
             <li key={f.n} className="bg-card dark:bg-card-dark px-6 py-6.5">
-              <p className="font-mono text-[11px] font-bold text-zinc-400 dark:text-zinc-600 m-0 mb-3">{f.n}</p>
+              <p className="font-mono text-[11px] font-bold text-zinc-400 dark:text-zinc-600 m-0 mb-3 select-none">{f.n}</p>
               <h3 className="text-base font-extrabold m-0 mb-1.75">{f.title}</h3>
               <p className="m-0 text-[13.8px] text-zinc-600 dark:text-zinc-400 leading-[1.55]">{f.body}</p>
             </li>
@@ -215,7 +218,7 @@ const Overview = () => {
       <section aria-labelledby="secret-h" className="max-w-280 mx-auto px-8 pt-22 w-full">
         <div className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark rounded-[28px] p-11 grid gap-12 items-center grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)]">
           <div>
-            <p className="font-mono text-[11.5px] tracking-[0.14em] uppercase text-primary-700 dark:text-primary-400 m-0 mb-4">Or send a secret</p>
+            <p className="font-mono text-[11.5px] tracking-[0.14em] uppercase text-primary-700 dark:text-primary-400 m-0 mb-4 select-none">Or send a secret</p>
             <h2 id="secret-h" className="text-[32px] font-extrabold tracking-[-0.025em] m-0 mb-3.5 text-pretty">
               Stop pasting credentials into chat.
             </h2>

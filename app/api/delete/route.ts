@@ -1,22 +1,24 @@
 import prisma from "@/lib/prisma"
-import { COLD_BUCKET, HOT_BUCKET, s3Hot } from "@/services/s3.service"
-import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { getSession } from "@/lib/auth"
 import { log } from "@/services/log.service"
 import { LogAction, LogLevel } from "@/types/log.types"
 import { getIp } from "@/lib/ip"
+import { deleteFilesAndReclaimStorage, deleteStorageObjectIfUnreferenced, resolveStorageKey } from "@/lib/storage-key"
+import { HOT_BUCKET, s3Hot } from "@/services/s3.service"
+import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 
 export async function DELETE(request: Request) {
+  let session;
   try {
-    const { folderId, fileId } = await request.json()
+    const { folderId, fileId, mode } = await request.json()
 
     if (!folderId || !fileId) {
-      return new Response(JSON.stringify({ error: 'Missing folderId or fileId' }), { status: 400 })
+      return Response.json({ error: 'Missing folderId or fileId' }, { status: 400 })
     }
 
-    const session = await getSession()
+    session = await getSession()
     if (!session) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     await log({
@@ -24,7 +26,7 @@ export async function DELETE(request: Request) {
       action: LogAction.DELETE,
       message: "Delete request started",
       userId: session.userId,
-      meta: { folderId, fileId }
+      meta: { folderId, fileId, mode }
     })
 
     const file = await prisma.files.findFirst({
@@ -35,15 +37,46 @@ export async function DELETE(request: Request) {
       }
     })
     if (!file) {
-      return new Response(JSON.stringify({ error: 'File not found' }), { status: 404 })
+      return Response.json({ error: 'File not found' }, { status: 404 })
     }
 
-    await s3Hot.send(
-      new DeleteObjectCommand({
-        Bucket: HOT_BUCKET,
-        Key: folderId + "/" + fileId,
+    const siblings = file.hash
+      ? await prisma.files.findMany({
+        where: { user_id: session.userId, hash: file.hash, id: { not: file.id } },
+        select: { id: true, filename: true },
       })
-    )
+      : [];
+
+    if (siblings.length > 0 && mode !== "this" && mode !== "all") {
+      return Response.json(
+        {
+          needsConfirmation: true,
+          siblingCount: siblings.length,
+          siblingFilenames: siblings.slice(0, 5).map((s) => s.filename),
+        },
+        { status: 409 }
+      );
+    }
+
+    if (mode === "all" && file.hash) {
+      const group = await prisma.files.findMany({
+        where: { user_id: session.userId, hash: file.hash },
+        select: { id: true, folder_id: true, storage_key: true, filename: true },
+      });
+
+      const removedCount = await deleteFilesAndReclaimStorage(group);
+
+      await log({
+        action: LogAction.DELETE,
+        message: `Deleted ${removedCount} files sharing content with "${file.filename}"`,
+        userId: session.userId,
+        meta: { folderId, fileId, groupIds: group.map((f) => f.id), ip: getIp(request) },
+      });
+
+      return Response.json({ message: 'Files deleted successfully', removedCount });
+    }
+
+    await deleteStorageObjectIfUnreferenced(file)
 
     await prisma.files.delete({
       where: {
@@ -55,13 +88,12 @@ export async function DELETE(request: Request) {
       action: LogAction.DELETE,
       message: `File ${file.filename} deleted`,
       userId: session.userId,
-      meta: { folderId, fileId, ip: getIp(request) },
+      meta: { folderId, fileId, ip: getIp(request), siblingsRemaining: siblings.length },
     })
 
-    return new Response(JSON.stringify({ message: 'File deleted successfully' }), { status: 200 })
+    return Response.json({ message: 'File deleted successfully', removedCount: 1 })
   } catch (error) {
     console.error('Error deleting file:', error)
-    const session = await getSession()
     await log({
       level: LogLevel.ERROR,
       action: LogAction.DELETE,
@@ -69,6 +101,6 @@ export async function DELETE(request: Request) {
       userId: session?.userId,
       meta: { error: error instanceof Error ? error.message : String(error) }
     })
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500 })
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

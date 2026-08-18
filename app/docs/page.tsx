@@ -48,7 +48,7 @@ const sections: { id: string; title: string; intro: React.ReactNode; endpoints: 
       { method: "GET", path: "/api/checkfile", desc: "Is this share still valid? Also used for hash de-duplication" },
       { method: "POST", path: "/api/download/:id", desc: "Validate password and quota, return metadata" },
       { method: "GET", path: "/api/download/:id/stream", desc: "Stream the bytes, or a zip for several files" },
-      { method: "DELETE", path: "/api/delete", desc: "Remove a file you own" },
+      { method: "DELETE", path: "/api/delete", desc: "Remove a file you own. Returns 409 with a mode choice if others share its content." },
     ],
   },
   {
@@ -93,8 +93,11 @@ const sections: { id: string; title: string; intro: React.ReactNode; endpoints: 
 ];
 
 const uploadEndpoints: Endpoint[] = [
+  { method: "POST", path: "/api/upload/dedupe-check", desc: "Given a content hash, links a new file to an already-uploaded one instead of re-uploading it." },
   { method: "POST", path: "/api/upload/multipart/start", desc: "Opens a session and returns an upload id with presigned part URLs." },
   { method: "POST", path: "/api/upload/multipart/part", desc: "Uploads one part. Parts run in parallel and retry independently." },
+  { method: "POST", path: "/api/upload/multipart/resume", desc: "Reattaches to an interrupted session; returns which parts already landed." },
+  { method: "POST", path: "/api/upload/multipart/set-hash", desc: "Attaches a content hash to a session started before hashing finished." },
   { method: "POST", path: "/api/upload/multipart/complete", desc: "Seals the object and attaches retention rules, password and folder name." },
   { method: "POST", path: "/api/upload/multipart/abort", desc: "Cancels the session and discards uploaded parts." },
 ];

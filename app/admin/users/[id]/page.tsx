@@ -53,7 +53,7 @@ const User = () => {
         method: "DELETE"
       })
       if (response.ok) {
-        globalThis.location.href = "/admin/users"
+        globalThis.location.href = "/admin"
       } else {
         setToast({ level: "error", message: "Failed to delete user. Please try again." })
         console.error("Failed to delete user:", response.statusText)
@@ -63,7 +63,6 @@ const User = () => {
       console.error("Error deleting user:", error)
     }
   }
-
 
   const handleResetPassword = async () => {
     const newPassword = prompt("Enter a new password for this user:")

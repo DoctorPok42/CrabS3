@@ -7,7 +7,7 @@ const PublicFooter = () => {
       <div className="max-w-280 mx-auto px-8 pt-13 pb-9 grid gap-10 grid-cols-1 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
         <div>
           <div className="flex items-center gap-2.5 mb-3">
-            <Image src="/web-app-manifest-192x192.png" alt="" aria-hidden="true" width={28} height={28} className="rounded-lg" />
+            <Image src="/web-app-manifest-192x192.png" alt="" aria-hidden="true" width={28} height={28} className="rounded-lg select-none" />
             <span className="text-base font-extrabold">CrabS3</span>
           </div>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-[26em]">
@@ -20,7 +20,7 @@ const PublicFooter = () => {
           <ul className="flex flex-col gap-2.5 text-sm list-none p-0 m-0">
             <li><Link href="/" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Overview</Link></li>
             <li><Link href="/auth/login" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Send a file</Link></li>
-            <li><Link href="/auth/login" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Send a secret</Link></li>
+            <li><Link href="/secrets" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Send a secret</Link></li>
           </ul>
         </nav>
 
@@ -38,7 +38,7 @@ const PublicFooter = () => {
           <ul className="flex flex-col gap-2.5 text-sm list-none p-0 m-0">
             <li><a href="https://github.com/DoctorPok42/CrabS3" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">GitHub ↗</a></li>
             <li><a href="https://github.com/DoctorPok42/CrabS3/issues" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Report an issue ↗</a></li>
-            <li><a href="https://uptime.doctorpok.io" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Status ↗</a></li>
+            <li><a href="https://uptime.doctorpok.io/status/crabs3" className="text-zinc-600 dark:text-zinc-400 hover:text-primary-500 transition">Status ↗</a></li>
           </ul>
         </nav>
       </div>

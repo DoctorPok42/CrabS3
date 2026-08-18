@@ -1,5 +1,5 @@
-import { s3Hot, HOT_BUCKET, COLD_BUCKET } from "@/services/s3.service";
-import { DeleteObjectsCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { s3Hot, HOT_BUCKET } from "@/services/s3.service";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { sendDownloadNotificationEmail } from "@/services/mail.service";
@@ -9,9 +9,12 @@ import { sendAllActiveCommunications } from "@/lib/webhook";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { getIp } from "@/lib/ip";
+import { deleteStorageObjectIfUnreferenced, resolveStorageKey, type StorageKeyed } from "@/lib/storage-key";
 
-const getFileData = async (folderId: string, fileId: string) => {
-  const key = `${folderId}/${fileId}`;
+const getFileData = async (file: StorageKeyed) => {
+  const key = resolveStorageKey(file);
+  if (!key) return null;
+
   try {
     const url = await s3Hot.send(new GetObjectCommand({
       Bucket: HOT_BUCKET,
@@ -64,7 +67,8 @@ export async function GET(
             max_downloads: true,
             user_id: true,
             infected: true,
-            scanned_at: true
+            scanned_at: true,
+            storage_key: true
           },
         });
 
@@ -123,7 +127,7 @@ export async function GET(
             }
 
             try {
-              const fileData = await getFileData(folderId, file.id);
+              const fileData = await getFileData(file);
               if (fileData?.Body) {
                 const deflate = new ZipDeflate(file.filename, { level: 9 });
                 zip.add(deflate);
@@ -159,10 +163,7 @@ export async function GET(
             }).catch(console.error);
 
             if (file.max_downloads && file.max_downloads - 1 <= 0) {
-              await s3Hot.send(new DeleteObjectsCommand({
-                Bucket: HOT_BUCKET,
-                Delete: { Objects: [{ Key: `${folderId}/${file.id}` }] },
-              })).catch(() => { });
+              await deleteStorageObjectIfUnreferenced(file).catch(() => { });
             }
           }
 
@@ -280,7 +281,8 @@ export async function GET(
           max_downloads: true,
           user_id: true,
           infected: true,
-          scanned_at: true
+          scanned_at: true,
+          storage_key: true
         },
       });
 
@@ -353,7 +355,7 @@ export async function GET(
       return Response.json({ error: "File metadata not found" }, { status: 404 });
     }
 
-    const fileResponse = await getFileData(folderId, fileId);
+    const fileResponse = await getFileData({ id: fileId, folder_id: file.folder_id, storage_key: file.storage_key });
 
     if (!fileResponse) {
       return Response.json({ error: "File not found" }, { status: 404 });
@@ -375,14 +377,7 @@ export async function GET(
           userId: file.user_id || undefined,
           meta: { folderId, fileId, filename: metadata.filename }
         });
-        await s3Hot.send(new DeleteObjectsCommand({
-          Bucket: HOT_BUCKET,
-          Delete: {
-            Objects: [
-              { Key: `${folderId}/${fileId}` },
-            ],
-          },
-        }));
+        await deleteStorageObjectIfUnreferenced({ id: fileId, folder_id: file.folder_id, storage_key: file.storage_key });
       }
     }
 
