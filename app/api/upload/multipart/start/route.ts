@@ -14,6 +14,7 @@ export async function POST(request: Request) {
     const folderId = request.headers.get("X-Folder-Id") || randomUUID();
     const fileSize = request.headers.get("X-File-Size");
     const contentType = request.headers.get("Content-Type") || "application/octet-stream";
+    const contentHash = request.headers.get("X-Content-Hash") || null;
 
     if (!filename) {
       return Response.json({ error: "X-Filename required" }, { status: 400 });
@@ -105,7 +106,9 @@ export async function POST(request: Request) {
         folder_id: folderId,
         user_id: session.userId,
         uploaded_at: null,
-        storage: "hot"
+        storage: "hot",
+        hash: contentHash,
+        storage_key: folderId + "/" + fileId,
       },
     }).catch(console.error);
 

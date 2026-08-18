@@ -93,7 +93,7 @@ const Overview = () => {
       <section className="max-w-280 mx-auto px-8 pt-19 grid gap-14 items-center grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
         <div>
           <p className="flex items-center gap-2.5 font-mono text-[11.5px] tracking-[0.14em] uppercase text-primary-700 dark:text-primary-400 mb-5 m-0">
-            <span aria-hidden="true" className="w-6 h-[3px] bg-primary-500 rounded-full" />
+            <span aria-hidden="true" className="w-6 h-0.75 bg-primary-500 rounded-full" />
             <span className="select-none">Open source · Apache-2.0 · Docker</span>
           </p>
           <h1 className="text-[40px] md:text-[52px] font-extrabold leading-[1.06] tracking-[-0.035em] m-0 mb-5 text-pretty">

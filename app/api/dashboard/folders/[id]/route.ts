@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { log } from "@/services/log.service";
 import { NextRequest } from "next/server";
+import { deleteFilesAndReclaimStorage } from "@/lib/storage-key";
 
 export async function PATCH(
   request: NextRequest,
@@ -59,30 +60,38 @@ export async function DELETE(
 
   try {
     const { id: folderId } = await params;
-    const ownedFile = await prisma.files.findFirst({
-      where: { folder_id: folderId, user_id: session.userId },
+
+    const folder = await prisma.folders.findFirst({
+      where: {
+        id: folderId,
+        OR: [{ user_id: session.userId }, { files: { some: { user_id: session.userId } } }],
+      },
       select: { id: true },
     });
-
-    if (!ownedFile) {
+    if (!folder) {
       return Response.json({ error: "Folder not found or unauthorized" }, { status: 404 });
     }
 
-    await prisma.folders.delete({
-      where: { id: folderId },
+    const filesToDelete = await prisma.files.findMany({
+      where: { folder_id: folderId, user_id: session.userId },
+      select: { id: true, folder_id: true, storage_key: true, filename: true },
     });
+
+    const removedCount = await deleteFilesAndReclaimStorage(filesToDelete);
+
+    await prisma.folders.delete({ where: { id: folderId } });
 
     (async () => {
       await log({
         level: LogLevel.INFO,
         action: LogAction.FOLDER_DELETED,
-        message: `Folder deleted`,
+        message: `Folder deleted (${removedCount}) file${removedCount !== 1 ? "s" : ""} removed`,
         userId: session.userId,
-        meta: { folderId },
+        meta: { folderId, removedFilesCount: removedCount },
       });
     })();
 
-    return Response.json({ success: true });
+    return Response.json({ success: true, removedCount });
   } catch (error) {
     console.error("Folder deletion error:", error);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });

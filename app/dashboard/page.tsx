@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faAddressCard, faBug, faChevronLeft, faChevronRight, faFingerprint, faSpinner } from "@fortawesome/free-solid-svg-icons"
-import { Button, Input, Toast } from "@/components"
+import { Button, Input, Toast, ConfirmDialog } from "@/components"
 import { formatSize } from "@/lib/format"
 
 const DashboardPage = () => {
@@ -37,71 +37,93 @@ const DashboardPage = () => {
   const [type, setType] = useState<"active" | "expired">("active")
   const [fetchingReport, setFetchingReport] = useState<string>("")
   const [toast, setToast] = useState<{ message: string; level: 'info' | 'success' | 'warning' | 'error', actionLabel?: string } | null>(null)
+  const [siblingDeletePrompt, setSiblingDeletePrompt] = useState<{
+    fileId: string
+    folderId: string
+    siblingCount: number
+    siblingFilenames: string[]
+  } | null>(null)
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const response = await fetch(`/api/dashboard/files?page=${page}&limit=10&type=${type}`)
-        if (!response.ok) {
-          setToast({ message: 'Error fetching dashboard data', level: 'error' })
-        }
-
-        const data = await response.json()
-        setDashboardData(data)
-        const nextFolderNames: Record<string, string> = {}
-        if (!data.files || data.files?.length === 0) {
-          setFolderNameEdits({})
-          setTotalPages(0)
-          return
-        }
-
-        for (const file of data.files as Array<{ folder_id: string | null; folder: { name: string } | null }>) {
-          if (file.folder_id && !nextFolderNames[file.folder_id]) {
-            nextFolderNames[file.folder_id] = file.folder?.name || file.folder_id
-          }
-        }
-        setFolderNameEdits(nextFolderNames)
-        setTotalPages(data.totalPages)
-      } catch (error) {
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/dashboard/files?page=${page}&limit=10&type=${type}`)
+      if (!response.ok) {
         setToast({ message: 'Error fetching dashboard data', level: 'error' })
-        console.error('Error fetching dashboard data:', error)
       }
-    }
 
-    fetchDashboardData()
+      const data = await response.json()
+      setDashboardData(data)
+      const nextFolderNames: Record<string, string> = {}
+      if (!data.files || data.files?.length === 0) {
+        setFolderNameEdits({})
+        setTotalPages(0)
+        return
+      }
+
+      for (const file of data.files as Array<{ folder_id: string | null; folder: { name: string } | null }>) {
+        if (file.folder_id && !nextFolderNames[file.folder_id]) {
+          nextFolderNames[file.folder_id] = file.folder?.name || file.folder_id
+        }
+      }
+      setFolderNameEdits(nextFolderNames)
+      setTotalPages(data.totalPages)
+    } catch (error) {
+      setToast({ message: 'Error fetching dashboard data', level: 'error' })
+      console.error('Error fetching dashboard data:', error)
+    }
   }, [page, type])
 
-  const handleDeleteFile = async (fileId: string, folderId: string) => {
-    if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
-      return
-    }
+  useEffect(() => {
+    fetchDashboardData()
+  }, [fetchDashboardData])
 
+  const deleteFile = async (fileId: string, folderId: string, mode?: "this" | "all") => {
     setToast({ message: '', level: 'info' })
 
     try {
       const response = await fetch('/api/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileId, folderId })
+        body: JSON.stringify({ fileId, folderId, ...(mode && { mode }) })
       })
+
+      if (response.status === 409) {
+        const data = await response.json().catch(() => null)
+        if (data?.needsConfirmation) {
+          setSiblingDeletePrompt({
+            fileId,
+            folderId,
+            siblingCount: data.siblingCount,
+            siblingFilenames: data.siblingFilenames || [],
+          })
+          return
+        }
+      }
 
       if (!response.ok) {
         setToast({ message: 'Error deleting file', level: 'error' })
+        return
       }
 
-      setDashboardData(prev => {
-        if (!prev) return prev
-        return {
-          ...prev,
-          files: prev.files.filter(file => file.id !== fileId)
-        }
+      const data = await response.json().catch(() => ({}))
+      setSiblingDeletePrompt(null)
+      await fetchDashboardData()
+      setToast({
+        message: data.removedCount > 1 ? `${data.removedCount} files deleted successfully` : 'File deleted successfully',
+        level: 'success',
       })
-
-      setToast({ message: 'File deleted successfully', level: 'success' })
     } catch (error) {
       setToast({ message: 'Error deleting file', level: 'error' })
       console.error('Error deleting file:', error)
     }
+  }
+
+  const handleDeleteFile = (fileId: string, folderId: string) => {
+    if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
+      return
+    }
+
+    deleteFile(fileId, folderId)
   }
 
   const handleChangeType = (newType: "active" | "expired") => {
@@ -211,10 +233,22 @@ const DashboardPage = () => {
     }
 
     try {
-      const response = await fetch(`/api/dashboard/folders/${folderId}`, {
+      const response = await fetch(`/api/dashboard/folders/${folderId}?mode=permanent`, {
         method: "DELETE",
       })
       if (!response.ok) {
+        if (response.status === 409) {
+          const data = await response.json().catch(() => null)
+          if (data?.needsConfirmation) {
+            setSiblingDeletePrompt({
+              fileId: data.fileId,
+              folderId,
+              siblingCount: data.siblingCount,
+              siblingFilenames: data.siblingFilenames || [],
+            })
+            return
+          }
+        }
         setToast({ message: 'Error deleting folder', level: 'error' })
       }
 
@@ -246,6 +280,32 @@ const DashboardPage = () => {
         level={toast?.level || "info"}
         actionLabel={toast?.actionLabel || ""}
       />
+
+      {siblingDeletePrompt && (
+        <ConfirmDialog
+          title="This file shares content with other files"
+          message={
+            `Deleting this file also affects ${siblingDeletePrompt.siblingCount} other file${siblingDeletePrompt.siblingCount > 1 ? 's' : ''} that share the exact same content` +
+            (siblingDeletePrompt.siblingFilenames.length
+              ? ` (${siblingDeletePrompt.siblingFilenames.join(', ')}${siblingDeletePrompt.siblingCount > siblingDeletePrompt.siblingFilenames.length ? ', …' : ''})`
+              : '') +
+            `.\n\n"Delete this file" only removes this one - the others keep working. "Delete all" removes every one of them.`
+          }
+          actions={[
+            {
+              label: 'Delete this file',
+              variant: 'secondary',
+              onClick: () => deleteFile(siblingDeletePrompt.fileId, siblingDeletePrompt.folderId, 'this'),
+            },
+            {
+              label: `Delete all ${siblingDeletePrompt.siblingCount + 1} files`,
+              variant: 'danger',
+              onClick: () => deleteFile(siblingDeletePrompt.fileId, siblingDeletePrompt.folderId, 'all'),
+            },
+          ]}
+          onClose={() => setSiblingDeletePrompt(null)}
+        />
+      )}
 
       <div className="w-full flex">
         <div className="flex p-1 gap-1 bg-input dark:bg-input-dark border border-cardBorder dark:border-cardBorder-dark rounded-full">
