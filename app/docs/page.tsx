@@ -25,6 +25,10 @@ const verbStyle: Record<Verb, string> = {
 
 type Endpoint = { method: Verb; path: string; desc: string };
 
+function getSection(id: string) {
+  return sections.find((s) => s.id === id)!;
+}
+
 const sections: { id: string; title: string; intro: React.ReactNode; endpoints: Endpoint[] }[] = [
   {
     id: "auth",
@@ -45,7 +49,7 @@ const sections: { id: string; title: string; intro: React.ReactNode; endpoints: 
     intro:
       "Download is two steps on purpose: a POST validates the password and the remaining quota, then a GET streams the bytes. Requesting several files returns a zip built on the fly.",
     endpoints: [
-      { method: "GET", path: "/api/checkfile", desc: "Is this share still valid? Also used for hash de-duplication" },
+      { method: "GET", path: "/api/checkfile", desc: "Is this share link still valid — password required, expired, quota left?" },
       { method: "POST", path: "/api/download/:id", desc: "Validate password and quota, return metadata" },
       { method: "GET", path: "/api/download/:id/stream", desc: "Stream the bytes, or a zip for several files" },
       { method: "DELETE", path: "/api/delete", desc: "Remove a file you own. Returns 409 with a mode choice if others share its content." },
@@ -63,12 +67,32 @@ const sections: { id: string; title: string; intro: React.ReactNode; endpoints: 
     ],
   },
   {
+    id: "services",
+    title: "Services",
+    intro:
+      "A service is a scoped API key for a third-party app or script: its own folder, quota and status, independent of any user account.\nTwo ways to get its token — an admin creates the service directly and gets the bearer token back immediately, or an admin issues a redeemable invite code that a third party trades for their own token via join, without ever needing a CrabS3 account.\nEither way, the result is a bearer token — send it as Authorization: Bearer <token> — separate from the session cookie used everywhere else on this page.",
+    endpoints: [
+      { method: "POST", path: "/api/services/create", desc: "Path 1 — create a service, get its bearer token back immediately (admin)" },
+      { method: "POST", path: "/api/services/create/invite", desc: "Path 2 — issue a redeemable invite code for an existing service (admin)" },
+      { method: "POST", path: "/api/services/join", desc: "Path 2 — redeem an invite code for a bearer token, no account needed" },
+      { method: "GET", path: "/api/services/:uuid", desc: "Public info about a service — name, image, status" },
+      { method: "GET", path: "/api/services/list", desc: "List every service with usage counts (admin)" },
+      { method: "PUT", path: "/api/services/update", desc: "Change a service's status or image (admin)" },
+      { method: "DELETE", path: "/api/services/delete/:id", desc: "Delete a service and its folder (admin)" },
+      { method: "POST", path: "/api/services/upload", desc: "Bearer token. Single presigned PUT URL — no multipart, no dedup." },
+      { method: "GET", path: "/api/services/download", desc: "Bearer token. A share link, or a presigned URL per file." },
+    ],
+  },
+  {
     id: "account",
     title: "Account",
     intro:
-      "Per-user file listing, profile updates, and the webhook settings that drive upload and download notifications.",
+      "Per-user file and folder listing, profile updates, and the webhook settings that drive upload and download notifications.",
     endpoints: [
       { method: "GET", path: "/api/dashboard/files", desc: "Files owned by the current user" },
+      { method: "PATCH", path: "/api/dashboard/folders/:id", desc: "Rename a folder" },
+      { method: "DELETE", path: "/api/dashboard/folders/:id", desc: "Delete a folder and every file in it" },
+      { method: "POST", path: "/api/dashboard/coldtohot", desc: "Restore a folder's files from cold storage back to hot" },
       { method: "PATCH", path: "/api/dashboard/me", desc: "Update profile and preferences" },
       { method: "GET", path: "/api/communication", desc: "Read notification and webhook settings" },
       { method: "POST", path: "/api/communication", desc: "Update notification and webhook settings" },
@@ -94,7 +118,7 @@ const sections: { id: string; title: string; intro: React.ReactNode; endpoints: 
 
 const uploadEndpoints: Endpoint[] = [
   { method: "POST", path: "/api/upload/dedupe-check", desc: "Given a content hash, links a new file to an already-uploaded one instead of re-uploading it." },
-  { method: "POST", path: "/api/upload/multipart/start", desc: "Opens a session and returns an upload id with presigned part URLs." },
+  { method: "POST", path: "/api/upload/multipart/start", desc: "Opens a session for one file, returns an upload id, a token and the part size to use." },
   { method: "POST", path: "/api/upload/multipart/part", desc: "Uploads one part. Parts run in parallel and retry independently." },
   { method: "POST", path: "/api/upload/multipart/resume", desc: "Reattaches to an interrupted session; returns which parts already landed." },
   { method: "POST", path: "/api/upload/multipart/set-hash", desc: "Attaches a content hash to a session started before hashing finished." },
@@ -107,6 +131,7 @@ const errors = [
   { code: "401", name: "Unauthenticated", when: "No valid session, or the wrong share password" },
   { code: "403", name: "Forbidden", when: "Authenticated, but not allowed — admin routes, other people’s files" },
   { code: "404", name: "Not found", when: "Unknown id, or a share link that expired" },
+  { code: "409", name: "Conflict", when: "Deleting a file that shares content with others — retry with an explicit mode" },
   { code: "410", name: "Gone", when: "The download quota ran out while the page was open" },
   { code: "413", name: "Payload too large", when: "A single request exceeded the configured body limit" },
 ];
@@ -116,27 +141,36 @@ const toc = [
   { id: "upload", label: "Multipart upload" },
   { id: "files", label: "Files & downloads" },
   { id: "secrets", label: "Secrets" },
+  { id: "services", label: "Services" },
   { id: "account", label: "Account" },
   { id: "admin", label: "Admin" },
   { id: "errors", label: "Errors" },
 ];
 
 const uploadRequest = `POST /api/upload/multipart/start
-Content-Type: application/json
-
-{
-  "filename": "archive.zip",
-  "size": 8589934592,
-  "parts": 1024
-}`;
+X-Filename: archive.zip
+X-Folder-Id: 9f3c2b1a-6e4d-4f0a-8c2e-1a2b3c4d5e6f
+X-File-Size: 8589934592
+X-Content-Hash: 6b7a9c3e2f1d8a4b…
+Content-Type: application/zip`;
 
 const uploadResponse = `{
-  "uploadId": "2~aBc…",
-  "key": "u12/9f3c…/archive.zip",
-  "partUrls": [
-    "https://…?partNumber=1&X-Amz-…",
-    "https://…?partNumber=2&X-Amz-…"
-  ]
+  "fileId": "b7e1f2a3-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+  "uploadId": "2~aBcDeFgHiJkLmNoPqRsT…",
+  "token": "eyJhbGciOiJIUzI1NiIs…",
+  "chunkSize": 104857600
+}`;
+
+const serviceUploadRequest = `POST /api/services/upload
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs…
+X-Filename: report.pdf
+X-File-Size: 2481203
+Content-Type: application/pdf`;
+
+const serviceUploadResponse = `{
+  "url": "https://…?X-Amz-Signature=…",
+  "fileId": "4d5e6f7a-8b9c-…",
+  "folderId": "9f3c2b1a-…"
 }`;
 
 const EndpointRow = ({ e }: { e: Endpoint }) => (
@@ -196,21 +230,21 @@ export default async function DocsPage() {
 
           {/* Authentication */}
           <section id="auth" aria-labelledby="auth-h" className="mb-13 scroll-mt-24">
-            <h2 id="auth-h" className="text-[26px] font-extrabold tracking-[-0.02em] m-0 mb-2.5">{sections[0].title}</h2>
-            <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em]">{sections[0].intro}</p>
+            <h2 id="auth-h" className="text-[26px] font-extrabold tracking-[-0.02em] m-0 mb-2.5">{getSection("auth").title}</h2>
+            <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em] whitespace-break-spaces">{getSection("auth").intro}</p>
             <ul className="list-none p-0 m-0">
-              {sections[0].endpoints.map((e) => <EndpointRow key={e.path + e.method} e={e} />)}
+              {getSection("auth").endpoints.map((e) => <EndpointRow key={e.path + e.method} e={e} />)}
             </ul>
           </section>
 
           {/* Multipart upload */}
           <section id="upload" aria-labelledby="upload-h" className="mb-13 scroll-mt-24">
             <h2 id="upload-h" className="text-[26px] font-extrabold tracking-[-0.02em] m-0 mb-2.5">Multipart upload</h2>
-            <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em]">
-              Four calls, in order. The server never receives the file body — it returns
-              presigned URLs and records the result. Parts may be uploaded in parallel and
-              retried individually, which is what makes a 40 GB transfer survive a flaky
-              connection.
+            <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em] whitespace-break-spaces">
+              A hash check comes first — if you already have this exact file, the server
+              links a new entry to it and no bytes move.{"\n"}Otherwise: open a session, upload
+              parts in parallel, complete.{"\n"}A dropped connection reattaches to the same
+              session instead of restarting the transfer, skipping whatever parts already landed.
             </p>
             <ul className="flex flex-col gap-2.5 mb-6 list-none p-0 m-0">
               {uploadEndpoints.map((e) => (
@@ -238,9 +272,9 @@ export default async function DocsPage() {
           {/* Files */}
           <section id="files" aria-labelledby="files-h" className="mb-13 scroll-mt-24">
             <h2 id="files-h" className="text-[26px] font-extrabold tracking-[-0.02em] m-0 mb-2.5">Files &amp; downloads</h2>
-            <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em]">{sections[1].intro}</p>
+            <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em] whitespace-break-spaces">{getSection("files").intro}</p>
             <ul className="list-none p-0 m-0">
-              {sections[1].endpoints.map((e) => <EndpointRow key={e.path + e.method} e={e} />)}
+              {getSection("files").endpoints.map((e) => <EndpointRow key={e.path + e.method} e={e} />)}
             </ul>
             <div className="mt-4.5 px-5 py-4 border-l-[3px] border-primary-500 bg-uploadBg dark:bg-uploadBg-dark rounded-r-2xl">
               <p className="m-0 text-sm text-zinc-600 dark:text-zinc-300">
@@ -254,17 +288,44 @@ export default async function DocsPage() {
           {/* Secrets */}
           <section id="secrets" aria-labelledby="secrets-h" className="mb-13 scroll-mt-24">
             <h2 id="secrets-h" className="text-[26px] font-extrabold tracking-[-0.02em] m-0 mb-2.5">Secrets</h2>
-            <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em]">{sections[2].intro}</p>
+            <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em] whitespace-break-spaces">{getSection("secrets").intro}</p>
             <ul className="list-none p-0 m-0">
-              {sections[2].endpoints.map((e) => <EndpointRow key={e.path + e.method} e={e} />)}
+              {getSection("secrets").endpoints.map((e) => <EndpointRow key={e.path + e.method} e={e} />)}
             </ul>
           </section>
 
+          {/* Services */}
+          <section id="services" aria-labelledby="services-h" className="mb-13 scroll-mt-24">
+            <h2 id="services-h" className="text-[26px] font-extrabold tracking-[-0.02em] m-0 mb-2.5">Services</h2>
+            <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em] whitespace-break-spaces">{getSection("services").intro}</p>
+            <ul className="list-none p-0 m-0 mb-6">
+              {getSection("services").endpoints.map((e) => <EndpointRow key={e.path + e.method} e={e} />)}
+            </ul>
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <div>
+                <p className="font-mono text-[10.5px] tracking-[0.12em] uppercase text-zinc-500 dark:text-zinc-400 font-bold m-0 mb-2">Request</p>
+                <pre className="font-mono text-xs leading-[1.65] bg-input dark:bg-input-dark border border-cardBorder dark:border-cardBorder-dark rounded-[18px] px-4.5 py-4 m-0 overflow-x-auto whitespace-pre-wrap">{serviceUploadRequest}</pre>
+              </div>
+              <div>
+                <p className="font-mono text-[10.5px] tracking-[0.12em] uppercase text-zinc-500 dark:text-zinc-400 font-bold m-0 mb-2">Response 200</p>
+                <pre className="font-mono text-xs leading-[1.65] bg-input dark:bg-input-dark border border-cardBorder dark:border-cardBorder-dark rounded-[18px] px-4.5 py-4 m-0 overflow-x-auto whitespace-pre-wrap">{serviceUploadResponse}</pre>
+              </div>
+            </div>
+            <div className="mt-4.5 px-5 py-4 border-l-[3px] border-primary-500 bg-uploadBg dark:bg-uploadBg-dark rounded-r-2xl">
+              <p className="m-0 text-sm text-zinc-600 dark:text-zinc-300">
+                <strong className="text-text dark:text-text-dark">Not the multipart flow.</strong>{" "}
+                Service uploads are a single presigned PUT to your bucket — no session split
+                across parts, no resume, no dedup check. Fine for the kind of files scripts and
+                integrations usually push; for anything large or interactive, the multipart flow above is the one to use.
+              </p>
+            </div>
+          </section>
+
           {/* Account + Admin */}
-          {sections.slice(3).map((s) => (
+          {sections.slice(4).map((s) => (
             <section key={s.id} id={s.id} aria-labelledby={`${s.id}-h`} className="mb-13 scroll-mt-24">
               <h2 id={`${s.id}-h`} className="text-[26px] font-extrabold tracking-[-0.02em] m-0 mb-2.5">{s.title}</h2>
-              <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em]">{s.intro}</p>
+              <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em] whitespace-break-spaces">{s.intro}</p>
               <ul className="list-none p-0 m-0">
                 {s.endpoints.map((e) => <EndpointRow key={e.path + e.method} e={e} />)}
               </ul>
