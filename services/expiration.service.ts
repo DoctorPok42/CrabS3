@@ -155,9 +155,9 @@ export async function cleanupIncompleteUploads() {
     const key = resolveStorageKey(file);
     const objectExists = key
       ? await s3Hot.send(new HeadObjectCommand({
-          Bucket: HOT_BUCKET,
-          Key: key,
-        })).then(() => true).catch(() => false)
+        Bucket: HOT_BUCKET,
+        Key: key,
+      })).then(() => true).catch(() => false)
       : false;
 
     if (!objectExists) {

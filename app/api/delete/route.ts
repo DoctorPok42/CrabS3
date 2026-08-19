@@ -3,9 +3,7 @@ import { getSession } from "@/lib/auth"
 import { log } from "@/services/log.service"
 import { LogAction, LogLevel } from "@/types/log.types"
 import { getIp } from "@/lib/ip"
-import { deleteFilesAndReclaimStorage, deleteStorageObjectIfUnreferenced, resolveStorageKey } from "@/lib/storage-key"
-import { HOT_BUCKET, s3Hot } from "@/services/s3.service"
-import { DeleteObjectCommand } from "@aws-sdk/client-s3"
+import { deleteFilesAndReclaimStorage, deleteStorageObjectIfUnreferenced } from "@/lib/storage-key"
 
 export async function DELETE(request: Request) {
   let session;

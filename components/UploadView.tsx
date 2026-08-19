@@ -176,6 +176,15 @@ export default function Home() {
     }
   }
 
+  const handleClearAll = () => {
+    cancelAllPrewarm()
+    setFileMeta([])
+    setFiles([])
+    setFolderId("")
+    setStatus(null)
+    reset()
+  }
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -368,15 +377,9 @@ export default function Home() {
               <div className='w-full mt-4 flex gap-2'>
                 <Button
                   text="Clear"
-                  onClick={() => {
-                    cancelAllPrewarm()
-                    setFileMeta([])
-                    setFiles([])
-                    setFolderId("")
-                    setStatus(null)
-                  }}
+                  onClick={handleClearAll}
                   variant='secondary'
-                  disabled={uploading || files.length === 0}
+                  disabled={files.length === 0}
                 />
                 <Button
                   text={uploading ? "Uploading..." : `Upload File${fileMeta.length > 1 ? 's' : ''}`}
