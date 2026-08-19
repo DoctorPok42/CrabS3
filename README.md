@@ -17,9 +17,9 @@ No cloud vendor, no monthly bill, no upload limit but the one you set.
 
 CrabS3 is a self-hosted transfer platform for any S3-compatible storage. Drop files in the browser or push them through the API, get a shareable link back, and let the file delete itself after a deadline or a download count you choose.
 
-It runs on **RustFS** by default, but any S3-compatible backend works — MinIO, Ceph, Wasabi, AWS S3.
+It runs on **RustFS** by default, but any S3-compatible backend works — AWS S3, OVH Object Storage, MinIO, Ceph, etc. CrabS3 never stores your data itself; it only keeps metadata in Postgres.
 
-```
+```ts
 Upload  →  hot bucket  →  share link  →  N downloads or T days  →  gone
                 ↓
           cold bucket (replicated, optional)
@@ -28,7 +28,7 @@ Upload  →  hot bucket  →  share link  →  N downloads or T days  →  gone
 ## Why
 
 | | |
-|---|---|
+| --- | --- |
 | 📦 **Your storage** | Any S3-compatible backend. Your keys, your bucket, your retention rules. |
 | 🚀 **Big files** | Resumable multipart uploads with live progress — a dropped connection does not restart the transfer. |
 | 🔥 **Hot & cold** | Serve from fast storage, archive to cheap storage. Replication is handled by the S3 Provider. |
@@ -38,6 +38,7 @@ Upload  →  hot bucket  →  share link  →  N downloads or T days  →  gone
 | 🔒 **Real accounts** | Invite-only signup, sessions, 2FA (TOTP), per-user storage quotas. |
 | 📧 **Notifications** | Email on upload, download and share; webhooks for your own integrations. |
 | 📊 **Dashboard** | Per-user file list and download stats; admin view for storage, users and audit logs. |
+| 🔌 **Services** | Scoped API keys for other apps and scripts — their own folder, quota and status, issued directly or self-served via an invite code. No user account needed. |
 
 ## Quick start
 
@@ -50,7 +51,7 @@ cp .env.example .env      # then edit it — see Configuration
 docker compose up -d
 ```
 
-The interface is on **http://localhost:3000**. Health check: `GET /api/health`.
+The interface is on **<http://localhost:3000>**. Health check: `GET /api/health`.
 
 Prefer the published image? `docker pull doctorpok/crabs3:latest`, then point `compose.yml` at it instead of `build: .`.
 
@@ -73,7 +74,7 @@ Everything is environment variables — put them in `.env`, or manage them in Do
 **Storage** — One hot bucket is required; cold bucket is just a class of storage, and can be the same bucket if you want. CrabS3 does not copy bytes between buckets; it relies on your S3 provider to replicate them.
 
 | Variable | Example |
-|---|---|
+| --- | --- |
 | `S3_ENDPOINT` | `http://192.168.1.100:9000` |
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | your keys |
 | `S3_BUCKET_NAME` | `crabs3` |
@@ -83,7 +84,7 @@ Everything is environment variables — put them in `.env`, or manage them in Do
 **App**
 
 | Variable | Example |
-|---|---|
+| --- | --- |
 | `DATABASE_URL` | `postgresql://user:password@db:5432/crabs3` |
 | `NEXT_PUBLIC_BASE_URL` | `https://files.example.com` — used in share links and emails |
 | `JWT_SECRET` | a long random string |
@@ -92,7 +93,7 @@ Everything is environment variables — put them in `.env`, or manage them in Do
 **Email & scanning**
 
 | Variable | Example |
-|---|---|
+| --- | --- |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | your mail relay |
 | `SMTP_FROM` | `CrabS3 Notifications <bot@example.com>` |
 | `CLAMAV_HOST` / `CLAMAV_PORT` | `clamav` / `3310` |
@@ -102,7 +103,7 @@ Everything is environment variables — put them in `.env`, or manage them in Do
 
 ## How it works
 
-1. The browser asks for a multipart session, uploads parts in parallel, and completes the upload — the server only holds presigned URLs and metadata.
+1. The browser hashes the file and asks the server if it already has this content; if so, a new share is created without sending a single byte. Otherwise it opens a multipart session and uploads parts in parallel — the server relays each part straight through to your bucket. A dropped connection reattaches to the same session and only sends the parts that didn't land yet.
 2. Metadata (owner, size, hash, expiry, download quota, password hash) lives in Postgres; file bytes only ever live in your buckets.
 3. ClamAV scans the object; a hit marks the file infected and download is refused for infected files.
 4. The cron container calls the expiry endpoint on a schedule. Files past their deadline or download quota are moved to cold storage or deleted, per `EXPIRED_FILE_POLICY`.
@@ -118,33 +119,50 @@ Everything the UI does is available over HTTP. Public endpoints need no session;
 
 **Upload**
 
-```
+```sh
+POST /api/upload/dedupe-check           already have this content? link instead of upload
 POST /api/upload/multipart/start        open a session
 POST /api/upload/multipart/part         upload one part
+POST /api/upload/multipart/resume       reattach after a dropped connection
+POST /api/upload/multipart/set-hash     attach a content hash to a session
 POST /api/upload/multipart/complete     finish + attach metadata
 POST /api/upload/multipart/abort        cancel
 ```
 
 **Files**
 
-```
-GET    /api/checkfile                   does this hash already exist?
+```sh
+GET    /api/checkfile                   is this share link still valid?
 POST   /api/download/:id                metadata for a share link
 GET    /api/download/:id/stream         stream the bytes
-DELETE /api/delete                      remove a file
+DELETE /api/delete                      remove a file (409 + mode if it shares content with others)
 ```
 
 **Secrets**
 
-```
+```sh
 POST /api/secret/upload                 store a secret, get a link
 POST /api/secret/check                  exists? password required?
 POST /api/secret/get                    read it
 ```
 
+**Services** — scoped API keys for third-party apps and scripts. Two ways to get a token: create a service directly and get its token back immediately, or issue an invite code that a third party redeems for their own token via `join` — no account needed either way. `create`/`create/invite`/`update`/`delete`/`list` need an admin session; `upload`/`download` use the service's own bearer token (`Authorization: Bearer <token>`), not the session cookie.
+
+```sh
+POST   /api/services/create             path 1 — create a service + folder, get its token back (admin)
+POST   /api/services/create/invite      path 2 — issue a redeemable invite code (admin)
+POST   /api/services/join               path 2 — redeem an invite code for a token (public)
+GET    /api/services/:uuid              public info about a service
+GET    /api/services/list               list every service (admin)
+PUT    /api/services/update             change status or image (admin)
+DELETE /api/services/delete/:id         delete a service and its folder (admin)
+POST   /api/services/upload             single presigned PUT — not the multipart flow
+GET    /api/services/download           a share link, or a presigned URL per file
+```
+
 **Auth**
 
-```
+```sh
 POST /api/auth/login · logout · signup
 GET  /api/auth/me · check-invite
 POST /api/auth/invite                   (admin)
@@ -152,16 +170,19 @@ POST /api/auth/invite                   (admin)
 
 **Dashboard & communication**
 
-```
-GET   /api/dashboard/files
-PATCH /api/dashboard/me
-GET   /api/communication                webhook settings
-POST  /api/communication
+```sh
+GET    /api/dashboard/files
+PATCH  /api/dashboard/folders/:id       rename
+DELETE /api/dashboard/folders/:id       delete the folder and every file in it
+POST   /api/dashboard/coldtohot         restore a folder from cold to hot storage
+PATCH  /api/dashboard/me
+GET    /api/communication               webhook settings
+POST   /api/communication
 ```
 
 **Admin**
 
-```
+```sh
 GET   /api/admin/stats                  storage, files, users
 GET   /api/admin/users
 GET   /api/admin/users/:id
