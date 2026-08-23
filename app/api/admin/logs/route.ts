@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { logsWhereInput } from "@/prisma/app/generated/prisma/models";
 import { log } from "@/services/log.service";
+import { setSetting, Settings } from "@/services/settings.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 
 export async function GET(request: Request) {
@@ -78,7 +79,24 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "Invalid level" }, { status: 400 });
   }
 
-  process.env.LOG_MIN_LEVEL = minLevel;
+  const previousLevel = await Settings.logMinLevel();
+
+  const change = await setSetting("log_min_level", minLevel, session.user.id);
+  if (!change.ok) {
+    console.error("Failed to update log level:", change.error);
+    return Response.json({ error: change.error }, { status: 500 });
+  }
+
+  await log({
+    level: LogLevel.WARN,
+    action: LogAction.ADMIN_ACTION,
+    message: "Log level updated",
+    userId: session.user.id,
+    meta: {
+      from: previousLevel,
+      to: minLevel
+    }
+  });
 
   return Response.json({ message: "Log level updated" });
 }

@@ -49,6 +49,11 @@ const Admin = () => {
         const res = await fetch('/api/admin/users')
         if (res.ok) {
           const data = await res.json()
+          if (!data.isAdmin) {
+            window.location.href = "/"
+            return
+          }
+
           setUsers(data)
         }
       } catch (error) {

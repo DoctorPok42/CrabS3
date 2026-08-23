@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { cookies } from "next/headers";
 import bcrypt from "bcrypt";
+import { Settings } from "@/services/settings.service";
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 12);
@@ -11,7 +12,8 @@ export async function verifyPassword(password: string, hash: string) {
 }
 
 export async function createSession(userId: number, email: string, isAdmin: boolean) {
-  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48h
+  const expiresAtSetting = await Settings.sessionDurationHours() * 60 * 60 * 1000;
+  const expiresAt = new Date(Date.now() + (expiresAtSetting || 48 * 60 * 60 * 1000));
 
   const session = await prisma.session.create({
     data: { userId, expiresAt, email, isAdmin },

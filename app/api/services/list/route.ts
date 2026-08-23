@@ -1,7 +1,15 @@
+import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session?.isAdmin) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+      });
+    }
+
     const services = await prisma.services.findMany({
       select: {
         id: true,

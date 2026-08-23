@@ -3,6 +3,7 @@ import { getIp } from "@/lib/ip";
 import prisma from "@/lib/prisma";
 import { createTokenService } from "@/lib/service";
 import { log } from "@/services/log.service";
+import { Settings } from "@/services/settings.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { randomUUID } from "node:crypto";
 
@@ -25,12 +26,15 @@ export async function POST(request: Request) {
       },
     });
 
+    const defaultQuota = await Settings.defaultServiceQuota();
+
     const servicePrisma = await prisma.services.create({
       data: {
         name: body.name,
         token: "",
         folder_id: folderId,
         uuid: randomUUID(),
+        ...(defaultQuota !== null ? { quota: defaultQuota } : {}),
       },
     });
 

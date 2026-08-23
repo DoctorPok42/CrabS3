@@ -386,7 +386,6 @@ const SettingsPage = () => {
             divClass="gap-2 shrink-0"
             onClick={async () => {
               const res = await fetch("/api/admin/settings", { method: "POST" })
-              console.log(res)
               const data = await res.json()
               setToast({ level: "success", message: `${data.created} settings written` })
               getAllSettings()

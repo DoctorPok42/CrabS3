@@ -10,6 +10,7 @@ import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { handleScanResult } from "@/services/clamav.service";
 import { getIp } from "@/lib/ip";
+import { Settings } from "@/services/settings.service";
 
 export async function POST(request: Request) {
   const { fileId, folderId, uploadId, parts, metadata, folderName } = await request.json();
@@ -118,10 +119,12 @@ export async function POST(request: Request) {
       create: { id: folderId, name: folderName || "" },
     })
 
+    const settingsMaxDownloads = await Settings.uploadDefaultMaxDownloads();
+
     await prisma.files.update({
       where: { id: fileId },
       data: {
-        max_downloads: metadata.maxDownloads ? Number.parseInt(metadata.maxDownloads) : null,
+        max_downloads: settingsMaxDownloads || metadata.maxDownloads ? Number.parseInt(metadata.maxDownloads) : null,
         download_count: 0,
         expires_at: metadata.expireAfter
           ? new Date(Date.now() + Number.parseInt(metadata.expireAfter) * 24 * 60 * 60 * 1000)

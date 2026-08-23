@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { cleanupIncompleteUploads, processExpiredFiles, reapStaleMultipartUploads } from "@/services/expiration.service";
-import { log } from "@/services/log.service";
+import { log, purgeOldLogs } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,8 @@ export async function POST(request: Request) {
     await cleanupIncompleteUploads();
     const reaped = await reapStaleMultipartUploads();
     const result = await processExpiredFiles();
-    return Response.json({ status: "ok", reaped, ...result }, { status: 200 });
+    const logs = await purgeOldLogs();
+    return Response.json({ status: "ok", reaped, ...result, logs }, { status: 200 });
   } catch (error) {
     await log({
       level: LogLevel.ERROR,
