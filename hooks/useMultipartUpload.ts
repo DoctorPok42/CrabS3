@@ -4,12 +4,12 @@ import { computeFileHash } from "@/lib/file-hash";
 const MAX_PARALLEL_CHUNKS = 6;
 const PART_RETRIES = 6;
 const STORAGE_PREFIX = "crabs3:mpu:";
-const STORAGE_MAX_AGE = 24 * 60 * 60 * 1000; // 24h
+const STORAGE_MAX_AGE = 48 * 60 * 60 * 1000;
 
 interface UploadOptions {
   maxDownloads?: number | null;
   emailRecipient?: string;
-  expireAfter?: "1" | "7" | "14" | "21" | "30";
+  expireAfter?: string;
   password?: string;
   filename?: string;
   folderId?: string;

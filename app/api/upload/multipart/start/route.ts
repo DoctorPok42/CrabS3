@@ -7,6 +7,7 @@ import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { signUploadToken } from "@/lib/upload-token";
 import { getChunkSize } from "@/lib/chunk-size";
+import { checkUploadPolicy } from "@/lib/upload-policy";
 
 export async function POST(request: Request) {
   try {
@@ -30,6 +31,24 @@ export async function POST(request: Request) {
     }
 
     const fileSizeBytes = BigInt(fileSize);
+
+    const policy = await checkUploadPolicy({
+      filename,
+      size: fileSizeBytes,
+      folderId,
+      isAdmin: session.isAdmin,
+    });
+
+    if (!policy.ok) {
+      await log({
+        level: LogLevel.WARN,
+        action: LogAction.UPLOAD,
+        message: `Upload rejected: ${policy.error}`,
+        userId: session.userId,
+        meta: { filename, folderId, size: fileSize, status: policy.status },
+      });
+      return Response.json({ error: policy.error }, { status: policy.status ?? 400 });
+    }
 
     await prisma.folders.upsert({
       where: { id: folderId },

@@ -4,6 +4,8 @@ import bcrypt from "bcrypt"
 import { log } from "@/services/log.service"
 import { LogAction, LogLevel } from "@/types/log.types"
 import { getIp } from "@/lib/ip"
+import { checkMaintenance, checkPasswordStrength } from "@/lib/upload-policy"
+import { Settings } from "@/services/settings.service"
 
 export async function POST(request: Request) {
   const { content, expiresAt, maxViews, password } = await request.json()
@@ -26,6 +28,22 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: "Content is required and must be a string." }), { status: 400 })
     }
 
+    const maintenance = await checkMaintenance(session.isAdmin)
+    if (!maintenance.ok) {
+      return new Response(JSON.stringify({ error: maintenance.error }), { status: maintenance.status ?? 503 })
+    }
+
+    const passwordCheck = await checkPasswordStrength(password)
+    if (!passwordCheck.ok) {
+      return new Response(JSON.stringify({ error: passwordCheck.error }), { status: passwordCheck.status ?? 400 })
+    }
+
+    const viewsCap = await Settings.secretMaxViews()
+    const requestedViews = Number.parseInt(String(maxViews ?? viewsCap))
+    const effectiveMaxViews = Number.isFinite(requestedViews)
+      ? Math.min(Math.max(requestedViews, 1), viewsCap)
+      : viewsCap
+
     const id = crypto.randomUUID()
 
     const secret = await prisma.secrets.create({
@@ -34,7 +52,7 @@ export async function POST(request: Request) {
         content,
         expires_at: new Date(expiresAt),
         created_at: new Date(),
-        max_views: maxViews,
+        max_views: effectiveMaxViews,
         view_count: 0,
         user_id: session?.userId,
         password_hash: password ? await bcrypt.hash(password, 12) : null,
@@ -56,7 +74,7 @@ export async function POST(request: Request) {
       action: LogAction.UPLOAD,
       message: "Secret created",
       userId: session.userId,
-      meta: { secretId: secret.id, expiresAt, maxViews, hasPassword: !!password, ip: getIp(request) },
+      meta: { secretId: secret.id, expiresAt, maxViews: effectiveMaxViews, requestedViews: maxViews, hasPassword: !!password, ip: getIp(request) },
     })
 
     return new Response(JSON.stringify({ id: secret.id }), { status: 201 })

@@ -14,7 +14,7 @@ export default function Home() {
   const [maxDownloads, setMaxDownloads] = useState<number | null>(null)
   const [emailRecipient, setEmailRecipient] = useState<string>("")
   const [emailMessage, setEmailMessage] = useState<string>("")
-  const [expireAfter, setExpireAfter] = useState<"1" | "7" | "14" | "21" | "30">("30")
+  const [expireAfter, setExpireAfter] = useState<string>("30")
   const [password, setPassword] = useState<string>("")
   const [folderName, setFolderName] = useState<string>("")
   const [fileMeta, setFileMeta] = useState<{ name: string, size: number, img?: string }[]>([])
@@ -28,8 +28,32 @@ export default function Home() {
     fileId?: string
   } | null>(null)
   const uploadResultsRef = useRef<number>(0)
+  const [maxFiles, setMaxFiles] = useState<number | null>(null)
+  const [expirationOptions, setExpirationOptions] = useState<number[] | null>(null)
 
   const { upload, progress, uploading, reset, error, prewarm, cancelPrewarm, cancelAllPrewarm } = useMultipartUpload();
+
+  const fetchParams = useCallback(async () => {
+    try {
+      const response = await fetch("/api/settings?keys=upload_max_files_per_folder,upload_expiration_days,upload_default_expiry_days,upload_default_max_downloads");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch settings: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      setMaxFiles(data.settings.upload_max_files_per_folder ?? null);
+      setExpirationOptions(data.settings.upload_expiration_days ?? null);
+      setExpireAfter(data.settings.upload_default_expiry_days?.toString() ?? "30");
+      setMaxDownloads(data.settings.upload_default_max_downloads ?? null);
+    } catch (err) {
+      console.error("Failed to fetch settings:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchParams();
+  }, [fetchParams]);
 
   useEffect(() => {
     return () => {
@@ -121,6 +145,11 @@ export default function Home() {
     setFileMeta(prev => [...prev, ...newMeta])
     setFiles(prev => [...prev, ...acceptedFiles])
     setStatus(null)
+
+    if (maxFiles && fileMeta.length + acceptedFiles.length > maxFiles) {
+      setStatus({ message: `You can only upload a maximum of ${maxFiles} file${maxFiles > 1 ? 's' : ''} per folder.`, type: "error" })
+      setFiles(prev => prev.slice(0, maxFiles - fileMeta.length))
+    }
 
     for (const file of acceptedFiles) {
       prewarm(file, currentFolderId, file.name, folderName)
@@ -270,11 +299,9 @@ export default function Home() {
                   value={expireAfter}
                   onChange={(e) => setExpireAfter(e.target.value as "1" | "7" | "14" | "21" | "30")}
                 >
-                  <option value="1">1 day</option>
-                  <option value="7">7 days</option>
-                  <option value="14">14 days</option>
-                  <option value="21">21 days</option>
-                  <option value="30">30 days</option>
+                  {expirationOptions?.map((option) => (
+                    <option key={option} value={option.toString()}>{option}</option>
+                  ))}
                 </select>
               </div>
             </div>

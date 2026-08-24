@@ -6,6 +6,7 @@ import { GetObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import prisma from "@/lib/prisma";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
+import { Settings } from "@/services/settings.service";
 
 const pipelineAsync = promisify(pipeline);
 
@@ -14,9 +15,17 @@ const CLAMAV_PORT = Number.parseInt(process.env.CLAMAV_PORT || "3310");
 
 const SCAN_TIMEOUT_MS = Number.parseInt(process.env.CLAMAV_SCAN_TIMEOUT_MS || "300000");
 
-const MAX_SCAN_BYTES = process.env.CLAMAV_MAX_SCAN_SIZE
-  ? Number.parseInt(process.env.CLAMAV_MAX_SCAN_SIZE)
-  : null;
+async function getMaxScanBytes(): Promise<number | null> {
+  try {
+    const configured = await Settings.clamavMaxScanSize();
+    if (configured > 0) return configured;
+    return null;
+  } catch {
+    return process.env.CLAMAV_MAX_SCAN_SIZE
+      ? Number.parseInt(process.env.CLAMAV_MAX_SCAN_SIZE)
+      : null;
+  }
+}
 
 function sanitizeString(str: string | null) {
   if (!str) return null;
@@ -97,10 +106,20 @@ export async function handleScanResult(
   userId?: number,
   ip?: string,
 ): Promise<void> {
-  if (MAX_SCAN_BYTES !== null) {
+  if (!(await Settings.clamavEnabled())) {
+    await prisma.files.update({
+      where: { id: fileId },
+      data: { scanned_at: new Date() },
+    }).catch(() => null);
+    return;
+  }
+
+  const maxScanBytes = await getMaxScanBytes();
+
+  if (maxScanBytes !== null) {
     const fileRow = await prisma.files.findUnique({ where: { id: fileId }, select: { size: true } }).catch(() => null);
 
-    if (fileRow && fileRow.size > BigInt(MAX_SCAN_BYTES)) {
+    if (fileRow && fileRow.size > BigInt(maxScanBytes)) {
       await prisma.files.update({
         where: { id: fileId },
         data: { scanned_at: new Date() },
@@ -108,7 +127,7 @@ export async function handleScanResult(
       await log({
         level: LogLevel.INFO,
         action: LogAction.UPLOAD,
-        message: `Skipped virus scan for "${filename}" - exceeds the configured ${(MAX_SCAN_BYTES / (1024 * 1024 * 1024)).toFixed(1)} GB scan limit`,
+        message: `Skipped virus scan for "${filename}" - exceeds the configured ${(maxScanBytes / (1024 * 1024 * 1024)).toFixed(1)} GB scan limit`,
         userId,
         meta: { folderId, fileId, filename, ip, sizeBytes: fileRow.size.toString() },
       });
@@ -173,10 +192,12 @@ export async function handleScanResult(
       meta: { folderId, fileId, ip, filename, virus: sanitizedVirus },
     });
 
-    await s3Hot.send(new DeleteObjectsCommand({
-      Bucket: HOT_BUCKET,
-      Delete: { Objects: [{ Key: `${folderId}/${fileId}` }] },
-    }));
+    if (await Settings.clamavDeleteInfected()) {
+      await s3Hot.send(new DeleteObjectsCommand({
+        Bucket: HOT_BUCKET,
+        Delete: { Objects: [{ Key: `${folderId}/${fileId}` }] },
+      }));
+    }
 
     await prisma.files.update({
       where: { id: fileId },

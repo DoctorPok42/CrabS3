@@ -4,6 +4,7 @@ import "./globals.css";
 import { Footer, NavBar } from "@/components";
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { Settings } from "@/services/settings.service";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -62,6 +63,9 @@ export default async function RootLayout({
     })
     : null;
 
+  const isMaintenanceMode = await Settings.maintenanceMode();
+  const maintenanceMessage = await Settings.maintenanceMessage();
+
   const user = dbUser
     ? { id: dbUser.id, name: dbUser.name, isAdmin: session!.user.isAdmin }
     : null;
@@ -76,6 +80,12 @@ export default async function RootLayout({
         <div className="min-h-screen flex mx-auto text-text dark:text-text-dark">
           <NavBar user={user} />
           <div className="mx-auto flex-1 flex flex-col bg-page dark:bg-page-dark">
+            {isMaintenanceMode && (
+              <div className="sticky top-0 z-1 bg-[#ebdec5] dark:bg-[#4f3605] text-[#6a3200] dark:text-[#f4b63c] p-4 text-center w-full selection:bg-[#6a3200] selection:text-[#f4b63c]">
+                <strong>Maintenance Mode:</strong> {maintenanceMessage}
+              </div>
+            )}
+
             <div className="flex-1 flex items-center flex-col">
               <main id="content" className="w-full flex-1 flex flex-col items-center relative">
                 {children}

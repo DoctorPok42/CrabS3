@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "./lib/auth";
 
 const PUBLIC_EXACT = new Set(["/", "/docs", "/self-hosting"]);
 
@@ -25,14 +26,14 @@ const PUBLIC_ROUTES = [
   "/icon0.svg"
 ];
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublic = PUBLIC_EXACT.has(pathname) || PUBLIC_ROUTES.some(route => pathname.startsWith(route));
   if (isPublic) return NextResponse.next();
 
-  const session = request.cookies.get("session");
-  if (!session?.value) {
+  const session = await getSession();
+  if (!session?.id) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

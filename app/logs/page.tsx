@@ -11,7 +11,7 @@ const LogsPage = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ level: "", action: "", from: "", to: "" });
-  const [minLevel, setMinLevel] = useState<LogLevel>(LogLevel.INFO);
+  const [minLevel, setMinLevel] = useState<LogLevel | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   const fetchLogs = useCallback(async () => {
@@ -27,6 +27,7 @@ const LogsPage = () => {
     const data = await res.json();
     setLogs(data.logs);
     setTotal(data.total);
+    if (data.minLevel) setMinLevel(data.minLevel as LogLevel);
     setLoading(false);
   }, [page, filters]);
 
@@ -116,7 +117,7 @@ const LogsPage = () => {
             <div className='group h-11.5 text-[15px] bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[1.5px] border-[#e9ebed] dark:border-[#383a42] rounded-2xl px-3 text-zinc-700! dark:text-[#d2d5da]! transition duration-300 inputClass'>
               <FontAwesomeIcon icon={faLevelUpAlt} className='text-zinc-700 dark:text-[#d2d5da] w-3' size='xs' />
               <select
-                value={minLevel}
+                value={minLevel ?? ""}
                 onChange={(e) => updateMinLevel(e.target.value as LogLevel)}
                 className="outline-none w-full bg-input dark:bg-input-dark text-zinc-700 group-hover:bg-[#f4f4f6] dark:group-hover:bg-[#25272c] dark:text-[#d2d5da] cursor-pointer transition duration-300"
               >
