@@ -1,11 +1,28 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react";
-import Toast, { ToastProps } from "@/components/Toast";
-import { CATEGORY_LABELS, formatBytesSetting, SettingCategory, SettingDefinition, SETTINGS_CATALOG, SettingType, SettingValue } from "@/types/settings.types";
-import { faArrowRotateLeft, faBoxArchive, faEnvelope, faHdd, faListUl, faScrewdriverWrench, faShieldHalved, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { Button } from "@/components";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Button } from "@/components"
+import Toast, { ToastProps } from "@/components/Toast"
+import {
+  CATEGORY_LABELS,
+  SETTINGS_CATALOG,
+  SettingCategory,
+  SettingDefinition,
+  SettingType,
+  SettingValue,
+  formatBytesSetting,
+} from "@/types/settings.types"
+import {
+  faArrowRotateLeft,
+  faBoxArchive,
+  faEnvelope,
+  faHdd,
+  faListUl,
+  faScrewdriverWrench,
+  faShieldHalved,
+  faUpload,
+} from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { useCallback, useEffect, useState } from "react"
 
 interface AdminSetting extends SettingDefinition {
   value: SettingValue
@@ -378,7 +395,6 @@ const SettingsPage = () => {
               {SETTINGS_CATALOG.length} rows visible directly in Postgres.
             </p>
           </div>
-
           <Button
             text="Sync catalog"
             variant="secondary"
@@ -387,8 +403,8 @@ const SettingsPage = () => {
             onClick={async () => {
               const res = await fetch("/api/admin/settings", { method: "POST" })
               const data = await res.json()
+              if (data.settings) replaceAll(data.settings)
               setToast({ level: "success", message: `${data.created} settings written` })
-              getAllSettings()
             }}
           />
         </div>

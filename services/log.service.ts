@@ -1,21 +1,19 @@
 import prisma from "@/lib/prisma";
+import { Settings } from "@/services/settings.service";
 import { LogAction, LogLevel } from "@/types/log.types";
-import { Settings } from "./settings.service";
 
 const LOG_LEVEL_ORDER = ["DEBUG", "INFO", "WARN", "ERROR"];
-const MIN_LEVEL = (process.env.LOG_MIN_LEVEL || "INFO") as LogLevel;
 
-const resolvedMinLevel = async (): Promise<string> => {
+async function resolveMinLevel(): Promise<string> {
   try {
     return await Settings.logMinLevel();
-  } catch (err) {
-    console.error("Failed to resolve minimum log level:", err);
-    return MIN_LEVEL;
+  } catch {
+    return process.env.LOG_MIN_LEVEL || "INFO";
   }
 }
 
 async function shouldLog(level: LogLevel): Promise<boolean> {
-  const minLevel = await resolvedMinLevel();
+  const minLevel = await resolveMinLevel();
   return LOG_LEVEL_ORDER.indexOf(level) >= LOG_LEVEL_ORDER.indexOf(minLevel);
 }
 

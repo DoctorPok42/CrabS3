@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   const defaultQuota = await Settings.defaultUserQuota();
 
   const user = await prisma.users.create({
-    data: { email: invitation.email, name, passwordHash, isAdmin: false, ...(defaultQuota !== null ? { quota: defaultQuota } : {}) },
+    data: { email: invitation.email, name, passwordHash, isAdmin: false, ...(defaultQuota !== null ? { quota: BigInt(defaultQuota) } : {}) },
   });
 
   await prisma.invitation.update({

@@ -9,6 +9,7 @@ import { getSession } from "@/lib/auth";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { handleScanResult } from "@/services/clamav.service";
+import { checkPasswordStrength, resolveUploadDefaults } from "@/lib/upload-policy";
 import { getIp } from "@/lib/ip";
 import { Settings } from "@/services/settings.service";
 
@@ -36,6 +37,17 @@ export async function POST(request: Request) {
 
     if (!existingFile) {
       return Response.json({ error: "File not found or unauthorized" }, { status: 404 });
+    }
+
+    const passwordCheck = await checkPasswordStrength(metadata.password);
+    if (!passwordCheck.ok) {
+      await s3Hot.send(new AbortMultipartUploadCommand({
+        Bucket: HOT_BUCKET,
+        Key: folderId + "/" + fileId,
+        UploadId: uploadId,
+      })).catch(console.error);
+
+      return Response.json({ error: passwordCheck.error }, { status: passwordCheck.status ?? 400 });
     }
 
     const sortedParts = [...parts].sort((a, b) => a.PartNumber - b.PartNumber);
@@ -119,16 +131,14 @@ export async function POST(request: Request) {
       create: { id: folderId, name: folderName || "" },
     })
 
-    const settingsMaxDownloads = await Settings.uploadDefaultMaxDownloads();
+    const defaults = await resolveUploadDefaults(metadata);
 
     await prisma.files.update({
       where: { id: fileId },
       data: {
-        max_downloads: settingsMaxDownloads || metadata.maxDownloads ? Number.parseInt(metadata.maxDownloads) : null,
+        max_downloads: defaults.maxDownloads || metadata.maxDownloads ? Number.parseInt(metadata.maxDownloads) : null,
         download_count: 0,
-        expires_at: metadata.expireAfter
-          ? new Date(Date.now() + Number.parseInt(metadata.expireAfter) * 24 * 60 * 60 * 1000)
-          : null,
+        expires_at: defaults.expiresAt,
         size: Number.parseInt(metadata.size),
         uploaded_at: new Date(),
         email_sender: session.email,

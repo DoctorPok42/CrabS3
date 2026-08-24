@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         token: "",
         folder_id: folderId,
         uuid: randomUUID(),
-        ...(defaultQuota !== null ? { quota: defaultQuota } : {}),
+        ...(defaultQuota !== null ? { quota: BigInt(defaultQuota) } : {}),
       },
     });
 

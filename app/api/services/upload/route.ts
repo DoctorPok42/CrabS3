@@ -7,6 +7,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
 import { getIp } from "@/lib/ip";
+import { checkUploadPolicy, resolveUploadDefaults } from "@/lib/upload-policy";
 
 export async function POST(request: Request) {
   try {
@@ -36,6 +37,26 @@ export async function POST(request: Request) {
     }
 
     const fileSizeBytes = BigInt(fileSize);
+
+    const policy = await checkUploadPolicy({
+      filename,
+      size: fileSizeBytes,
+      folderId,
+    });
+
+    if (!policy.ok) {
+      (async () => {
+        log({
+          level: LogLevel.WARN,
+          action: LogAction.SERVICE_UPLOAD,
+          message: `Upload rejected: ${policy.error}`,
+          userId: Number.parseInt(verifiedToken.id),
+          meta: { filename, folderId, size: fileSize, status: policy.status, ip: getIp(request) },
+        });
+      })();
+
+      return new Response(policy.error, { status: policy.status ?? 400 });
+    }
 
     await prisma.folders.upsert({
       where: { id: folderId },
@@ -93,6 +114,10 @@ export async function POST(request: Request) {
     }
 
     const fileId = randomUUID();
+    const defaults = await resolveUploadDefaults({
+      expireAfter: request.headers.get("X-Expire-After"),
+      maxDownloads: request.headers.get("X-Max-Downloads"),
+    });
 
     const url = await getSignedUrl(
       s3Hot,
@@ -115,8 +140,8 @@ export async function POST(request: Request) {
         type: "SERVICE",
         content_type: contentType,
         download_count: 0,
-        max_downloads: null,
-        expires_at: new Date(Date.now() + 100 * 24 * 60 * 60 * 1000), // 100 days
+        max_downloads: defaults.maxDownloads,
+        expires_at: defaults.expiresAt,
       },
     });
 

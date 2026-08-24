@@ -2,8 +2,9 @@ import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { logsWhereInput } from "@/prisma/app/generated/prisma/models";
 import { log } from "@/services/log.service";
-import { setSetting, Settings } from "@/services/settings.service";
+import { getSetting, setSetting, Settings } from "@/services/settings.service";
 import { LogAction, LogLevel } from "@/types/log.types";
+import { SettingKeys } from "@/types/settings.types";
 
 export async function GET(request: Request) {
   try {
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
     const where = {
       ...(level && { level: level as any }),
       ...(action && { action: action as any }),
-      ...(userId && { user_id: userId }),
+      ...(userId && { user_id: Number.parseInt(userId) }),
       ...((from || to) && {
         created_at: {
           ...(from && { gte: new Date(from) }),
@@ -52,7 +53,9 @@ export async function GET(request: Request) {
       prisma.logs.count({ where }),
     ]);
 
-    return Response.json({ logs, total, page, limit });
+    const minLevel = await getSetting<string>(SettingKeys.LOG_MIN_LEVEL);
+
+    return Response.json({ logs, total, page, limit, minLevel });
   } catch (error) {
     console.error("Error fetching logs:", error);
     const session = await getSession();
@@ -74,9 +77,10 @@ export async function PATCH(request: Request) {
   }
 
   const { minLevel } = await request.json();
-  const valid = ["DEBUG", "INFO", "WARN", "ERROR"];
-  if (!valid.includes(minLevel)) {
-    return Response.json({ error: "Invalid level" }, { status: 400 });
+
+  const result = await setSetting(SettingKeys.LOG_MIN_LEVEL, minLevel, session.userId);
+  if (!result.ok) {
+    return Response.json({ error: result.error ?? "Invalid level" }, { status: 400 });
   }
 
   const previousLevel = await Settings.logMinLevel();

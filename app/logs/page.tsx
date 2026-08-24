@@ -27,11 +27,7 @@ const LogsPage = () => {
     const data = await res.json();
     setLogs(data.logs);
     setTotal(data.total);
-
-    const minLevelRes = await fetch("/api/settings?keys=log_min_level");
-    const minLevelData = await minLevelRes.json();
-    setMinLevel(minLevelData.settings.log_min_level || LogLevel.INFO);
-
+    if (data.minLevel) setMinLevel(data.minLevel as LogLevel);
     setLoading(false);
   }, [page, filters]);
 

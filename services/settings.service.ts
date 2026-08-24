@@ -6,10 +6,10 @@ import {
   SettingKeys,
   SettingValue,
   isDefaultSettingValue,
+  normalizeSettingValue,
   parseSettingValue,
   validateSettingValue,
 } from "@/types/settings.types";
-
 
 const CACHE_TTL_MS = 60_000;
 
@@ -134,21 +134,21 @@ export async function resetSetting(key: SettingKey): Promise<void> {
   invalidateSettingsCache();
 }
 
-export async function syncSettingsCatalog(): Promise<number> {
+export async function syncSettingsCatalog(userId: number): Promise<number> {
   const existing = await prisma.settings.findMany({ select: { key: true } });
-  const known = new Set(existing.map((row) => row.key));
+  const known = new Set(existing.map((row: { key: string }) => row.key));
   const missing = SETTINGS_CATALOG.filter((definition) => !known.has(definition.key));
 
   if (missing.length > 0) {
     await prisma.settings.createMany({
       data: missing.map((definition) => ({
         key: definition.key,
-        value: definition.default,
+        value: normalizeSettingValue(definition, definition.default),
         type: definition.type,
         category: definition.category,
         label: definition.label,
         description: definition.description ?? null,
-        updated_by: 1,
+        updated_by: userId,
       })),
       skipDuplicates: true,
     });

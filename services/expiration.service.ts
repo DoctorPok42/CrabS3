@@ -4,26 +4,17 @@ import { LogAction, LogLevel } from "@/types/log.types";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
 import { AbortMultipartUploadCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { deleteStorageObjectIfUnreferenced, resolveStorageKey } from "@/lib/storage-key";
-import { Settings } from "./settings.service";
+import { Settings } from "@/services/settings.service";
 
-const POLICY = async (): Promise<string> => {
+async function getPolicy(): Promise<string> {
   try {
-    return await Settings.expiredFilePolicy();
-  } catch (err) {
-    console.error("Failed to resolve expired file policy:", err);
+    return (await Settings.expiredFilePolicy()).toLowerCase();
+  } catch {
     return (process.env.EXPIRED_FILE_POLICY || "cold").toLowerCase();
   }
 }
-
 const INCOMPLETE_UPLOAD_SCAN_LIMIT = 500;
-const STALE_MULTIPART_MAX_AGE_MS = async (): Promise<number> => {
-  try {
-    return await Settings.staleMultipartHours() * 60 * 60 * 1000;
-  } catch (err) {
-    console.error("Failed to resolve stale multipart max age:", err);
-    return (process.env.STALE_MULTIPART_HOURS ? Number.parseInt(process.env.STALE_MULTIPART_HOURS) : 24) * 60 * 60 * 1000;
-  }
-}
+
 
 const BATCH_LIMIT = 1000;
 const CONCURRENCY = 5;
@@ -86,7 +77,7 @@ async function deleteIncompleteUpload(file: ExpiredFile) {
 }
 
 async function processFile(file: ExpiredFile) {
-  const policy = await POLICY();
+  const policy = await getPolicy();
 
   try {
     if (policy === "cold") {
@@ -139,7 +130,7 @@ export async function processExpiredFiles() {
     await Promise.all(slice.map(deleteFile));
   }
 
-  return { processed: expired.length, policy: POLICY };
+  return { processed: expired.length, policy: await getPolicy() };
 }
 
 export async function cleanupIncompleteUploads() {
@@ -187,9 +178,14 @@ export async function cleanupIncompleteUploads() {
   return { processed: recentFiles.length, removed };
 }
 
+export async function cleanOldSessions() {
+  const cutoff = new Date(Date.now() - (await Settings.sessionDurationHours()) * 60 * 60 * 1000);
+  await prisma.session.deleteMany({ where: { expiresAt: { lt: cutoff } } });
+}
+
 export async function reapStaleMultipartUploads() {
-  const staleMultipartMaxAgeMs = await STALE_MULTIPART_MAX_AGE_MS();
-  const cutoff = new Date(Date.now() - staleMultipartMaxAgeMs);
+  const staleAfterHours = await Settings.staleMultipartHours();
+  const cutoff = new Date(Date.now() - staleAfterHours * 60 * 60 * 1000);
 
   const stale = await prisma.multipart_uploads.findMany({
     where: { created_at: { lt: cutoff } },

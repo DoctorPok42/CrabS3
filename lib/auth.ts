@@ -42,6 +42,16 @@ export async function getSession() {
   });
 
   if (!session || session.expiresAt < new Date()) {
+    if (session) {
+      await prisma.session.delete({ where: { token } });
+    }
+
+    cookieStore.set("session", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      expires: new Date(0),
+    });
     return null;
   }
 

@@ -5,6 +5,8 @@ import bcrypt from "bcrypt";
 import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { resolveStorageKey } from "@/lib/storage-key";
+import { checkUploadPolicy, resolveUploadDefaults } from "@/lib/upload-policy";
+import { Settings } from "@/services/settings.service";
 
 interface DedupeMetadata {
   filename: string;
@@ -36,6 +38,29 @@ export async function POST(request: Request) {
     }
 
     const sizeBytes = BigInt(metadata.size);
+
+    if (!(await Settings.dedupeEnabled())) {
+      return Response.json({ duplicate: false }, { status: 200 });
+    }
+
+    const policy = await checkUploadPolicy({
+      filename: metadata.filename,
+      size: sizeBytes,
+      folderId,
+      isAdmin: session.isAdmin,
+      password: metadata.password,
+    });
+
+    if (!policy.ok) {
+      await log({
+        level: LogLevel.WARN,
+        action: LogAction.UPLOAD,
+        message: `Deduplicated upload rejected: ${policy.error}`,
+        userId: session.userId,
+        meta: { filename: metadata.filename, folderId, size: metadata.size, status: policy.status },
+      });
+      return Response.json({ error: policy.error }, { status: policy.status ?? 400 });
+    }
 
     const candidate = await prisma.files.findFirst({
       where: {
@@ -93,6 +118,7 @@ export async function POST(request: Request) {
     });
 
     const fileId = randomUUID();
+    const defaults = await resolveUploadDefaults(metadata);
 
     await prisma.files.create({
       data: {
@@ -108,11 +134,9 @@ export async function POST(request: Request) {
         uploaded_at: new Date(),
         infected: false,
         scanned_at: new Date(),
-        max_downloads: metadata.maxDownloads ? Number.parseInt(metadata.maxDownloads) : null,
+        max_downloads: defaults.maxDownloads,
         download_count: 0,
-        expires_at: metadata.expireAfter
-          ? new Date(Date.now() + Number.parseInt(metadata.expireAfter) * 24 * 60 * 60 * 1000)
-          : null,
+        expires_at: defaults.expiresAt,
         email_sender: session.email,
         email_recipient: metadata.emailRecipient || null,
         password_hash: metadata.password ? await bcrypt.hash(metadata.password, 10) : null,

@@ -1,4 +1,16 @@
 import nodemailer from "nodemailer";
+import { Settings } from "@/services/settings.service";
+
+async function notificationsAllowed(event: "upload" | "download" | "recipient"): Promise<boolean> {
+  try {
+    if (!(await Settings.emailEnabled())) return false;
+    if (event === "upload") return Settings.emailNotifyOnUpload();
+    if (event === "download") return Settings.emailNotifyOnDownload();
+    return Settings.emailNotifyRecipient();
+  } catch {
+    return true;
+  }
+}
 
 declare global {
   var _mailerTransport: nodemailer.Transporter | undefined;
@@ -33,6 +45,8 @@ transporter.verify().then(() => {
 });
 
 export async function sendNotificationEmail(to: string, fileId: string) {
+  if (!(await notificationsAllowed("upload"))) return;
+
   const from = process.env.SMTP_FROM || "<EMAIL>";
   const downloadLink = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/file/${fileId}`;
 
@@ -105,6 +119,8 @@ export async function sendNotificationEmail(to: string, fileId: string) {
 }
 
 export async function sendDownloadNotificationEmail(to: string, fileId: string) {
+  if (!(await notificationsAllowed("download"))) return;
+
   if (!to) {
     console.warn(`No notification email sent for file ${fileId} because no email_sender is set.`);
     return;
@@ -182,6 +198,8 @@ export async function sendDownloadNotificationEmail(to: string, fileId: string) 
 }
 
 export async function sendRecipientNotificationEmail(to: string, fileId: string, senderEmail?: string, message?: string) {
+  if (!(await notificationsAllowed("recipient"))) return;
+
   if (!to) {
     console.warn(`No recipient email sent for file ${fileId} because no email_recipient is set.`);
     return;
