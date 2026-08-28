@@ -3,6 +3,7 @@ import { hashPassword, createSession } from "@/lib/auth";
 import { log } from "@/services/log.service";
 import { LogAction } from "@/types/log.types";
 import { getIp } from "@/lib/ip";
+import { Settings } from "@/services/settings.service";
 
 export async function POST(request: Request) {
   const { token, name, password } = await request.json();
@@ -25,8 +26,10 @@ export async function POST(request: Request) {
 
   const passwordHash = await hashPassword(password);
 
+  const defaultQuota = await Settings.defaultUserQuota();
+
   const user = await prisma.users.create({
-    data: { email: invitation.email, name, passwordHash, isAdmin: false },
+    data: { email: invitation.email, name, passwordHash, isAdmin: false, ...(defaultQuota !== null ? { quota: BigInt(defaultQuota) } : {}) },
   });
 
   await prisma.invitation.update({

@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
-import { cleanupIncompleteUploads, processExpiredFiles, reapStaleMultipartUploads } from "@/services/expiration.service";
-import { log } from "@/services/log.service";
+import { cleanOldSessions, cleanupIncompleteUploads, processExpiredFiles, reapStaleMultipartUploads } from "@/services/expiration.service";
+import { log, purgeOldLogs } from "@/services/log.service";
+import { Settings } from "@/services/settings.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +25,17 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (!(await Settings.cleanupEnabled())) {
+      return Response.json({ status: "skipped", reason: "automatic cleanup is disabled" }, { status: 200 });
+    }
+
     await cleanupIncompleteUploads();
     const reaped = await reapStaleMultipartUploads();
     const result = await processExpiredFiles();
-    return Response.json({ status: "ok", reaped, ...result }, { status: 200 });
+    const purgedLogs = await purgeOldLogs();
+    const sessionCleanup = await Settings.cleanupEnabled() ? await cleanOldSessions() : 0;
+
+    return Response.json({ status: "ok", reaped, purgedLogs, sessionCleanup, ...result }, { status: 200 });
   } catch (error) {
     await log({
       level: LogLevel.ERROR,

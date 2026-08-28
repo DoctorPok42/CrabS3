@@ -10,6 +10,9 @@ import { log } from "@/services/log.service";
 import { LogAction, LogLevel } from "@/types/log.types";
 import { getIp } from "@/lib/ip";
 import { deleteStorageObjectIfUnreferenced, resolveStorageKey, type StorageKeyed } from "@/lib/storage-key";
+import { Settings } from "@/services/settings.service";
+import { checkMaintenance } from "@/lib/upload-policy";
+import { getSession } from "@/lib/auth";
 
 const getFileData = async (file: StorageKeyed) => {
   const key = resolveStorageKey(file);
@@ -41,6 +44,12 @@ export async function GET(
     const folderId = (await params).id
     const fileId = searchParams.get("fileId")
     const allFiles = searchParams.get("allFiles") === "true";
+
+    const viewer = await getSession().catch(() => null);
+    const maintenance = await checkMaintenance(viewer?.isAdmin);
+    if (!maintenance.ok) {
+      return Response.json({ error: maintenance.error }, { status: maintenance.status ?? 503 });
+    }
 
     (async () => {
       await log({
@@ -321,7 +330,7 @@ export async function GET(
         );
       }
 
-      if (!file.scanned_at && !file.infected) {
+      if (!file.scanned_at && !file.infected && (await Settings.clamavBlockUnscanned())) {
         (async () => {
           await log({
             level: LogLevel.WARN,

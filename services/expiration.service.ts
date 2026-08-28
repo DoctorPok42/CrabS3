@@ -4,10 +4,17 @@ import { LogAction, LogLevel } from "@/types/log.types";
 import { HOT_BUCKET, s3Hot } from "@/services/s3.service";
 import { AbortMultipartUploadCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { deleteStorageObjectIfUnreferenced, resolveStorageKey } from "@/lib/storage-key";
+import { Settings } from "@/services/settings.service";
 
-const POLICY = (process.env.EXPIRED_FILE_POLICY || "cold").toLowerCase(); // "delete" | "cold"
+async function getPolicy(): Promise<string> {
+  try {
+    return (await Settings.expiredFilePolicy()).toLowerCase();
+  } catch {
+    return (process.env.EXPIRED_FILE_POLICY || "cold").toLowerCase();
+  }
+}
 const INCOMPLETE_UPLOAD_SCAN_LIMIT = 500;
-const STALE_MULTIPART_MAX_AGE_MS = 48 * 60 * 60 * 1000; // 48 hours
+
 
 const BATCH_LIMIT = 1000;
 const CONCURRENCY = 5;
@@ -70,8 +77,10 @@ async function deleteIncompleteUpload(file: ExpiredFile) {
 }
 
 async function processFile(file: ExpiredFile) {
+  const policy = await getPolicy();
+
   try {
-    if (POLICY === "cold") {
+    if (policy === "cold") {
       await markAsCold(file);
     } else {
       await deleteFile(file);
@@ -84,7 +93,7 @@ async function processFile(file: ExpiredFile) {
       meta: {
         fileId: file.id,
         folderId: file.folder_id,
-        policy: POLICY,
+        policy,
         error: error instanceof Error ? error.message : String(error),
       },
     });
@@ -121,7 +130,7 @@ export async function processExpiredFiles() {
     await Promise.all(slice.map(deleteFile));
   }
 
-  return { processed: expired.length, policy: POLICY };
+  return { processed: expired.length, policy: await getPolicy() };
 }
 
 export async function cleanupIncompleteUploads() {
@@ -169,8 +178,14 @@ export async function cleanupIncompleteUploads() {
   return { processed: recentFiles.length, removed };
 }
 
+export async function cleanOldSessions() {
+  const cutoff = new Date(Date.now() - (await Settings.sessionDurationHours()) * 60 * 60 * 1000);
+  await prisma.session.deleteMany({ where: { expiresAt: { lt: cutoff } } });
+}
+
 export async function reapStaleMultipartUploads() {
-  const cutoff = new Date(Date.now() - STALE_MULTIPART_MAX_AGE_MS);
+  const staleAfterHours = await Settings.staleMultipartHours();
+  const cutoff = new Date(Date.now() - staleAfterHours * 60 * 60 * 1000);
 
   const stale = await prisma.multipart_uploads.findMany({
     where: { created_at: { lt: cutoff } },
