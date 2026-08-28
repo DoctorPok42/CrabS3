@@ -11,6 +11,10 @@ export type PublicFile = {
   scannedAt: Date | null;
   expiresAt: Date | null;
   folderName: string | null;
+  folder: {
+    name: string | null;
+    shared_folders: string[] | null;
+  };
 };
 
 export type FolderInfo = { exists: boolean; files: PublicFile[] };
@@ -28,7 +32,7 @@ export async function getPublicFolder(folderId: string): Promise<FolderInfo> {
       max_downloads: true,
       infected_by: true,
       scanned_at: true,
-      folder: { select: { name: true } },
+      folder: { select: { name: true, shared_folders: true } },
     },
   });
 
@@ -51,7 +55,11 @@ export async function getPublicFolder(folderId: string): Promise<FolderInfo> {
       scannedAt: file.scanned_at,
       expiresAt: file.expires_at,
       folderName: file.folder?.name || null,
-    }));
+      folder: {
+        name: file.folder?.name || null,
+        shared_folders: file.folder?.shared_folders ?? null,
+      },
+    })) as PublicFile[];
 
   return { exists: validFiles.length > 0, files: validFiles };
 }
