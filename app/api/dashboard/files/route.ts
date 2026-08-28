@@ -128,12 +128,12 @@ export async function GET(request: Request) {
     },
     include: {
       folder: {
-        select: { id: true, name: true },
+        select: { id: true, name: true, shared_folders: true },
       },
     },
     orderBy: { uploaded_at: "desc" },
   }) as unknown as Array<{
-    folder: { id: string; name: string } | null;
+    folder: { id: string; name: string; shared_folders: unknown } | null;
     folder_id: string | null;
     uploaded_at: Date | null;
     size: string | number;

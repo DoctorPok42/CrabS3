@@ -12,12 +12,12 @@ const SecretPage = () => {
   const [expireAfter, setExpireAfter] = useState<"1" | "7" | "14" | "21" | "30">("7")
   const [password, setPassword] = useState<string>("")
   const [uploading, setUploading] = useState<boolean>(false)
-  const [popupStatus, setPopupStatus] = useState<{ message: string, type: "success" | "error" | "info", fileId?: string } | null>(null)
+  const [popupStatus, setPopupStatus] = useState<{ message: string, type: "success" | "error" | "info", fileId?: string, fileType: "secret" } | null>(null)
 
   const handleUpload = async () => {
     setUploading(true)
     try {
-      setPopupStatus({ message: "Creating secret...", type: "info" })
+      setPopupStatus({ message: "Creating secret...", type: "info", fileType: "secret" })
       scrollTo({ top: 0, behavior: "smooth" })
 
       const response = await fetch("/api/secret/upload", {
@@ -37,9 +37,10 @@ const SecretPage = () => {
         message: `Secret created successfully!`,
         type: "success",
         fileId: result.id,
+        fileType: "secret"
       })
     } catch (error) {
-      setPopupStatus({ message: "Failed to create secret. Please try again.", type: "error" })
+      setPopupStatus({ message: "Failed to create secret. Please try again.", type: "error", fileType: "secret" })
       setTimeout(() => setPopupStatus(null), 5000)
       console.error("Error uploading secret:", error)
     } finally {

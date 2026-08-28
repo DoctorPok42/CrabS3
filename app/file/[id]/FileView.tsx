@@ -14,15 +14,14 @@ const QrCodePopup = dynamic(() => import("@/components/QrCodePopup"), { ssr: fal
 
 type Props = { id: string; initialFolder: FolderInfo }
 
-export default function FileView({ id, initialFolder }: Props) {
+export default function FileView({ id, initialFolder }: Readonly<Props>) {
   const router = useRouter()
-  const [fileInfo, setFileInfo] = useState<FolderInfo>(initialFolder)
   const [isDownloading, setIsDownloading] = useState<boolean>(false)
   const [password, setPassword] = useState<string>("")
   const [qrcodePopup, setQrcodePopup] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastProps | null>(null)
 
-  const needsPassword = fileInfo.files.some((f: { hasPassword: boolean }) => f.hasPassword)
+  const needsPassword = initialFolder.files.some((f: { hasPassword: boolean }) => f.hasPassword)
 
   const downloadFile = async (fileId?: string) => {
     setIsDownloading(true)
@@ -35,10 +34,10 @@ export default function FileView({ id, initialFolder }: Props) {
       let urlParams = ""
       if (fileId) {
         urlParams = `?fileId=${fileId}`
-      } else if (fileInfo.files.length > 1) {
+      } else if (initialFolder.files.length > 1) {
         urlParams = "?allFiles=true"
-      } else if (fileInfo.files.length === 1) {
-        urlParams = `?fileId=${fileInfo.files[0].id}`
+      } else if (initialFolder.files.length === 1) {
+        urlParams = `?fileId=${initialFolder.files[0].id}`
       }
 
       const validationResponse = await fetch(`/api/download/${id}${urlParams}`, {
@@ -63,21 +62,21 @@ export default function FileView({ id, initialFolder }: Props) {
         link.style.display = 'none'
         document.body.appendChild(link)
         link.click()
-        document.body.removeChild(link)
+        link.remove()
       }
 
       if (fileId) {
-        const file = fileInfo.files.find((f: { id: string }) => f.id === fileId)
+        const file = initialFolder.files.find((f: { id: string }) => f.id === fileId)
         if (file) triggerDownload(fileId, file.folderName ? file.folderName : file.filename)
-      } else if (fileInfo.files.length > 1) {
+      } else if (initialFolder.files.length > 1) {
         triggerDownload("", "files.zip", true)
-      } else if (fileInfo.files.length === 1) {
-        const file = fileInfo.files[0]
+      } else if (initialFolder.files.length === 1) {
+        const file = initialFolder.files[0]
         triggerDownload(file.id, file.folderName ? file.folderName : file.filename)
       }
 
-      const isZip = !fileId && fileInfo.files.length > 1
-      setToast({ level: "success", message: `${isZip ? "Archive" : "File"}${(fileId && fileInfo.files.length === 1) ? '' : 's'} will start downloading shortly.` })
+      const isZip = !fileId && initialFolder.files.length > 1
+      setToast({ level: "success", message: `${isZip ? "Archive" : "File"}${(fileId && initialFolder.files.length === 1) ? '' : 's'} will start downloading shortly.` })
     } catch (err) {
       console.error('Error downloading file:', err)
       setToast({ level: "error", message: err instanceof Error ? err.message : "Failed to download file" })
@@ -88,13 +87,31 @@ export default function FileView({ id, initialFolder }: Props) {
 
   const handleQrCode = () => setQrcodePopup(`${globalThis.location.origin}/file/${id}`)
 
-  const heading = fileInfo.files[0].folderName || `File${fileInfo.files.length > 1 ? 's' : ''} available`
+  const heading = initialFolder.files[0].folderName || `File${initialFolder.files.length > 1 ? 's' : ''} available`
 
   return (
     <div className="my-auto w-full max-w-5xl flex flex-col items-center md:px-16 px-6">
       <Toast {...toast} />
 
       {qrcodePopup && <QrCodePopup link={qrcodePopup} onClose={() => setQrcodePopup(null)} />}
+
+      {initialFolder.files.some((f: { folder: { shared_folders: string[] | null } }) => f.folder.shared_folders && f.folder.shared_folders.length > 0) && (
+        <div className="w-full flex flex-col gap-2 mb-4 justify-center items-center">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-semibold">This folder is a part of shared folders.</p>
+          <div className="flex flex-wrap gap-2">
+            {initialFolder.files.find((f: { folder: { shared_folders: string[] | null } }) => f.folder.shared_folders && f.folder.shared_folders.length > 0)?.folder.shared_folders?.map((sharedFolderId: string) => (
+              <Button
+                key={sharedFolderId}
+                text={initialFolder.files.find((f: { folder: { shared_folders: string[] | null } }) => f.folder.shared_folders && f.folder.shared_folders.length > 0)?.folder.name || sharedFolderId}
+                onClick={() => router.push(`/file/${sharedFolderId}`)}
+                variant="secondary"
+                title={`Go to shared folder ${sharedFolderId}`}
+                divClass="select-none"
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <section
         aria-labelledby="file-heading"
@@ -103,25 +120,25 @@ export default function FileView({ id, initialFolder }: Props) {
         <div className="flex flex-col gap-2">
           <h1 id="file-heading" className="text-lg font-bold text-zinc-700 dark:text-zinc-300">{heading}</h1>
           <div className="flex flex-wrap gap-x-2 gap-y-2 items-center font-bold">
-            {!fileInfo.files[0].folderName &&
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                {fileInfo.files.filter((f: { infectedBy: string | null }) => !f.infectedBy).length} file{fileInfo.files.filter((f: { infectedBy: string | null }) => !f.infectedBy).length > 1 ? 's' : ''} available
-              </p>
-            }
+            {/* {!initialFolder.files[0].folderName && */}
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {initialFolder.files.filter((f: { infectedBy: string | null }) => !f.infectedBy).length} file{initialFolder.files.filter((f: { infectedBy: string | null }) => !f.infectedBy).length > 1 ? 's' : ''} available
+            </p>
+            {/* } */}
 
             <span className="bg-input dark:bg-input-dark text-text dark:text-text-dark px-3.5 py-1.5 rounded-full text-[12.5px]">
-              Total Size: {formatSize(fileInfo.files.reduce((acc: number, file: { size: number }) => acc + file.size, 0))}
+              Total Size: {formatSize(initialFolder.files.reduce((acc: number, file: { size: number }) => acc + file.size, 0))}
             </span>
 
-            {fileInfo.files.some((f: { maxDownloads: number | null }) => f.maxDownloads !== null) && (
+            {initialFolder.files.some((f: { maxDownloads: number | null }) => f.maxDownloads !== null) && (
               <span className="bg-input dark:bg-input-dark text-text dark:text-text-dark px-3.5 py-1.5 rounded-full text-[12.5px]">
-                {fileInfo.files[0].downloadCount} / {fileInfo.files[0].maxDownloads} downloads used
+                {initialFolder.files[0].downloadCount} / {initialFolder.files[0].maxDownloads} downloads used
               </span>
             )}
 
-            {fileInfo.files.some((f: { infectedBy: string | null }) => f.infectedBy !== null) && (
+            {initialFolder.files.some((f: { infectedBy: string | null }) => f.infectedBy !== null) && (
               <span className="text-[#a20519] bg-[#ffebe8] px-3.5 py-1.5 rounded-full text-[12.5px] font-bold">
-                Infected: {fileInfo.files.find((f: { infectedBy: string | null }) => f.infectedBy !== null)?.infectedBy}
+                Infected: {initialFolder.files.find((f: { infectedBy: string | null }) => f.infectedBy !== null)?.infectedBy}
               </span>
             )}
 
@@ -132,14 +149,14 @@ export default function FileView({ id, initialFolder }: Props) {
             )}
 
             <span className="bg-[#f2e8d5] dark:bg-[#44310d] text-[#6a324b] dark:text-[#f7b833] px-3.5 py-1.5 rounded-full text-[12.5px]">
-              Expires: {fileInfo.files[0].expiresAt ? Math.floor((new Date(fileInfo.files[0].expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) + ' days' : 'Never'}
+              Expires: {initialFolder.files[0].expiresAt ? Math.floor((new Date(initialFolder.files[0].expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) + ' days' : 'Never'}
             </span>
           </div>
         </div>
 
         <div className="flex flex-wrap w-full gap-2">
           <Button
-            text={`Download ${fileInfo.files.length > 1 ? 'All Files' : 'File'}`}
+            text={`Download ${initialFolder.files.length > 1 ? 'All Files' : 'File'}`}
             onClick={() => downloadFile()}
             disabled={(needsPassword && !password) || isDownloading}
           />
@@ -150,10 +167,10 @@ export default function FileView({ id, initialFolder }: Props) {
           <table className="w-full text-xs sm:text-sm">
             <caption className="sr-only">Files available in this share link</caption>
             <tbody className="w-full">
-              {fileInfo.files.map((file: { id: string, filename: string, size: number, infectedBy: string | null }, index: number) => (
+              {initialFolder.files.map((file: { id: string, filename: string, size: number, infectedBy: string | null }, index: number) => (
                 <tr
                   key={file.id}
-                  className={`w-full flex justify-between items-center lg:table-row ${index < fileInfo.files.length - 1 && 'border-b border-[#e4e0dd] dark:border-[#302a26]'} hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${file.infectedBy ? 'opacity-70' : ''}`}
+                  className={`w-full flex justify-between items-center lg:table-row ${index < initialFolder.files.length - 1 && 'border-b border-[#e4e0dd] dark:border-[#302a26]'} hover:bg-zinc-100 dark:hover:bg-zinc-950 transition duration-200 ${file.infectedBy ? 'opacity-70' : ''}`}
                 >
                   <td className="lg:w-[85%] w-[70%] p-4 text-zinc-700 dark:text-zinc-200 font-semibold truncate" title={file.filename}>
                     {file.filename}
@@ -167,7 +184,7 @@ export default function FileView({ id, initialFolder }: Props) {
                   <td className="p-4 hidden lg:block truncate text-zinc-700 dark:text-zinc-200">
                     {formatSize(file.size)}
                   </td>
-                  {fileInfo.files.length > 1 && <td className="px-2">
+                  {initialFolder.files.length > 1 && <td className="px-2">
                     {!file.infectedBy && (
                       <Button
                         icon={faCloudArrowDown}

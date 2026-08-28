@@ -1,32 +1,36 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faAddressCard, faBug, faChevronLeft, faChevronRight, faFingerprint, faSpinner } from "@fortawesome/free-solid-svg-icons"
+import { faAddressCard, faBug, faChevronLeft, faChevronRight, faFingerprint, faShareNodes, faShareSquare, faSpinner } from "@fortawesome/free-solid-svg-icons"
 import { Button, Input, Toast, ConfirmDialog } from "@/components"
 import { formatSize } from "@/lib/format"
 
+type DashboardFile = {
+  id: string;
+  filename: string;
+  content_type: string;
+  size: number;
+  uploaded_at: string;
+  expires_at: string;
+  download_count: number;
+  max_downloads: number | null;
+  password_hash: string | null;
+  folder_id: string | null;
+  email_sender: string | null;
+  email_recipient: string | null;
+  infected: boolean;
+  infected_by: string | null;
+  scanned_at: string | null;
+  storage: "hot" | "cold";
+  folder: {
+    id: string; name: string, shared_folders: string[] | null
+  }
+}
+
 const DashboardPage = () => {
   const [dashboardData, setDashboardData] = useState<{
-    files: Array<{
-      id: string;
-      filename: string;
-      content_type: string;
-      size: number;
-      uploaded_at: string;
-      expires_at: string;
-      download_count: number;
-      max_downloads: number | null;
-      password_hash: string | null;
-      folder_id: string | null;
-      email_sender: string | null;
-      email_recipient: string | null;
-      infected: boolean;
-      infected_by: string | null;
-      scanned_at: string | null;
-      storage: "hot" | "cold";
-      folder: { id: string; name: string } | null;
-    }>,
+    files: DashboardFile[];
     isAdmin: boolean;
   } | null>(null)
   const [folderNameEdits, setFolderNameEdits] = useState<Record<string, string>>({})
@@ -43,12 +47,25 @@ const DashboardPage = () => {
     siblingCount: number
     siblingFilenames: string[]
   } | null>(null)
+  const [sharedPopupFolderId, setSharedPopupFolderId] = useState<string | null>(null)
+  const [sharedPopupSelectedFolders, setSharedPopupSelectedFolders] = useState<Set<string>>(new Set())
+  const [savingSharedFolders, setSavingSharedFolders] = useState<boolean>(false)
+  const [allFolders, setAllFolders] = useState<Array<{ id: string; name: string; fileCount: number }> | null>(null)
+  const sharedPopupRef = useRef<HTMLDivElement | null>(null)
 
   const fetchDashboardData = useCallback(async () => {
     try {
       const response = await fetch(`/api/dashboard/files?page=${page}&limit=10&type=${type}`)
       if (!response.ok) {
         setToast({ message: 'Error fetching dashboard data', level: 'error' })
+      }
+
+      const fetchFoldersResponse = await fetch('/api/dashboard/folders')
+      if (!fetchFoldersResponse.ok) {
+        setToast({ message: 'Error fetching folders', level: 'error' })
+      } else {
+        const foldersData = await fetchFoldersResponse.json()
+        setAllFolders(foldersData.folders)
       }
 
       const data = await response.json()
@@ -210,7 +227,7 @@ const DashboardPage = () => {
           ...prev,
           files: prev.files.map(file => (
             file.folder_id === folderId
-              ? { ...file, folder: file.folder ? { ...file.folder, name: nextName } : { id: folderId, name: nextName } }
+              ? { ...file, folder: file.folder ? { ...file.folder, name: nextName } : { id: folderId, name: nextName, shared_folders: null } }
               : file
           ))
         }
@@ -267,6 +284,64 @@ const DashboardPage = () => {
     }
   }
 
+  const openSharedPopup = (folderId: string, currentSharedIds: string[] | null | undefined) => {
+    setSharedPopupSelectedFolders(new Set(currentSharedIds || []))
+    setSharedPopupFolderId(folderId)
+  }
+
+  const toggleSharedFolder = (folderId: string) => {
+    setSharedPopupSelectedFolders(prev => {
+      const next = new Set(prev)
+      if (next.has(folderId)) {
+        next.delete(folderId)
+      } else {
+        next.add(folderId)
+      }
+      return next
+    })
+  }
+
+  const saveSharedFolders = async () => {
+    if (!sharedPopupFolderId) return
+    setToast({ message: '', level: 'info' })
+
+    try {
+      setSavingSharedFolders(true)
+      const response = await fetch(`/api/dashboard/folders/${sharedPopupFolderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sharedFolderIds: Array.from(sharedPopupSelectedFolders) }),
+      })
+
+      if (!response.ok) {
+        setToast({ message: 'Error updating shared folders', level: 'error' })
+        return
+      }
+
+      await fetchDashboardData()
+      setToast({ message: 'Shared folders updated', level: 'success' })
+      setSharedPopupFolderId(null)
+    } catch (error) {
+      setToast({ message: 'Error updating shared folders', level: 'error' })
+      console.error('Error updating shared folders:', error)
+    } finally {
+      setSavingSharedFolders(false)
+    }
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sharedPopupRef.current && !sharedPopupRef.current.contains(event.target as Node)) {
+        setSharedPopupFolderId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [sharedPopupRef])
+
   return (
     <main className="flex flex-col w-full max-w-8xl gap-8 items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full flex flex-col">
@@ -280,6 +355,55 @@ const DashboardPage = () => {
         level={toast?.level || "info"}
         actionLabel={toast?.actionLabel || ""}
       />
+
+      {sharedPopupFolderId && (() => {
+        const otherFolders = allFolders?.filter(f => f.id !== sharedPopupFolderId) || []
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div ref={sharedPopupRef} className="bg-white dark:bg-zinc-900 rounded-xl p-6 pb-2 w-full max-w-lg">
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Share Folder</h2>
+              <p className="text-zinc-700 dark:text-zinc-300 mb-4">You can select the folders that are joined with this folder.</p>
+              {otherFolders.length === 0 ? (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">You don&apos;t have any other folders to join this one with yet.</p>
+              ) : (
+                <div className="flex flex-col gap-1 max-h-64 overflow-y-auto mb-5 -mx-1 px-1">
+                  {otherFolders.map((f) => {
+                    const folderName = f.name || f.id
+                    const checked = sharedPopupSelectedFolders.has(f.id)
+
+                    return (
+                      <label
+                        key={f.id}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] transition duration-150"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSharedFolder(f.id)}
+                          className="w-4 h-4 accent-primary-500 cursor-pointer shrink-0 checked:bg-primary-500 checked:hover:bg-primary-600 checked:dark:bg-primary-400 checked:dark:hover:bg-primary-300"
+                        />
+                        <span className="flex-1 min-w-0 truncate text-sm font-semibold text-zinc-700 dark:text-zinc-300">{folderName}</span>
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">{f.fileCount} file{f.fileCount === 1 ? '' : 's'}</span>
+                      </label>
+                    )
+                  })}
+
+                  <div className="flex gap-2 mt-4">
+                    <Button text="Cancel" onClick={() => setSharedPopupFolderId(null)} variant="secondary" divClass="w-full" />
+                    <Button
+                      text={savingSharedFolders ? "Saving..." : "Save"}
+                      onClick={saveSharedFolders}
+                      disabled={savingSharedFolders}
+                      divClass="w-full"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {siblingDeletePrompt && (
         <ConfirmDialog
@@ -411,6 +535,12 @@ const DashboardPage = () => {
                         text="Delete Folder"
                         variant="danger"
                         onClick={() => deleteFolder(folderId)}
+                      />
+
+                      <Button
+                        icon={faShareNodes}
+                        variant="secondary"
+                        onClick={() => openSharedPopup(folderId, folderFiles[0].folder?.shared_folders || null)}
                       />
 
                       <Button

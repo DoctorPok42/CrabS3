@@ -1,8 +1,6 @@
 "use client"
-import { faCircleXmark } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useQRCode } from 'next-qrcode';
-import { useEffect, useRef, useState } from "react"
+
+import { useEffect, useState } from "react"
 import Button from './Button';
 import { TOAST_LEVEL_COLORS } from './Toast';
 import dynamic from 'next/dynamic';
@@ -27,8 +25,6 @@ export interface PopupStatusProps {
 const PopupStatus = ({ message, type, fileId, uploading, progress, fileMeta, btnText, fileType = "file" }: PopupStatusProps) => {
   const [status, setStatus] = useState<PopupStatusProps | null>({ message, type, fileId, uploading, progress, fileMeta })
   const [qrcodePopup, setQrcodePopup] = useState<string | null>(null)
-  const { Canvas } = useQRCode();
-  const qrCodeRef = useRef<HTMLDivElement | null>(null);
 
   const handleQrCode = () => {
     if (!fileId) return
@@ -67,21 +63,6 @@ const PopupStatus = ({ message, type, fileId, uploading, progress, fileMeta, btn
     error: "bg-[#f8d7da] border border-[#f5c6cb] dark:bg-[#402f2c] dark:border-[#6a3b37]",
     info: "bg-[#d1ecf1] border border-[#bee5eb] dark:bg-[#24363e] dark:border-[#194f6a]"
   }
-
-  useEffect(() => {
-    if (qrCodeRef.current) {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (qrCodeRef.current && !qrCodeRef.current.contains(event.target as Node)) {
-          setQrcodePopup(null)
-        }
-      }
-
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside)
-      }
-    }
-  }, [qrCodeRef])
 
   return (
     <div className={`lg:w-150 w-full mb-4 p-4 px-4.5 flex gap-2.5 flex-col border-2 rounded-[20px] ${CLASS_NAMES[status?.type || 'info']} `}>

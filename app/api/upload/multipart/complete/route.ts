@@ -86,7 +86,6 @@ export async function POST(request: Request) {
       );
     }
 
-
     response = await s3Hot.send(
       new CompleteMultipartUploadCommand({
         Bucket: HOT_BUCKET,
