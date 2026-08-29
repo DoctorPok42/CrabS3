@@ -85,9 +85,14 @@ export async function DELETE(request: Request) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await prisma.users.delete({
-      where: { id: id },
-    });
+    await prisma.$transaction([
+      prisma.users.delete({ where: { id: id } }),
+      prisma.session.deleteMany({ where: { userId: id } }),
+      prisma.invitation.deleteMany({ where: { invitedById: id } }),
+      prisma.communication.deleteMany({ where: { user_id: id } }),
+      prisma.secrets.deleteMany({ where: { user_id: id } }),
+      prisma.folders.deleteMany({ where: { user_id: id } }),
+    ]);
 
     return Response.json({ message: "User deleted successfully" });
   } catch (error) {

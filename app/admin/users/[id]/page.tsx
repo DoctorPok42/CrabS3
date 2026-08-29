@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components"
+import ConfirmDialog, { ConfirmDialogProps } from "@/components/ConfirmDialog"
 import Toast, { ToastProps } from "@/components/Toast"
 import { faShieldAlt, faUser } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
@@ -23,6 +24,7 @@ const User = () => {
     sizeUsed: number;
   } | null>(null)
   const [toast, setToast] = useState<ToastProps | null>(null)
+  const [confirmPopup, setConfirmPopup] = useState<ConfirmDialogProps | null>(null)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -44,10 +46,6 @@ const User = () => {
   }, [id])
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
-      return
-    }
-
     try {
       const response = await fetch(`/api/admin/users/${id}`, {
         method: "DELETE"
@@ -120,6 +118,10 @@ const User = () => {
     <main className="flex flex-col w-full max-w-[100em] gap-4 items-center px-4 sm:px-16 pt-10 mx-auto min-h-screen">
 
       <Toast {...toast} />
+
+      {confirmPopup && (
+        <ConfirmDialog {...confirmPopup} />
+      )}
 
       {user ? (
         <>
@@ -216,7 +218,23 @@ const User = () => {
 
               <Button
                 text="Delete User"
-                onClick={handleDelete}
+                onClick={() => setConfirmPopup({
+                  title: "Delete User",
+                  message: "Are you sure you want to delete this user? This action cannot be undone.",
+                  actions: [
+                    {
+                      label: "Cancel",
+                      variant: "secondary",
+                      onClick: () => setConfirmPopup(null)
+                    },
+                    {
+                      label: "Delete",
+                      variant: "danger",
+                      onClick: () => handleDelete()
+                    }
+                  ],
+                  onClose: () => setConfirmPopup(null)
+                })}
                 variant="danger"
               />
             </div>
