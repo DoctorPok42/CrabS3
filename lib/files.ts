@@ -12,8 +12,9 @@ export type PublicFile = {
   expiresAt: Date | null;
   folderName: string | null;
   folder: {
+    id: string | null;
     name: string | null;
-    shared_folders: string[] | null;
+    shared_folders: { id: string; name: string | null }[];
   };
 };
 
@@ -32,11 +33,16 @@ export async function getPublicFolder(folderId: string): Promise<FolderInfo> {
       max_downloads: true,
       infected_by: true,
       scanned_at: true,
-      folder: { select: { name: true, shared_folders: true } },
+      folder: { select: { id: true, name: true, shared_folders: true } },
     },
   });
 
   if (!files || files.length === 0) return { exists: false, files: [] };
+
+  const sharedFoldersNames = await prisma.folders.findMany({
+    where: { id: { in: files.flatMap((file) => file.folder?.shared_folders ?? []).filter((id): id is string => !!id) } },
+    select: { id: true, name: true },
+  });
 
   const validFiles: PublicFile[] = files
     .filter(
@@ -56,8 +62,11 @@ export async function getPublicFolder(folderId: string): Promise<FolderInfo> {
       expiresAt: file.expires_at,
       folderName: file.folder?.name || null,
       folder: {
+        id: file.folder?.id || null,
         name: file.folder?.name || null,
-        shared_folders: file.folder?.shared_folders ?? null,
+        shared_folders: sharedFoldersNames
+          .filter((f) => file.folder?.shared_folders?.toLocaleString().includes(f.id))
+          .map((f) => f)
       },
     })) as PublicFile[];
 

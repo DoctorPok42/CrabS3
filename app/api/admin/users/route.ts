@@ -117,7 +117,7 @@ export async function GET() {
 
     const allUsers = [...usersWithMetrics, ...pendingUsersWithMetrics];
 
-    return Response.json(allUsers);
+    return Response.json({ allUsers, isAdmin: currentUser.isAdmin });
   } catch (error) {
     console.error("Error fetching users:", error);
     const session = await getSession();

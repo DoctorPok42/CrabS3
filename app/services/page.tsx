@@ -1,6 +1,7 @@
 "use client"
 
 import { Button, Input } from "@/components"
+import ConfirmDialog, { ConfirmDialogProps } from "@/components/ConfirmDialog"
 import Toast, { ToastProps } from "@/components/Toast"
 import { formatSize } from "@/lib/format"
 import Image from "next/image"
@@ -29,6 +30,7 @@ const Services = () => {
   const [serviceId, setServiceId] = useState<number | null>(null)
   const invitationCodeRef = useRef<HTMLDivElement>(null)
   const [toast, setToast] = useState<ToastProps | null>(null)
+  const [confirmPopup, setConfirmPopup] = useState<ConfirmDialogProps | null>(null)
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -202,6 +204,10 @@ const Services = () => {
 
       <Toast {...toast} />
 
+      {confirmPopup && (
+        <ConfirmDialog {...confirmPopup} />
+      )}
+
       {invitationCode && (
         <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/50 dark:bg-black/50 z-50">
           <div ref={invitationCodeRef} className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark p-6 rounded-lg shadow-lg w-96">
@@ -313,7 +319,23 @@ const Services = () => {
 
                     <Button
                       text="Delete Service"
-                      onClick={() => handleDeleteService(service.id)}
+                      onClick={() => setConfirmPopup({
+                        title: "Delete Service",
+                        message: "Are you sure you want to delete this service? This action cannot be undone.",
+                        actions: [
+                          {
+                            label: "Cancel",
+                            variant: "secondary",
+                            onClick: () => setConfirmPopup(null),
+                          },
+                          {
+                            label: "Delete",
+                            variant: "danger",
+                            onClick: () => handleDeleteService(service.id)
+                          },
+                        ],
+                        onClose: () => setConfirmPopup(null),
+                      })}
                       variant="danger"
                     />
                   </div>

@@ -35,12 +35,12 @@ const ConfirmDialog = ({ title, message, actions, onClose }: ConfirmDialogProps)
   }, [onClose])
 
   return (
-    <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/50 z-50">
+    <div className="w-screen h-screen fixed top-0 left-0 flex items-center justify-center bg-black/70 z-50">
       <div
         ref={ref}
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark p-6 rounded-2xl max-w-[29rem]"
+        className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark p-6 rounded-2xl max-w-116"
       >
         <div className="flex items-center justify-between mb-2">
           <h3 id="confirm-dialog-title" className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">{title}</h3>
@@ -49,7 +49,7 @@ const ConfirmDialog = ({ title, message, actions, onClose }: ConfirmDialogProps)
 
         <p className="text-zinc-500 dark:text-zinc-400 mb-5 text-[14.5px] whitespace-break-spaces">{message}</p>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
           {actions.map((action) => (
             <Button
               key={action.label}

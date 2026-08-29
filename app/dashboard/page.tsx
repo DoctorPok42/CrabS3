@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback, useRef } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faAddressCard, faBug, faChevronLeft, faChevronRight, faFingerprint, faShareNodes, faShareSquare, faSpinner } from "@fortawesome/free-solid-svg-icons"
+import { faAddressCard, faBug, faChevronLeft, faChevronRight, faFingerprint, faShareNodes, faSpinner } from "@fortawesome/free-solid-svg-icons"
 import { Button, Input, Toast, ConfirmDialog } from "@/components"
+import { ConfirmDialogProps } from "@/components/ConfirmDialog"
 import { formatSize } from "@/lib/format"
 
 type DashboardFile = {
@@ -52,6 +53,7 @@ const DashboardPage = () => {
   const [savingSharedFolders, setSavingSharedFolders] = useState<boolean>(false)
   const [allFolders, setAllFolders] = useState<Array<{ id: string; name: string; fileCount: number }> | null>(null)
   const sharedPopupRef = useRef<HTMLDivElement | null>(null)
+  const [confirmPopup, setConfirmPopup] = useState<ConfirmDialogProps | null>(null)
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -133,14 +135,6 @@ const DashboardPage = () => {
       setToast({ message: 'Error deleting file', level: 'error' })
       console.error('Error deleting file:', error)
     }
-  }
-
-  const handleDeleteFile = (fileId: string, folderId: string) => {
-    if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
-      return
-    }
-
-    deleteFile(fileId, folderId)
   }
 
   const handleChangeType = (newType: "active" | "expired") => {
@@ -245,10 +239,6 @@ const DashboardPage = () => {
   }
 
   const deleteFolder = async (folderId: string) => {
-    if (!confirm('Are you sure you want to delete this folder and all its files? This action cannot be undone.')) {
-      return
-    }
-
     try {
       const response = await fetch(`/api/dashboard/folders/${folderId}?mode=permanent`, {
         method: "DELETE",
@@ -405,6 +395,10 @@ const DashboardPage = () => {
         )
       })()}
 
+      {confirmPopup && (
+        <ConfirmDialog {...confirmPopup} />
+      )}
+
       {siblingDeletePrompt && (
         <ConfirmDialog
           title="This file shares content with other files"
@@ -534,7 +528,23 @@ const DashboardPage = () => {
                       <Button
                         text="Delete Folder"
                         variant="danger"
-                        onClick={() => deleteFolder(folderId)}
+                        onClick={() => setConfirmPopup({
+                          title: "Delete Folder",
+                          message: `Are you sure you want to delete the folder "${folderName}" and all its files? This action cannot be undone.`,
+                          actions: [
+                            {
+                              label: "Cancel",
+                              variant: "secondary",
+                              onClick: () => setConfirmPopup(null),
+                            },
+                            {
+                              label: "Delete",
+                              variant: "danger",
+                              onClick: () => deleteFolder(folderId)
+                            },
+                          ],
+                          onClose: () => setConfirmPopup(null),
+                        })}
                       />
 
                       <Button
@@ -623,7 +633,23 @@ const DashboardPage = () => {
                               <Button
                                 text="Delete"
                                 variant="danger"
-                                onClick={() => handleDeleteFile(file.id, folderId)}
+                                onClick={() => setConfirmPopup({
+                                  title: "Delete File",
+                                  message: `Are you sure you want to delete the file "${file.filename}"? This action cannot be undone.`,
+                                  actions: [
+                                    {
+                                      label: "Cancel",
+                                      variant: "secondary",
+                                      onClick: () => setConfirmPopup(null),
+                                    },
+                                    {
+                                      label: "Delete",
+                                      variant: "danger",
+                                      onClick: () => deleteFile(file.id, folderId)
+                                    },
+                                  ],
+                                  onClose: () => setConfirmPopup(null),
+                                })}
                               />
                             )}
                           </div>
