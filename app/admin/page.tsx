@@ -54,7 +54,7 @@ const Admin = () => {
             return
           }
 
-          setUsers(data)
+          setUsers(data.allUsers)
         }
       } catch (error) {
         console.error("Failed to fetch users:", error)

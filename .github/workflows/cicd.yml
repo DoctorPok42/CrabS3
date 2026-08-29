@@ -40,9 +40,6 @@ jobs:
   build_pr:
     runs-on: self-hosted
     if: github.event_name == 'pull_request'
-    concurrency:
-      group: ${{ github.event.pull_request.number }}
-      cancel-in-progress: true
     strategy:
       matrix:
         include:

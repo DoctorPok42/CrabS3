@@ -1,6 +1,7 @@
 "use client"
 
 import { Button, Input } from "@/components";
+import ConfirmDialog, { ConfirmDialogProps } from "@/components/ConfirmDialog";
 import Toast, { ToastProps } from "@/components/Toast";
 import { faCircleXmark, faEnvelope, faLock, faUser } from "@fortawesome/free-solid-svg-icons";
 import { useQRCode } from "next-qrcode";
@@ -15,6 +16,7 @@ const Me = () => {
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [twoFactorSecret, setTwoFactorSecret] = useState<{ secret: string, uri: string } | null>(null)
   const [toast, setToast] = useState<ToastProps | null>(null)
+  const [confirmPopup, setConfirmPopup] = useState<ConfirmDialogProps | null>(null)
   const { Canvas } = useQRCode();
 
   useEffect(() => {
@@ -123,6 +125,24 @@ const Me = () => {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    try {
+      const res = await fetch('/api/auth/me', {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        window.location.href = '/';
+      } else {
+        const error = await res.json();
+        setToast({ level: 'error', message: error.error || 'Error deleting account' });
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setToast({ level: 'error', message: 'Error deleting account' });
+    }
+  }
+
   return (
     <div className="flex flex-col w-full max-w-8xl items-center px-4 sm:px-16 pt-10 mt-0 my-auto">
       <div className="w-full mb-8 flex flex-col">
@@ -162,6 +182,10 @@ const Me = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {confirmPopup && (
+        <ConfirmDialog {...confirmPopup} />
       )}
 
       <div className="lg:w-150 w-full flex flex-col border-cardBorder dark:border-cardBorder-dark border rounded-2xl p-6 bg-card dark:bg-card-dark transition duration-300">
@@ -236,13 +260,34 @@ const Me = () => {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3">
             <Button
               onClick={handleSaveProfile}
               text={isLoadingProfile ? 'Saving...' : 'Save changes'}
               variant="primary"
-              divClass="flex-1"
               disabled={isLoadingProfile || (!editedName.trim() || (newPassword && (newPassword.length < 8 || newPassword !== confirmPassword))) || (user?.name === editedName.trim() && !newPassword)}
+            />
+
+            <Button
+              onClick={() => setConfirmPopup({
+                title: "Confirm Account Deletion",
+                message: "Are you sure you want to delete your account? This action cannot be undone.",
+                actions: [
+                  {
+                    label: "Cancel",
+                    variant: "secondary",
+                    onClick: () => setConfirmPopup(null),
+                  },
+                  {
+                    label: "Delete",
+                    variant: "danger",
+                    onClick: handleDeleteAccount,
+                  },
+                ],
+                onClose: () => setConfirmPopup(null),
+              })}
+              text="Delete account"
+              variant="danger"
             />
           </div>
         </div>

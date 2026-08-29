@@ -95,17 +95,17 @@ export default function FileView({ id, initialFolder }: Readonly<Props>) {
 
       {qrcodePopup && <QrCodePopup link={qrcodePopup} onClose={() => setQrcodePopup(null)} />}
 
-      {initialFolder.files.some((f: { folder: { shared_folders: string[] | null } }) => f.folder.shared_folders && f.folder.shared_folders.length > 0) && (
+      {initialFolder.files.some((f: { folder: { shared_folders: { id: string; name: string | null }[] | null } }) => f.folder.shared_folders && f.folder.shared_folders.length > 0) && (
         <div className="w-full flex flex-col gap-2 mb-4 justify-center items-center">
           <p className="text-sm text-zinc-500 dark:text-zinc-400 font-semibold">This folder is a part of shared folders.</p>
           <div className="flex flex-wrap gap-2">
-            {initialFolder.files.find((f: { folder: { shared_folders: string[] | null } }) => f.folder.shared_folders && f.folder.shared_folders.length > 0)?.folder.shared_folders?.map((sharedFolderId: string) => (
+            {initialFolder.files.find((f: { folder: { shared_folders: { id: string; name: string | null }[] | null } }) => f.folder.shared_folders && f.folder.shared_folders.length > 0)?.folder.shared_folders?.map(({ id, name }) => (
               <Button
-                key={sharedFolderId}
-                text={initialFolder.files.find((f: { folder: { shared_folders: string[] | null } }) => f.folder.shared_folders && f.folder.shared_folders.length > 0)?.folder.name || sharedFolderId}
-                onClick={() => router.push(`/file/${sharedFolderId}`)}
+                key={id}
+                text={name || id}
+                onClick={() => router.push(`/file/${id}`)}
                 variant="secondary"
-                title={`Go to shared folder ${sharedFolderId}`}
+                title={`Go to shared folder ${id}`}
                 divClass="select-none"
               />
             ))}
@@ -120,11 +120,9 @@ export default function FileView({ id, initialFolder }: Readonly<Props>) {
         <div className="flex flex-col gap-2">
           <h1 id="file-heading" className="text-lg font-bold text-zinc-700 dark:text-zinc-300">{heading}</h1>
           <div className="flex flex-wrap gap-x-2 gap-y-2 items-center font-bold">
-            {/* {!initialFolder.files[0].folderName && */}
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {initialFolder.files.filter((f: { infectedBy: string | null }) => !f.infectedBy).length} file{initialFolder.files.filter((f: { infectedBy: string | null }) => !f.infectedBy).length > 1 ? 's' : ''} available
             </p>
-            {/* } */}
 
             <span className="bg-input dark:bg-input-dark text-text dark:text-text-dark px-3.5 py-1.5 rounded-full text-[12.5px]">
               Total Size: {formatSize(initialFolder.files.reduce((acc: number, file: { size: number }) => acc + file.size, 0))}
