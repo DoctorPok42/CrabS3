@@ -40,6 +40,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/login?next=" + encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search), request.url));
   }
 
+  if (session.isHeaderToken) {
+    const hasAccess = session.scopes.some((scope: string) => {
+      const scopeCheck = scope.toLocaleLowerCase();
+      if (scopeCheck === "admin") return true;
+      if (scopeCheck === "read") return request.method === "GET";
+      if (scopeCheck === "write") return request.method !== "DELETE";
+      if (scopeCheck === "delete") return request.method === "DELETE";
+      return false;
+    });
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   return NextResponse.next();
 }
 

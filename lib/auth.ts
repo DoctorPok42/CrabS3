@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import bcrypt from "bcrypt";
 import { Settings } from "@/services/settings.service";
 
@@ -16,7 +16,7 @@ export async function createSession(userId: number, email: string, isAdmin: bool
   const expiresAt = new Date(Date.now() + (expiresAtSetting || 48 * 60 * 60 * 1000));
 
   const session = await prisma.session.create({
-    data: { userId, expiresAt, email, isAdmin },
+    data: { userId, expires_at: expiresAt, email, isAdmin },
   });
 
   const cookieStore = await cookies();
@@ -33,15 +33,44 @@ export async function createSession(userId: number, email: string, isAdmin: bool
 
 export async function getSession() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("session")?.value;
-  if (!token) return null;
+  const headersList = await headers()
+  const token = cookieStore?.get("session")?.value || null;
+  const headerToken = headersList.get("Authorization")?.replace("Bearer ", "") || null;
+  if (!token && !headerToken) return null;
+
+  if (!token && headerToken) {
+    return await prisma.user_access_tokens.findUnique({
+      where: { token: headerToken },
+      include: { user: true },
+    }).then(async (session: any) => {
+      if (!session?.user || session.expires_at < new Date()) {
+        if (session) {
+          await prisma.user_access_tokens.delete({ where: { token: headerToken } });
+        }
+        return null;
+      }
+
+      (async () => {
+        await prisma.user_access_tokens.update({
+          where: { token: headerToken },
+          data: { last_used_at: new Date() },
+        });
+      })();
+
+      session.isHeaderToken = true;
+      return session;
+    });
+  }
+
+  if (!token)
+    return null;
 
   const session = await prisma.session.findUnique({
     where: { token },
     include: { user: true },
-  });
+  })
 
-  if (!session || session.expiresAt < new Date()) {
+  if (!session?.user || session.expires_at < new Date()) {
     if (session) {
       await prisma.session.delete({ where: { token } });
     }
