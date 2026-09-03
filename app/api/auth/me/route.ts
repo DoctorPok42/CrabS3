@@ -13,7 +13,7 @@ export async function GET() {
 
   try {
     const userName = await prisma.users.findUnique({
-      where: { id: session.userId },
+      where: { id: session.user.id },
       select: { name: true, id: true, twoFactorEnabled: true },
     });
 
@@ -31,7 +31,7 @@ export async function GET() {
       level: LogLevel.ERROR,
       action: LogAction.AUTH_LOGIN,
       message: "Failed to fetch user info",
-      userId: session?.userId,
+      userId: session?.user.id,
       meta: { error: error instanceof Error ? error.message : String(error) }
     });
     return Response.json({ error: "Failed to fetch user info" }, { status: 500 });
@@ -46,12 +46,12 @@ export async function DELETE(request: Request) {
 
   try {
     await prisma.$transaction([
-      prisma.users.delete({ where: { id: session.userId }}),
-      prisma.session.deleteMany({ where: { userId: session.userId } }),
-      prisma.invitation.deleteMany({ where: { invitedById: session.userId } }),
-      prisma.communication.deleteMany({ where: { user_id: session.userId } }),
-      prisma.secrets.deleteMany({ where: { user_id: session.userId } }),
-      prisma.folders.deleteMany({ where: { user_id: session.userId } }),
+      prisma.users.delete({ where: { id: session.user.id } }),
+      prisma.session.deleteMany({ where: { userId: session.user.id } }),
+      prisma.invitation.deleteMany({ where: { invitedById: session.user.id } }),
+      prisma.communication.deleteMany({ where: { user_id: session.user.id } }),
+      prisma.secrets.deleteMany({ where: { user_id: session.user.id } }),
+      prisma.folders.deleteMany({ where: { user_id: session.user.id } }),
     ]);
 
     const cookieStore = await cookies();
@@ -66,7 +66,7 @@ export async function DELETE(request: Request) {
         level: LogLevel.INFO,
         action: LogAction.USER_DELETED,
         message: "User account deleted",
-        userId: session.userId,
+        userId: session.user.id,
         meta: { email: session.user.email, ip: getIp(request) }
       });
     })();
@@ -79,7 +79,7 @@ export async function DELETE(request: Request) {
       level: LogLevel.ERROR,
       action: LogAction.USER_DELETED,
       message: "Failed to delete user",
-      userId: session?.userId,
+      userId: session?.user.id,
       meta: { error: error instanceof Error ? error.message : String(error) }
     });
     return Response.json({ error: "Failed to delete user" }, { status: 500 });

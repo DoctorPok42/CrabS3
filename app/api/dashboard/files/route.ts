@@ -72,7 +72,7 @@ export async function GET(request: Request) {
   const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 10;
 
   const where = {
-    user_id: session.userId,
+    user_id: session.user.id,
     uploaded_at: { not: null },
   };
 
@@ -113,7 +113,7 @@ export async function GET(request: Request) {
   if (orderedFolderIds.length === 0) {
     return Response.json({
       files: [],
-      isAdmin: session.isAdmin,
+      isAdmin: session.user.isAdmin,
       page: safePage,
       totalPages: Math.ceil(filteredFolderIds.length / safeLimit),
     });
@@ -177,7 +177,7 @@ export async function GET(request: Request) {
 
   return Response.json({
     files,
-    isAdmin: session.isAdmin,
+    isAdmin: session.user.isAdmin,
     page: safePage,
     totalPages: Math.ceil(filteredFolderIds.length / safeLimit),
   });

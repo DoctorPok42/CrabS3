@@ -20,8 +20,8 @@ export async function POST(request: Request) {
       where: {
         id: folderId,
         OR: [
-          { user_id: session.userId },
-          { files: { some: { user_id: session.userId } } }
+          { user_id: session.user.id },
+          { files: { some: { user_id: session.user.id } } }
         ]
       },
     });
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     const findFiles = await prisma.files.findMany({
-      where: { folder_id: folderId, user_id: session.userId },
+      where: { folder_id: folderId, user_id: session.user.id },
     });
     if (!findFiles || findFiles.length === 0) {
       return Response.json({ error: "Folder not found" }, { status: 404 });
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     const updateFiles = await prisma.files.updateMany({
-      where: { storage_key: { in: Array.from(uniqueKeys) }, user_id: session.userId },
+      where: { storage_key: { in: Array.from(uniqueKeys) }, user_id: session.user.id },
       data: { storage: "hot" },
     });
     if (updateFiles.count === 0) {

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
   try {
     const files = await prisma.files.findMany({
-      where: { folder_id: folderId, user_id: session.userId },
+      where: { folder_id: folderId, user_id: session.user.id },
     });
     if (!files || files.length === 0) {
       return Response.json({ error: "Folder not found or unauthorized" }, { status: 404 });
@@ -30,16 +30,16 @@ export async function POST(request: Request) {
         action: LogAction.UPLOAD,
         level: LogLevel.INFO,
         message: `File${files.length > 1 ? 's' : ''} uploaded successfully`,
-        userId: session.userId,
+        userId: session.user.id,
         meta: { folderName, folderId, fileCount: files.length, filesId: files.map((f) => `${f.id} | ${f.filename}`), ip: getIp(request) },
       });
 
-      await sendNotificationEmail(session.email, folderId);
+      await sendNotificationEmail(session.user.email, folderId);
       if (files.some(file => file.email_recipient)) {
-        await sendNotificationEmail(session.email, folderId);
+        await sendNotificationEmail(session.user.email, folderId);
       }
 
-      await sendAllActiveCommunications(session.userId, {
+      await sendAllActiveCommunications(session.user.id, {
         content: "",
         embeds: [
           {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
               { name: "File Count", value: files.length.toString(), inline: true },
               { name: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n"), inline: false },
               { name: "Download Link", value: `${process.env.NEXT_PUBLIC_BASE_URL}/file/${folderId}`, inline: false },
-              { name: "Sender Email", value: session.email, inline: true },
+              { name: "Sender Email", value: session.user.email, inline: true },
               { name: "IP Address", value: getIp(request), inline: true },
             ],
           },
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
                     { title: "File Count", value: files.length.toString() },
                     { title: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n") },
                     { title: "Download Link", value: `${process.env.NEXT_PUBLIC_BASE_URL}/file/${folderId}` },
-                    { title: "Sender Email", value: session.email },
+                    { title: "Sender Email", value: session.user.email },
                     { title: "IP Address", value: getIp(request) },
                   ],
                 },
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
               { type: "mrkdwn", text: `*File Count:*\n${files.length}` },
               { type: "mrkdwn", text: `*Files ID:*\n${files.map((f) => `\`${f.id}\``).join("\n")}` },
               { type: "mrkdwn", text: `*Download Link:*\n${process.env.NEXT_PUBLIC_BASE_URL}/file/${folderId}` },
-              { type: "mrkdwn", text: `*Sender Email:*\n${session.email}` },
+              { type: "mrkdwn", text: `*Sender Email:*\n${session.user.email}` },
               { type: "mrkdwn", text: `*IP Address:*\n${getIp(request)}` },
             ],
           },
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
               { title: "File Count", value: files.length.toString() },
               { title: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n") },
               { title: "Download Link", value: `${process.env.NEXT_PUBLIC_BASE_URL}/file/${folderId}` },
-              { title: "Sender Email", value: session.email },
+              { title: "Sender Email", value: session.user.email },
               { title: "IP Address", value: getIp(request) },
             ],
           },
@@ -127,14 +127,14 @@ export async function POST(request: Request) {
     return Response.json({ message: "Upload finished successfully" }, { status: 200 });
   } catch (error) {
     await prisma.files.deleteMany({
-      where: { folder_id: folderId, user_id: session.userId },
+      where: { folder_id: folderId, user_id: session.user.id },
     });
 
     await log({
       action: LogAction.UPLOAD,
       level: LogLevel.ERROR,
       message: `Error completing multipart upload: ${error}`,
-      userId: session.userId,
+      userId: session.user.id,
       meta: { folderId, ip: getIp(request) },
     });
     return Response.json({ error: "Internal Server Error" }, { status: 500 });

@@ -32,7 +32,7 @@ export async function GET() {
         email: true,
         name: true,
         isAdmin: true,
-        createdAt: true,
+        created_at: true,
         quota: true,
         files: {
           select: {
@@ -53,7 +53,7 @@ export async function GET() {
       email: string;
       name: string;
       isAdmin: boolean;
-      createdAt: Date;
+      created_at: Date;
       quota: number;
       files: {
         size: number;
@@ -98,7 +98,7 @@ export async function GET() {
       select: {
         id: true,
         email: true,
-        createdAt: true,
+        created_at: true,
       },
     });
 

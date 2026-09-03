@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       filename,
       size: fileSizeBytes,
       folderId,
-      isAdmin: session.isAdmin,
+      isAdmin: session.user.isAdmin,
     });
 
     if (!policy.ok) {
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         level: LogLevel.WARN,
         action: LogAction.UPLOAD,
         message: `Upload rejected: ${policy.error}`,
-        userId: session.userId,
+        userId: session.user.id,
         meta: { filename, folderId, size: fileSize, status: policy.status },
       });
       return Response.json({ error: policy.error }, { status: policy.status ?? 400 });
@@ -63,11 +63,11 @@ export async function POST(request: Request) {
 
     const [user, userFiles] = await Promise.all([
       prisma.users.findUnique({
-        where: { id: session.userId },
+        where: { id: session.user.id },
         select: { quota: true, id: true },
       }),
       prisma.files.aggregate({
-        where: { user_id: session.userId },
+        where: { user_id: session.user.id },
         _sum: { size: true },
       })
     ]);
@@ -87,8 +87,8 @@ export async function POST(request: Request) {
         log({
           level: LogLevel.WARN,
           action: LogAction.UPLOAD,
-          message: `User ${session.userId} exceeded quota. Used: ${usedGB.toFixed(2)} GB, Quota: ${quotaGB.toFixed(2)} GB, File Size: ${fileGB.toFixed(2)} GB`,
-          userId: session.userId,
+          message: `User ${session.user.id} exceeded quota. Used: ${usedGB.toFixed(2)} GB, Quota: ${quotaGB.toFixed(2)} GB, File Size: ${fileGB.toFixed(2)} GB`,
+          userId: session.user.id,
         })
       })();
 
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
         size: Number.parseInt(fileSize),
         content_type: contentType,
         folder_id: folderId,
-        user_id: session.userId,
+        user_id: session.user.id,
         uploaded_at: null,
         storage: "hot",
         hash: contentHash,
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
     });
 
     const token = signUploadToken({
-      uid: session.userId,
+      uid: session.user.id,
       fid: fileId,
       fol: folderId,
       upl: UploadId,

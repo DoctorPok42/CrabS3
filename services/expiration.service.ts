@@ -180,7 +180,7 @@ export async function cleanupIncompleteUploads() {
 
 export async function cleanOldSessions() {
   const cutoff = new Date(Date.now() - (await Settings.sessionDurationHours()) * 60 * 60 * 1000);
-  await prisma.session.deleteMany({ where: { expiresAt: { lt: cutoff } } });
+  await prisma.session.deleteMany({ where: { expires_at: { lt: cutoff } } });
 }
 
 export async function reapStaleMultipartUploads() {
