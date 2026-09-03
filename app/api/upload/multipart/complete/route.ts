@@ -11,7 +11,6 @@ import { LogAction, LogLevel } from "@/types/log.types";
 import { handleScanResult } from "@/services/clamav.service";
 import { checkPasswordStrength, resolveUploadDefaults } from "@/lib/upload-policy";
 import { getIp } from "@/lib/ip";
-import { Settings } from "@/services/settings.service";
 
 export async function POST(request: Request) {
   const { fileId, folderId, uploadId, parts, metadata, folderName } = await request.json();
@@ -27,12 +26,12 @@ export async function POST(request: Request) {
       level: LogLevel.DEBUG,
       action: LogAction.UPLOAD,
       message: "Upload completion started",
-      userId: session.userId,
+      userId: session.user.id,
       meta: { fileId, folderId, partCount: parts.length, folderName }
     });
 
     const existingFile = await prisma.files.findFirst({
-      where: { id: fileId, user_id: session.userId },
+      where: { id: fileId, user_id: session.user.id },
     });
 
     if (!existingFile) {
@@ -53,7 +52,7 @@ export async function POST(request: Request) {
     const sortedParts = [...parts].sort((a, b) => a.PartNumber - b.PartNumber);
 
     const user = await prisma.users.findUnique({
-      where: { id: session.userId },
+      where: { id: session.user.id },
       select: { quota: true, id: true },
     });
     if (!user) {
@@ -61,7 +60,7 @@ export async function POST(request: Request) {
     }
 
     const userFiles = await prisma.files.aggregate({
-      where: { user_id: session.userId },
+      where: { user_id: session.user.id },
       _sum: { size: true },
     });
 
@@ -77,7 +76,7 @@ export async function POST(request: Request) {
         level: LogLevel.WARN,
         action: LogAction.UPLOAD,
         message: "Upload rejected: quota exceeded",
-        userId: session.userId,
+        userId: session.user.id,
         meta: { quotaGB, usedGB, fileGB, folderId, fileId, folderName }
       });
 
@@ -113,7 +112,7 @@ export async function POST(request: Request) {
         level: LogLevel.ERROR,
         action: LogAction.UPLOAD,
         message: "S3 upload completion failed: no ETag returned",
-        userId: session.userId,
+        userId: session.user.id,
         meta: { folderId, fileId, uploadId, folderName }
       });
       await s3Hot.send(new AbortMultipartUploadCommand({
@@ -140,7 +139,7 @@ export async function POST(request: Request) {
         expires_at: defaults.expiresAt,
         size: Number.parseInt(metadata.size),
         uploaded_at: new Date(),
-        email_sender: session.email,
+        email_sender: session.user.email,
         email_recipient: metadata.emailRecipient || null,
         password_hash: metadata.password ? await bcrypt.hash(metadata.password, 10) : null,
         email_message: metadata.emailMessage || null,
@@ -156,7 +155,7 @@ export async function POST(request: Request) {
       level: LogLevel.ERROR,
       action: LogAction.UPLOAD,
       message: "Upload completion failed",
-      userId: session?.userId,
+      userId: session?.user.id,
       meta: { error: error instanceof Error ? error.message : String(error), folderId, fileId, folderName }
     });
 
@@ -172,7 +171,7 @@ export async function POST(request: Request) {
         level: LogLevel.ERROR,
         action: LogAction.UPLOAD,
         message: "Failed to abort upload after error",
-        userId: session?.userId,
+        userId: session?.user.id,
         meta: { error: abortError instanceof Error ? abortError.message : String(abortError), folderId, fileId, folderName }
       });
     }
@@ -188,7 +187,7 @@ export async function POST(request: Request) {
 
   (async () => {
     try {
-      await handleScanResult(folderId, fileId, metadata.filename, session.userId, getIp(request));
+      await handleScanResult(folderId, fileId, metadata.filename, session.user.id, getIp(request));
     } catch (error) {
       console.error("Failed to handle scan result:", error instanceof Error ? error.message : String(error));
     }

@@ -22,7 +22,7 @@ export async function PATCH(
   }
 
   const ownedFile = await prisma.files.findFirst({
-    where: { folder_id: folderId, user_id: session.userId },
+    where: { folder_id: folderId, user_id: session.user.id },
     select: { id: true },
   });
 
@@ -41,7 +41,7 @@ export async function PATCH(
       level: LogLevel.INFO,
       action: LogAction.FOLDER_RENAMED,
       message: `Folder renamed to ${name.trim()}`,
-      userId: session.userId,
+      userId: session.user.id,
       meta: { folderId, newName: name.trim() },
     });
   })();
@@ -64,7 +64,7 @@ export async function DELETE(
     const folder = await prisma.folders.findFirst({
       where: {
         id: folderId,
-        OR: [{ user_id: session.userId }, { files: { some: { user_id: session.userId } } }],
+        OR: [{ user_id: session.user.id }, { files: { some: { user_id: session.user.id } } }],
       },
       select: { id: true },
     });
@@ -73,7 +73,7 @@ export async function DELETE(
     }
 
     const filesToDelete = await prisma.files.findMany({
-      where: { folder_id: folderId, user_id: session.userId },
+      where: { folder_id: folderId, user_id: session.user.id },
       select: { id: true, folder_id: true, storage_key: true, filename: true },
     });
 
@@ -86,7 +86,7 @@ export async function DELETE(
         level: LogLevel.INFO,
         action: LogAction.FOLDER_DELETED,
         message: `Folder deleted (${removedCount}) file${removedCount !== 1 ? "s" : ""} removed`,
-        userId: session.userId,
+        userId: session.user.id,
         meta: { folderId, removedFilesCount: removedCount },
       });
     })();

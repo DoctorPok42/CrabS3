@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 export async function GET() {
   try {
     const session = await getSession();
-    if (!session?.isAdmin) {
+    if (!session?.user.isAdmin) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
       });

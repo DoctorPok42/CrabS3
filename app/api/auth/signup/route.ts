@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   if (invitation.usedAt) {
     return Response.json({ error: "Invitation already used" }, { status: 400 });
   }
-  if (invitation.expiresAt < new Date()) {
+  if (invitation.expires_at < new Date()) {
     return Response.json({ error: "Invitation expired" }, { status: 400 });
   }
 

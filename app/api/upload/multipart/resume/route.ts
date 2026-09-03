@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     });
 
     const file = await prisma.files.findFirst({
-      where: { id: fileId, user_id: session.userId },
+      where: { id: fileId, user_id: session.user.id },
     });
 
     if (!pending || !file) {
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     const token = signUploadToken({
-      uid: session.userId,
+      uid: session.user.id,
       fid: fileId,
       fol: pending.folder_id!,
       upl: pending.upload_id,

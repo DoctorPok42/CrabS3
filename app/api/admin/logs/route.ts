@@ -9,7 +9,7 @@ import { SettingKeys } from "@/types/settings.types";
 export async function GET(request: Request) {
   try {
     const session = await getSession();
-    if (!session?.isAdmin) {
+    if (!session?.user.isAdmin) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -72,13 +72,13 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   const session = await getSession();
-  if (!session?.isAdmin) {
+  if (!session?.user.isAdmin) {
     return new Response("Forbidden", { status: 403 });
   }
 
   const { minLevel } = await request.json();
 
-  const result = await setSetting(SettingKeys.LOG_MIN_LEVEL, minLevel, session.userId);
+  const result = await setSetting(SettingKeys.LOG_MIN_LEVEL, minLevel, session.user.id);
   if (!result.ok) {
     return Response.json({ error: result.error ?? "Invalid level" }, { status: 400 });
   }

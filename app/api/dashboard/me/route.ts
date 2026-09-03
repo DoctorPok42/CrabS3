@@ -15,7 +15,7 @@ export async function PATCH(request: Request) {
       level: LogLevel.DEBUG,
       action: LogAction.ADMIN_ACTION,
       message: "User profile update request",
-      userId: session.userId,
+      userId: session.user.id,
     });
 
     const { name, password } = await request.json();
@@ -25,7 +25,7 @@ export async function PATCH(request: Request) {
     }
 
     const user = await prisma.users.findUnique({
-      where: { id: session.userId },
+      where: { id: session.user.id },
       select: { name: true },
     });
     if (!user) {
@@ -42,7 +42,7 @@ export async function PATCH(request: Request) {
     }
 
     const updatedUser = await prisma.users.update({
-      where: { id: session.userId },
+      where: { id: session.user.id },
       select: { name: true },
       data: {
         name: name.trim(),
@@ -60,7 +60,7 @@ export async function PATCH(request: Request) {
       level: LogLevel.ERROR,
       action: LogAction.ADMIN_ACTION,
       message: "Failed to update user profile",
-      userId: session?.userId,
+      userId: session?.user.id,
       meta: { error: error instanceof Error ? error.message : String(error) }
     });
     return Response.json({ error: "Failed to update profile" }, { status: 500 });

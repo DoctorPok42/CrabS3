@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const folders = await prisma.folders.findMany({
       where: {
-        OR: [{ user_id: session.userId }, { files: { some: { user_id: session.userId } } }],
+        OR: [{ user_id: session.user.id }, { files: { some: { user_id: session.user.id } } }],
       },
       select: { id: true, name: true, _count: { select: { files: true } } },
       orderBy: { created_at: "desc" },

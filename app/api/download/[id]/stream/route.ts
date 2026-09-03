@@ -46,7 +46,7 @@ export async function GET(
     const allFiles = searchParams.get("allFiles") === "true";
 
     const viewer = await getSession().catch(() => null);
-    const maintenance = await checkMaintenance(viewer?.isAdmin);
+    const maintenance = await checkMaintenance(viewer?.user.isAdmin);
     if (!maintenance.ok) {
       return Response.json({ error: maintenance.error }, { status: maintenance.status ?? 503 });
     }

@@ -9,6 +9,7 @@ export interface ToastProps {
   level?: ToastLevel;
   message?: string;
   actionLabel?: string;
+  action?: () => void;
   duration?: number;
   date?: Date;
 }
@@ -32,6 +33,7 @@ const Toast = ({
   level = 'info',
   message = '',
   actionLabel = '',
+  action,
   duration = 3000,
 }: ToastProps) => {
   const [toastList, setToastList] = useState<ToastProps[]>([]);
@@ -67,7 +69,7 @@ const Toast = ({
             </div>
 
             {toast.actionLabel && (
-              <div className="max-w-140 self-start px-4 py-2 bg-white dark:bg-input-dark text-[#332c28] dark:text-[#d7d1ce] rounded-full font-bold text-[13px] whitespace-normal wrap-break-word">
+              <div onClick={toast.action} className="max-w-140 self-start px-4 py-2 bg-white dark:bg-input-dark text-[#332c28] dark:text-[#d7d1ce] rounded-full font-bold text-[13px] whitespace-normal wrap-break-word">
                 {toast.actionLabel}
               </div>
             )}
