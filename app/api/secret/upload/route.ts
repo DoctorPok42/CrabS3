@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       level: LogLevel.DEBUG,
       action: LogAction.UPLOAD,
       message: "Secret creation request",
-      userId: session.userId,
+      userId: session.user.id,
       meta: { maxViews, hasPassword: !!password }
     })
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: "Content is required and must be a string." }), { status: 400 })
     }
 
-    const maintenance = await checkMaintenance(session.isAdmin)
+    const maintenance = await checkMaintenance(session.user.isAdmin)
     if (!maintenance.ok) {
       return new Response(JSON.stringify({ error: maintenance.error }), { status: maintenance.status ?? 503 })
     }
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
         created_at: new Date(),
         max_views: effectiveMaxViews,
         view_count: 0,
-        user_id: session?.userId,
+        user_id: session?.user.id,
         password_hash: password ? await bcrypt.hash(password, 12) : null,
       }
     })
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
         level: LogLevel.ERROR,
         action: LogAction.UPLOAD,
         message: "Failed to create secret: database returned null",
-        userId: session.userId,
+        userId: session.user.id,
         meta: { expiresAt, maxViews }
       })
       return new Response(JSON.stringify({ error: "Failed to create secret." }), { status: 500 })
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     await log({
       action: LogAction.UPLOAD,
       message: "Secret created",
-      userId: session.userId,
+      userId: session.user.id,
       meta: { secretId: secret.id, expiresAt, maxViews: effectiveMaxViews, requestedViews: maxViews, hasPassword: !!password, ip: getIp(request) },
     })
 
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
       level: LogLevel.ERROR,
       action: LogAction.UPLOAD,
       message: "Failed to create secret: invalid request",
-      userId: session?.userId,
+      userId: session?.user.id,
       meta: { error: error instanceof Error ? error.message : String(error) }
     })
     return new Response(JSON.stringify({ error: "Invalid request body.", details: error }), { status: 400 })

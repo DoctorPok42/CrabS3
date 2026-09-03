@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   if (invitation.usedAt) {
     return Response.json({ valid: false, error: "Invitation already used" });
   }
-  if (invitation.expiresAt < new Date()) {
+  if (invitation.expires_at < new Date()) {
     return Response.json({ valid: false, error: "Invitation expired" });
   }
 

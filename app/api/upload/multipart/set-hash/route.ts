@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     const file = await prisma.files.findFirst({
-      where: { id: fileId, user_id: session.userId },
+      where: { id: fileId, user_id: session.user.id },
       select: { id: true },
     });
 

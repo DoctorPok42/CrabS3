@@ -23,7 +23,7 @@ export async function DELETE(request: Request) {
       level: LogLevel.DEBUG,
       action: LogAction.DELETE,
       message: "Delete request started",
-      userId: session.userId,
+      userId: session.user.id,
       meta: { folderId, fileId, mode }
     })
 
@@ -31,7 +31,7 @@ export async function DELETE(request: Request) {
       where: {
         id: fileId,
         folder_id: folderId,
-        user_id: session.userId,
+        user_id: session.user.id,
       }
     })
     if (!file) {
@@ -40,7 +40,7 @@ export async function DELETE(request: Request) {
 
     const siblings = file.hash
       ? await prisma.files.findMany({
-        where: { user_id: session.userId, hash: file.hash, id: { not: file.id } },
+        where: { user_id: session.user.id, hash: file.hash, id: { not: file.id } },
         select: { id: true, filename: true },
       })
       : [];
@@ -58,7 +58,7 @@ export async function DELETE(request: Request) {
 
     if (mode === "all" && file.hash) {
       const group = await prisma.files.findMany({
-        where: { user_id: session.userId, hash: file.hash },
+        where: { user_id: session.user.id, hash: file.hash },
         select: { id: true, folder_id: true, storage_key: true, filename: true },
       });
 
@@ -67,7 +67,7 @@ export async function DELETE(request: Request) {
       await log({
         action: LogAction.DELETE,
         message: `Deleted ${removedCount} files sharing content with "${file.filename}"`,
-        userId: session.userId,
+        userId: session.user.id,
         meta: { folderId, fileId, groupIds: group.map((f) => f.id), ip: getIp(request) },
       });
 
@@ -85,7 +85,7 @@ export async function DELETE(request: Request) {
     await log({
       action: LogAction.DELETE,
       message: `File ${file.filename} deleted`,
-      userId: session.userId,
+      userId: session.user.id,
       meta: { folderId, fileId, ip: getIp(request), siblingsRemaining: siblings.length },
     })
 
@@ -96,7 +96,7 @@ export async function DELETE(request: Request) {
       level: LogLevel.ERROR,
       action: LogAction.DELETE,
       message: "Failed to delete file",
-      userId: session?.userId,
+      userId: session?.user.id,
       meta: { error: error instanceof Error ? error.message : String(error) }
     })
     return Response.json({ error: 'Internal server error' }, { status: 500 })

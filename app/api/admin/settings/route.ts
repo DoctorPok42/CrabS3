@@ -12,7 +12,7 @@ import { SETTINGS_BY_KEY, SettingKey } from "@/types/settings.types";
 export async function GET() {
   try {
     const session = await getSession();
-    if (!session?.isAdmin) {
+    if (!session?.user.isAdmin) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -26,7 +26,7 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   const session = await getSession();
-  if (!session?.isAdmin) {
+  if (!session?.user.isAdmin) {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -40,7 +40,7 @@ export async function PATCH(request: Request) {
 
     const previous = (await getSettingsForAdmin()).find((setting) => setting.key === key);
 
-    const result = await setSetting(key as SettingKey, value, session.userId);
+    const result = await setSetting(key as SettingKey, value, session.user.id);
     if (!result.ok) {
       return Response.json({ error: result.error }, { status: 400 });
     }
@@ -51,7 +51,7 @@ export async function PATCH(request: Request) {
       level: LogLevel.WARN,
       action: LogAction.ADMIN_ACTION,
       message: `Setting "${definition.label}" changed`,
-      userId: session.userId,
+      userId: session.user.id,
       meta: {
         key,
         from: previous?.rawValue ?? definition.default,
@@ -67,7 +67,7 @@ export async function PATCH(request: Request) {
       level: LogLevel.ERROR,
       action: LogAction.ADMIN_ACTION,
       message: "Failed to update setting",
-      userId: session.userId,
+      userId: session.user.id,
       meta: { error: error instanceof Error ? error.message : String(error) },
     });
     return Response.json({ error: "Failed to update setting" }, { status: 500 });
@@ -76,7 +76,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await getSession();
-  if (!session?.isAdmin) {
+  if (!session?.user.isAdmin) {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -95,7 +95,7 @@ export async function DELETE(request: Request) {
     level: LogLevel.WARN,
     action: LogAction.ADMIN_ACTION,
     message: `Setting "${SETTINGS_BY_KEY[key].label}" reset to default`,
-    userId: session.userId,
+    userId: session.user.id,
     meta: { key, default: SETTINGS_BY_KEY[key].default },
   });
 
@@ -104,17 +104,17 @@ export async function DELETE(request: Request) {
 
 export async function POST() {
   const session = await getSession();
-  if (!session?.isAdmin) {
+  if (!session?.user.isAdmin) {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const created = await syncSettingsCatalog(session.userId);
+  const created = await syncSettingsCatalog(session.user.id);
 
   await log({
     level: LogLevel.INFO,
     action: LogAction.ADMIN_ACTION,
     message: `Settings catalog synced (${created} created)`,
-    userId: session.userId,
+    userId: session.user.id,
     meta: { created },
   });
 

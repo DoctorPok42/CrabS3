@@ -8,7 +8,7 @@ import { Settings } from "@/services/settings.service";
 
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session?.isAdmin) {
+  if (!session?.user.isAdmin) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -27,8 +27,8 @@ export async function POST(request: Request) {
 
   const invitation = await prisma.invitation.upsert({
     where: { email },
-    update: { token: crypto.randomUUID(), expiresAt, usedAt: null },
-    create: { email, expiresAt, invitedById: session.userId },
+    update: { token: crypto.randomUUID(), expires_at: expiresAt, usedAt: null },
+    create: { email, expires_at: expiresAt, invitedById: session.user.id },
   });
 
   await sendInvitationEmail(email, invitation.token);
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   await log({
     action: LogAction.ADMIN_ACTION,
     message: `Invitation sent to ${email}`,
-    userId: session.userId,
+    userId: session.user.id,
     meta: { email, ip: getIp(request) },
   });
 

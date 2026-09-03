@@ -161,9 +161,9 @@ model invitation {
   id          String    @id @default(uuid())
   email       String    @unique
   token       String    @unique @default(uuid())
-  expiresAt   DateTime
+  expires_at   DateTime @db.Timestamp(6)
   usedAt      DateTime?
-  createdAt   DateTime  @default(now())
+  created_at   DateTime  @default(now())
   invitedById Int?
   invitedBy   users?    @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
 }
@@ -172,8 +172,8 @@ model session {
   id        String   @id @default(uuid())
   userId    Int
   token     String   @unique @default(uuid())
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  expires_at DateTime @default(dbgenerated("(now() + interval '1 hour')")) @db.Timestamp(6)
+  created_at DateTime @default(now())
   user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
   email     String
   isAdmin   Boolean  @default(false)
@@ -218,6 +218,8 @@ enum LogAction {
   FOLDER_DELETED
   SERVICE_INVITE_CREATED
   SERVICE_INVITE_USED
+  ACCESS_TOKEN_CREATED
+  ACCESS_TOKEN_REVOKED
 }
 
 model logs {
@@ -269,22 +271,44 @@ model invites {
   created_at  DateTime? @default(now()) @db.Timestamp(6)
 }
 
+enum AccessTokenScope {
+  READ
+  WRITE
+  DELETE
+  ADMIN
+}
+
+model user_access_tokens {
+  id         Int       @id @default(autoincrement())
+  name       String
+  token      String    @unique
+  scopes     AccessTokenScope[]
+  expires_at DateTime  @db.Timestamp(6)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  last_used_at DateTime? @db.Timestamp(6)
+  user_id    Int
+  user       users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, token])
+}
+
 model users {
-  id          Int          @id @default(autoincrement())
-  name        String
-  email       String       @unique
-  passwordHash String
-  createdAt   DateTime     @default(now())
-  files       files[]
-  secrets     secrets[]
-  invitesSent invitation[] @relation("InvitedBy")
-  sessions    session[]
-  isAdmin     Boolean      @default(false)
-  quota       BigInt       @default(10737418240) // 10 GB
-  communications communication[]
-  logs        logs[]
-  twoFactorEnabled Boolean     @default(false)
-  twoFactorSecret  String?
-  folders          folders[]
+  id                Int          @id @default(autoincrement())
+  name              String
+  email             String       @unique
+  passwordHash      String
+  created_at         DateTime     @default(now())
+  files             files[]
+  secrets           secrets[]
+  invitesSent       invitation[] @relation("InvitedBy")
+  sessions          session[]
+  isAdmin           Boolean      @default(false)
+  quota             BigInt       @default(10737418240) // 10 GB
+  communications    communication[]
+  logs              logs[]
+  twoFactorEnabled  Boolean     @default(false)
+  twoFactorSecret   String?
+  folders           folders[]
+  tokens            user_access_tokens[]
   settings          settings[]
 }

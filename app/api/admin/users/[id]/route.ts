@@ -22,7 +22,7 @@ export async function GET(request: Request) {
         email: true,
         name: true,
         isAdmin: true,
-        createdAt: true,
+        created_at: true,
         quota: true,
         files: {
           select: {
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
       email: user.email,
       name: user.name,
       isAdmin: user.isAdmin,
-      createdAt: user.createdAt,
+      created_at: user.created_at,
       quota: String(user.quota),
       totalFiles: user.files.length,
       activeFiles: activeFiles.length,

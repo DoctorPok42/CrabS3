@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       filename: metadata.filename,
       size: sizeBytes,
       folderId,
-      isAdmin: session.isAdmin,
+      isAdmin: session.user.isAdmin,
       password: metadata.password,
     });
 
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         level: LogLevel.WARN,
         action: LogAction.UPLOAD,
         message: `Deduplicated upload rejected: ${policy.error}`,
-        userId: session.userId,
+        userId: session.user.id,
         meta: { filename: metadata.filename, folderId, size: metadata.size, status: policy.status },
       });
       return Response.json({ error: policy.error }, { status: policy.status ?? 400 });
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
 
     const candidate = await prisma.files.findFirst({
       where: {
-        user_id: session.userId,
+        user_id: session.user.id,
         hash,
         size: sizeBytes,
         uploaded_at: { not: null },
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     }
 
     const user = await prisma.users.findUnique({
-      where: { id: session.userId },
+      where: { id: session.user.id },
       select: { quota: true },
     });
     if (!user) {
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     }
 
     const userFiles = await prisma.files.aggregate({
-      where: { user_id: session.userId },
+      where: { user_id: session.user.id },
       _sum: { size: true },
     });
     const currentUsage = userFiles._sum.size || BigInt(0);
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
         content_type: candidate.content_type,
         size: candidate.size,
         folder_id: folderId,
-        user_id: session.userId,
+        user_id: session.user.id,
         storage: candidate.storage,
         storage_key: storageKey,
         hash,
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
         max_downloads: defaults.maxDownloads,
         download_count: 0,
         expires_at: defaults.expiresAt,
-        email_sender: session.email,
+        email_sender: session.user.email,
         email_recipient: metadata.emailRecipient || null,
         password_hash: metadata.password ? await bcrypt.hash(metadata.password, 10) : null,
         email_message: metadata.emailMessage || null,
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
       level: LogLevel.INFO,
       action: LogAction.UPLOAD,
       message: `Deduplicated upload of "${metadata.filename}" against an existing file - no bytes re-uploaded`,
-      userId: session.userId,
+      userId: session.user.id,
       meta: { fileId, folderId, sourceFileId: candidate.id, sizeBytes: sizeBytes.toString() },
     });
 

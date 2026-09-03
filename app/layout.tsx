@@ -58,7 +58,7 @@ export default async function RootLayout({
   const session = await getSession();
   const dbUser = session
     ? await prisma.users.findUnique({
-      where: { id: session.userId },
+      where: { id: session.user.id },
       select: { id: true, name: true },
     })
     : null;
@@ -80,7 +80,7 @@ export default async function RootLayout({
         <div className="min-h-screen flex mx-auto text-text dark:text-text-dark">
           <NavBar user={user} />
           <div className="mx-auto flex-1 flex flex-col bg-page dark:bg-page-dark">
-            {isMaintenanceMode && (
+            {(isMaintenanceMode && user) && (
               <div className="sticky top-0 z-1 bg-[#ebdec5] dark:bg-[#4f3605] text-[#6a3200] dark:text-[#f4b63c] p-4 text-center w-full selection:bg-[#6a3200] selection:text-[#f4b63c]">
                 <strong>Maintenance Mode:</strong> {maintenanceMessage}
               </div>

@@ -9,7 +9,7 @@ export async function GET() {
     }
 
     await prisma.users.update({
-      where: { id: session.userId },
+      where: { id: session.user.id },
       data: {
         twoFactorEnabled: false,
         twoFactorSecret: null
