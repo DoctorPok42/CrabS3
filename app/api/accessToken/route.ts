@@ -120,9 +120,9 @@ export async function DELETE(request: Request) {
     (async () => {
       await log({
         level: LogLevel.INFO,
-        action: LogAction.ACCESS_TOKEN_DELETED,
+        action: LogAction.ACCESS_TOKEN_REVOKED,
         userId: session.user.id,
-        message: `Access token deleted: ${deletedToken.name}`,
+        message: `Access token revoked: ${deletedToken.name}`,
         meta: { tokenId: deletedToken.id, ip: getIp(request) },
       })
     })()
