@@ -118,7 +118,11 @@ export async function processExpiredFiles() {
 
   const orphanedFiles = await prisma.files.findMany({
     where: {
-      folder: null,
+      OR: [
+        { folder_id: null },
+        { type: "USER", user_id: null },
+        { type: "SERVICE", service_id: null },
+      ],
     },
     select: { id: true, folder_id: true, filename: true, storage_key: true },
     orderBy: { uploaded_at: "asc" },

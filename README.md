@@ -9,7 +9,7 @@ No cloud vendor, no monthly bill, no upload limit but the one you set.
 ![Uptime](https://uptime.doctorpok.io/api/badge/24/uptime)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-[Quick start](#quick-start) · [Configuration](#configuration) · [API](#api) · [How it works](#how-it-works)
+[Quick start](#quick-start) · [Configuration](#configuration) · [How it works](#how-it-works) · [API](#api)
 
 </div>
 
@@ -55,6 +55,18 @@ The interface is on **<http://localhost:3000>**. Health check: `GET /api/health`
 
 Prefer the published image? `docker pull doctorpok/crabs3:latest`, then point `compose.yml` at it instead of `build: .`.
 
+### Proxmox VE
+
+A [community-scripts](https://community-scripts.org) LXC install is also available — bare-metal (no Docker inside the container), Node.js/PostgreSQL/ClamAV set up automatically:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/crabs3.sh)"
+```
+
+> Pending review at [community-scripts/ProxmoxVED](https://github.com/community-scripts/ProxmoxVED) — until it's merged, swap the URL above for your own fork/branch.
+
+You'll be prompted for your S3 endpoint and keys during install (or export `var_s3_endpoint`, `var_s3_access_key`, `var_s3_secret_key`, `var_s3_bucket`, `var_admin_email` beforehand for an unattended run). Everything else lives in `/opt/crabs3/.env` — edit and `systemctl restart crabs3` to apply. There's no TLS in front by default; see `COOKIE_SECURE` below before exposing it past your LAN.
+
 <details>
 <summary><b>Running from source (development)</b></summary>
 
@@ -88,6 +100,7 @@ Everything is environment variables — put them in `.env`, or manage them in Do
 | `DATABASE_URL` | `postgresql://user:password@db:5432/crabs3` |
 | `NEXT_PUBLIC_BASE_URL` | `https://files.example.com` — used in share links and emails |
 | `JWT_SECRET` | a long random string |
+| `COOKIE_SECURE` | `true`/`false` — defaults to `NODE_ENV === "production"` if unset. Set `false` when serving plain HTTP with no reverse proxy in front, or browsers silently drop the session cookie after login |
 | `LOG_MIN_LEVEL` | `DEBUG` · `INFO` · `WARN` · `ERROR` |
 
 **Email & scanning**

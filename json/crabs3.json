@@ -4,24 +4,28 @@
   "categories": [
     11
   ],
-  "date_created": "2026-08-01",
+  "date_created": "2026-09-05",
   "type": "ct",
   "updateable": true,
   "privileged": false,
   "interface_port": 3000,
-  "documentation": "https://github.com/DoctorPok42/CrabS3",
-  "website": "https://github.com/DoctorPok42/CrabS3",
-  "logo": "https://crabs3.doctorpok.io/favicon.png",
-  "description": "Transfert platform for S3 compatible storage. It is designed to be simple, efficient and easy to use.\nNo cloud. No bill. Just S3 buckets full of crabs. 🦀",
+  "documentation": "https://crabs3.doctorpok.io/self-hosting",
+  "website": "https://crabs3.doctorpok.io",
+  "repository": "https://github.com/DoctorPok42/CrabS3",
+  "platforms": [
+    "pve"
+  ],
+  "logo": "https://crabs3.doctorpok.io/icon0.svg",
+  "description": "Transfer platform for S3-compatible storage. Send large files and encrypted secrets from your own S3 bucket - resumable multipart uploads, download limits, auto-deletion, 2FA and ClamAV scanning. No cloud. No bill. Just S3 buckets full of crabs. 🦀",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/crabs3.sh",
-      "config_path": "",
+      "config_path": "/opt/crabs3/.env",
       "resources": {
-        "cpu": 2,
-        "ram": 2048,
-        "hdd": 10,
+        "cpu": 4,
+        "ram": 6144,
+        "hdd": 12,
         "os": "Debian",
         "version": "13"
       }
@@ -31,5 +35,56 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Signup is invite-only by design. The installer seeds one admin account and prints its email/password once during install - save them, they are not stored anywhere and not shown again.",
+      "type": "warning"
+    },
+    {
+      "text": "Changing JWT_SECRET after install invalidates every session and every share-link signature.",
+      "type": "warning"
+    },
+    {
+      "text": "Requires an existing S3-compatible bucket (RustFS, MinIO, AWS S3, Wasabi, Ceph, OVH...). Credentials can be supplied at install time or added later to /opt/crabs3/.env, followed by 'systemctl restart crabs3'.",
+      "type": "info"
+    },
+    {
+      "text": "ClamAV downloads its virus-signature database during install; on a slow connection this can take a few minutes. Uploads are not scanned until it completes.",
+      "type": "info"
+    }
+  ],
+  "app_vars": [
+    {
+      "name": "var_s3_endpoint",
+      "label": "S3 Endpoint URL",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "var_s3_access_key",
+      "label": "S3 Access Key",
+      "type": "password",
+      "secret": true,
+      "required": true
+    },
+    {
+      "name": "var_s3_secret_key",
+      "label": "S3 Secret Key",
+      "type": "password",
+      "secret": true,
+      "required": true
+    },
+    {
+      "name": "var_s3_bucket",
+      "label": "S3 Bucket Name",
+      "type": "text",
+      "default": "crabs3"
+    },
+    {
+      "name": "var_admin_email",
+      "label": "Admin Email",
+      "type": "text",
+      "default": "admin@crabs3.local"
+    }
+  ]
 }

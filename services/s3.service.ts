@@ -16,7 +16,6 @@ function createHandler() {
 }
 
 export const HOT_BUCKET = process.env.S3_BUCKET_NAME || "hot-bucket";
-export const COLD_BUCKET = process.env.S3_COLD_BUCKET_NAME || process.env.S3_BUCKET_NAME || "hot-bucket";
 
 export const s3Hot = new S3Client({
   endpoint: process.env.S3_ENDPOINT || "http://localhost:9000",

@@ -76,6 +76,8 @@ const Services = () => {
   }
 
   const handleDeleteService = async (id: number) => {
+    setConfirmPopup(null)
+
     try {
       const response = await fetch(`/api/services/delete/${id}`, {
         method: "DELETE",

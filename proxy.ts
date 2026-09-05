@@ -41,6 +41,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (session.isHeaderToken) {
+    if (pathname.startsWith("/api/admin/") && !session.scopes.includes("ADMIN")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const hasAccess = session.scopes.some((scope: string) => {
       const scopeCheck = scope.toLocaleLowerCase();
       if (scopeCheck === "admin") return true;

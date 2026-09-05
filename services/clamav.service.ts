@@ -172,6 +172,12 @@ export async function handleScanResult(
   if (!result) {
     const message = lastErr instanceof Error ? lastErr.message : String(lastErr);
     console.error(`ClamAV scan failed for "${filename}": ${message}`);
+
+    await prisma.files.update({
+      where: { id: fileId },
+      data: { scanned_at: new Date(), scan_result: "ERROR" },
+    }).catch(() => null);
+
     await log({
       level: LogLevel.ERROR,
       action: LogAction.UPLOAD,
@@ -201,13 +207,14 @@ export async function handleScanResult(
 
     await prisma.files.update({
       where: { id: fileId },
-      data: { infected: true, infected_by: sanitizedVirus ?? "unknown" },
+      data: { infected: true, infected_by: sanitizedVirus ?? "unknown", scan_result: "INFECTED", scanned_at: new Date() },
     });
   } else {
     await prisma.files.update({
       where: { id: fileId },
-      data: { scanned_at: new Date() },
+      data: { scanned_at: new Date(), scan_result: "CLEAN" },
     });
+
     await log({
       level: LogLevel.DEBUG,
       action: LogAction.UPLOAD,
