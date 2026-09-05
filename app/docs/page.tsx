@@ -38,8 +38,10 @@ const sections: { id: string; title: string; intro: React.ReactNode; endpoints: 
     endpoints: [
       { method: "POST", path: "/api/auth/login", desc: "Password, plus TOTP code when 2FA is on" },
       { method: "POST", path: "/api/auth/signup", desc: "Redeem an invite token" },
+      { method: "GET", path: "/api/auth/check-invite", desc: "Is this invite token valid — before showing the signup form" },
       { method: "POST", path: "/api/auth/logout", desc: "Clear the session" },
       { method: "GET", path: "/api/auth/me", desc: "Current user and admin flag" },
+      { method: "DELETE", path: "/api/auth/me", desc: "Delete your own account and everything it owns — sessions, invites sent, secrets, folders" },
       { method: "POST", path: "/api/auth/invite", desc: "Issue an invite (admin)" },
     ],
   },
@@ -84,18 +86,42 @@ const sections: { id: string; title: string; intro: React.ReactNode; endpoints: 
     ],
   },
   {
+    id: "access-tokens",
+    title: "Personal access tokens",
+    intro:
+      "Acts as you, without the session cookie — for scripts, cron jobs, CI. Each token carries exactly one scope and an expiry you choose (7, 30, 90, 180 or 365 days). Create and revoke them from /me; the value is shown once, at creation.",
+    endpoints: [
+      { method: "GET", path: "/api/accessToken", desc: "List your tokens — name, scope, expiry. Never the token value again" },
+      { method: "POST", path: "/api/accessToken", desc: "Create one: name, scopes: [\"READ\"|\"WRITE\"|\"DELETE\"|\"ADMIN\"], expires_at (days)" },
+      { method: "DELETE", path: "/api/accessToken?id=:id", desc: "Revoke a token" },
+    ],
+  },
+  {
+    id: "2fa",
+    title: "Two-factor authentication",
+    intro:
+      "TOTP, self-service. Create returns a secret and an otpauth:// URI to render as a QR code; from then on, login must include the current code alongside the password.",
+    endpoints: [
+      { method: "POST", path: "/api/2fa/create", desc: "Generate a secret and QR URI for the current account, enables 2FA immediately" },
+      { method: "GET", path: "/api/2fa/disable", desc: "Disable 2FA for the current account" },
+    ],
+  },
+  {
     id: "account",
     title: "Account",
     intro:
-      "Per-user file and folder listing, profile updates, and the webhook settings that drive upload and download notifications.",
+      "Per-user file and folder listing, profile updates, the webhook settings that drive upload and download notifications, download history, and reading specific instance settings by key.",
     endpoints: [
       { method: "GET", path: "/api/dashboard/files", desc: "Files owned by the current user" },
+      { method: "GET", path: "/api/dashboard/folders", desc: "Folders you own or have files in, with a file count each" },
       { method: "PATCH", path: "/api/dashboard/folders/:id", desc: "Rename a folder" },
       { method: "DELETE", path: "/api/dashboard/folders/:id", desc: "Delete a folder and every file in it" },
       { method: "POST", path: "/api/dashboard/coldtohot", desc: "Restore a folder's files from cold storage back to hot" },
       { method: "PATCH", path: "/api/dashboard/me", desc: "Update profile and preferences" },
       { method: "GET", path: "/api/communication", desc: "Read notification and webhook settings" },
       { method: "POST", path: "/api/communication", desc: "Update notification and webhook settings" },
+      { method: "GET", path: "/api/fingerprint/:id?type=file|folder", desc: "Download history for a file or folder — IP, user agent, timestamp" },
+      { method: "GET", path: "/api/settings?keys=a,b", desc: "Read specific instance settings by key (comma-separated)" },
     ],
   },
   {
@@ -112,6 +138,10 @@ const sections: { id: string; title: string; intro: React.ReactNode; endpoints: 
       { method: "POST", path: "/api/admin/users/:id/reset-password", desc: "Force a password reset" },
       { method: "GET", path: "/api/admin/logs", desc: "Audit log, filterable by level, action and date" },
       { method: "PATCH", path: "/api/admin/logs", desc: "Set the minimum recorded log level" },
+      { method: "GET", path: "/api/admin/settings", desc: "List every instance setting and its current value" },
+      { method: "PATCH", path: "/api/admin/settings", desc: "Update one setting: { key, value }" },
+      { method: "DELETE", path: "/api/admin/settings?key=:key", desc: "Reset one setting to its default" },
+      { method: "POST", path: "/api/admin/settings", desc: "Sync the settings catalog — creates any missing rows with their defaults" },
     ],
   },
 ];
@@ -123,6 +153,7 @@ const uploadEndpoints: Endpoint[] = [
   { method: "POST", path: "/api/upload/multipart/resume", desc: "Reattaches to an interrupted session; returns which parts already landed." },
   { method: "POST", path: "/api/upload/multipart/set-hash", desc: "Attaches a content hash to a session started before hashing finished." },
   { method: "POST", path: "/api/upload/multipart/complete", desc: "Seals the object and attaches retention rules, password and folder name." },
+  { method: "POST", path: "/api/upload/multipart/finish", desc: "Call once after every file in the batch is complete — sends the upload notification email and fires webhooks. Not per-file." },
   { method: "POST", path: "/api/upload/multipart/abort", desc: "Cancels the session and discards uploaded parts." },
 ];
 
@@ -142,6 +173,8 @@ const toc = [
   { id: "files", label: "Files & downloads" },
   { id: "secrets", label: "Secrets" },
   { id: "services", label: "Services" },
+  { id: "access-tokens", label: "Personal access tokens" },
+  { id: "2fa", label: "Two-factor auth" },
   { id: "account", label: "Account" },
   { id: "admin", label: "Admin" },
   { id: "errors", label: "Errors" },
@@ -243,7 +276,7 @@ export default async function DocsPage() {
             <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em] whitespace-break-spaces">
               A hash check comes first — if you already have this exact file, the server
               links a new entry to it and no bytes move.{"\n"}Otherwise: open a session, upload
-              parts in parallel, complete.{"\n"}A dropped connection reattaches to the same
+              parts in parallel, complete — then call finish once for the whole batch, not per file.{"\n"}A dropped connection reattaches to the same
               session instead of restarting the transfer, skipping whatever parts already landed.
             </p>
             <ul className="flex flex-col gap-2.5 mb-6 list-none p-0 m-0">
@@ -321,8 +354,48 @@ export default async function DocsPage() {
             </div>
           </section>
 
+          {/* Access Tokens */}
+          <section id="access-tokens" aria-labelledby="access-tokens-h" className="mb-13 scroll-mt-24">
+            <h2 id="access-tokens-h" className="text-[26px] font-extrabold tracking-[-0.02em] m-0 mb-2.5">{getSection("access-tokens").title}</h2>
+            <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em] whitespace-break-spaces">{getSection("access-tokens").intro}</p>
+            <ul className="list-none p-0 m-0 mb-6">
+              {getSection("access-tokens").endpoints.map((e) => <EndpointRow key={e.path + e.method} e={e} />)}
+            </ul>
+            <div className="border border-cardBorder dark:border-cardBorder-dark rounded-3xl overflow-hidden bg-card dark:bg-card-dark mb-4.5">
+              <table className="w-full text-left border-collapse">
+                <caption className="sr-only">What each access token scope allows</caption>
+                <thead>
+                  <tr className="bg-input dark:bg-input-dark">
+                    <th scope="col" className="px-5.5 py-3 text-xs font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-400 font-bold">Scope</th>
+                    <th scope="col" className="px-5.5 py-3 text-xs font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-400 font-bold">Allows</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { scope: "READ", allows: "GET requests only" },
+                    { scope: "WRITE", allows: "Any method except DELETE" },
+                    { scope: "DELETE", allows: "DELETE requests only" },
+                    { scope: "ADMIN", allows: "Everything, including /api/admin/*" },
+                  ].map((r) => (
+                    <tr key={r.scope} className="border-t border-cardBorder dark:border-cardBorder-dark">
+                      <td className="px-5.5 py-3.5"><code className="font-mono text-[13.5px] font-bold">{r.scope}</code></td>
+                      <td className="px-5.5 py-3.5 text-sm text-zinc-600 dark:text-zinc-400">{r.allows}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-5 py-4 border-l-[3px] border-primary-500 bg-uploadBg dark:bg-uploadBg-dark rounded-r-2xl">
+              <p className="m-0 text-sm text-zinc-600 dark:text-zinc-300">
+                <strong className="text-text dark:text-text-dark">scopes is an array.</strong>{" "}
+                The API accepts more than one scope on the same token — the /me page currently
+                only offers picking one at creation time.
+              </p>
+            </div>
+          </section>
+
           {/* Account + Admin */}
-          {sections.slice(4).map((s) => (
+          {sections.slice(5).map((s) => (
             <section key={s.id} id={s.id} aria-labelledby={`${s.id}-h`} className="mb-13 scroll-mt-24">
               <h2 id={`${s.id}-h`} className="text-[26px] font-extrabold tracking-[-0.02em] m-0 mb-2.5">{s.title}</h2>
               <p className="text-[15.5px] text-zinc-600 dark:text-zinc-400 m-0 mb-5 max-w-[44em] whitespace-break-spaces">{s.intro}</p>

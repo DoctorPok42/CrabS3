@@ -8,7 +8,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Self-hosting guide",
   description:
-    "Deploy CrabS3 with Docker Compose: environment reference, S3 backends (RustFS, MinIO, AWS S3, Wasabi, Ceph), retention policy and first-deploy troubleshooting.",
+    "Deploy CrabS3 with Docker Compose or the Proxmox VE community-scripts install: environment reference, S3 backends (RustFS, MinIO, AWS S3, Wasabi, Ceph), retention policy and first-deploy troubleshooting.",
   alternates: { canonical: "/self-hosting" },
   robots: publicPageRobots,
 };
@@ -31,6 +31,11 @@ docker compose logs -f app
 # ready when this answers 200
 curl -i http://localhost:3000/api/health`;
 
+const seedCmd = `docker compose exec -T web npx tsx install/seed-admin.mjs
+# prints ADMIN_EMAIL and ADMIN_PASSWORD once — save them, they are not stored anywhere`;
+
+const proxmoxCmd = `bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/crabs3.sh)"`;
+
 const envGroups = [
   {
     name: "Application",
@@ -38,6 +43,7 @@ const envGroups = [
       { key: "DATABASE_URL", desc: "Postgres connection string", example: "postgresql://user:pw@db:5432/crabs3" },
       { key: "NEXT_PUBLIC_BASE_URL", desc: "Public origin used in share links and emails", example: "https://files.example.com" },
       { key: "JWT_SECRET", desc: "Signs sessions — long and random", example: "openssl rand -hex 32" },
+      { key: "COOKIE_SECURE", desc: "Defaults to NODE_ENV==='production' if unset. Set false with no TLS in front, or the session cookie is silently dropped after login", example: "true | false" },
       { key: "LOG_MIN_LEVEL", desc: "Lowest level written to the audit log", example: "INFO" },
     ],
   },
@@ -70,7 +76,7 @@ const backends = [
 ];
 
 const troubles = [
-  { symptom: "Uploads fail immediately with a 403", fix: "The keys are right but the bucket does not exist, or the policy forbids multipart. Create both buckets first and confirm the credentials can call CreateMultipartUpload." },
+  { symptom: "Uploads fail immediately with a 403", fix: "The keys are right but the bucket does not exist, or the policy forbids multipart. Create the bucket first and confirm the credentials can call CreateMultipartUpload." },
   { symptom: "Everything works except the scan", fix: "ClamAV is still fetching signatures on first boot. Watch docker compose logs clamav until freshclam reports the database is up to date; uploads are refused until then." },
   { symptom: "Share links point at localhost", fix: "BASE_URL is still the default. Set it to the public origin and restart the app container — links and emails are built from it." },
   { symptom: "Files never expire", fix: "The cron container cannot authenticate. CRON_SECRET must be identical in the app and cron services, and the app must be reachable at the internal hostname the job calls." },
@@ -86,7 +92,7 @@ const steps = [
   {
     n: 2,
     title: "Point it at your storage",
-    body: "Two buckets: hot serves downloads, cold archives what expires. Set both to the same bucket if you do not want tiering.",
+    body: "One bucket. \"Cold\" is a class your provider's lifecycle rule assigns — CrabS3 just tracks which one a file is in, it never copies bytes to a second bucket.",
     code: envSnippet,
   },
   {
@@ -108,10 +114,13 @@ export default async function SelfHostingPage() {
         <div className="max-w-[52em]">
           <p className="font-mono text-[11.5px] tracking-[0.14em] uppercase text-primary-700 dark:text-primary-400 m-0 mb-4">Self-hosting guide</p>
           <h1 className="text-[38px] md:text-[46px] font-extrabold tracking-[-0.032em] leading-[1.08] m-0 mb-4.5 text-pretty">
-            Run CrabS3 with Docker Compose
+            Run CrabS3 with Docker Compose — or Proxmox VE
           </h1>
           <p className="text-[18px] text-zinc-600 dark:text-zinc-400 m-0 mb-10 text-pretty">
-            A full deployment is a clone, an env file and one command. This page covers the
+            A full deployment is a clone, an env file and one command — or, without Docker,
+            a single script from the{" "}
+            <a href="https://github.com/community-scripts/ProxmoxVED" className="text-primary-700 dark:text-primary-400 font-semibold hover:underline">community-scripts</a>{" "}
+            catalogue that sets up a Proxmox VE LXC bare-metal. This page covers the
             compose stack, every environment variable that matters, the S3 backends known
             to work, and what to check when something does not come up.
           </p>
@@ -119,14 +128,14 @@ export default async function SelfHostingPage() {
 
         <dl className="grid gap-3.5 grid-cols-2 lg:grid-cols-4 mb-14 m-0">
           {[
-            { k: "Requires", v: "Docker + Compose" },
+            { k: "Requires", v: "Docker + Compose, or Proxmox VE" },
             { k: "Interface", v: "localhost:3000" },
             { k: "Containers", v: "app · db · clamav · cron" },
             { k: "Time to first upload", v: "~10 minutes" },
           ].map((item) => (
-            <div key={item.k} className="bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark rounded-[20px] px-5 py-4.5">
+            <div key={item.k} className="flex flex-col bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark rounded-[20px] px-5 py-4.5">
               <dt className="text-[10.5px] font-mono uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-1.5">{item.k}</dt>
-              <dd className="text-[14.5px] font-bold m-0">{item.v}</dd>
+              <dd className="text-[14.5px] font-bold m-0 my-auto">{item.v}</dd>
             </div>
           ))}
         </dl>
@@ -154,7 +163,9 @@ export default async function SelfHostingPage() {
                 <p className="text-[15px] text-zinc-600 dark:text-zinc-400 m-0 mb-3.5 max-w-[44em]">
                   Signup is invite-only by design, so the first user cannot come from the
                   signup form. Seed one admin directly, then issue invites from the admin panel.
+                  Safe to run again — it does nothing if an admin already exists.
                 </p>
+                <pre className="font-mono text-[12.5px] leading-[1.7] bg-input dark:bg-input-dark border border-cardBorder dark:border-cardBorder-dark rounded-[18px] px-5 py-4.5 m-0 mb-3.5 overflow-x-auto whitespace-pre-wrap">{seedCmd}</pre>
                 <div className="px-5 py-4 border-l-[3px] border-primary-500 bg-uploadBg dark:bg-uploadBg-dark rounded-r-2xl">
                   <p className="m-0 text-[14.5px] text-zinc-600 dark:text-zinc-300">
                     Set a strong <code className="font-mono text-[13.5px] text-primary-700 dark:text-primary-400">JWT_SECRET</code> before this
@@ -164,6 +175,15 @@ export default async function SelfHostingPage() {
               </div>
             </li>
           </ol>
+
+          <div className="mt-7 bg-card dark:bg-card-dark border border-cardBorder dark:border-cardBorder-dark rounded-3xl px-7 py-6.5">
+            <p className="font-mono text-[11px] tracking-[0.14em] uppercase text-primary-700 dark:text-primary-400 font-bold m-0 mb-2">No Docker? Proxmox VE</p>
+            <p className="text-[15px] text-zinc-600 dark:text-zinc-400 m-0 mb-3.5 max-w-[44em]">
+              A <a href="https://github.com/community-scripts/ProxmoxVED" className="text-primary-700 dark:text-primary-400 font-semibold hover:underline">community-scripts</a> LXC
+              install runs Node.js, PostgreSQL and ClamAV directly in the container — no Docker inside it. Same environment variables as above, prompted for at install or set as `var_s3_endpoint` / `var_s3_access_key` / `var_s3_secret_key` beforehand.
+            </p>
+            <pre className="font-mono text-[12.5px] leading-[1.7] bg-input dark:bg-input-dark border border-cardBorder dark:border-cardBorder-dark rounded-[18px] px-5 py-4.5 m-0 overflow-x-auto whitespace-pre-wrap">{proxmoxCmd}</pre>
+          </div>
         </section>
 
         {/* Env reference */}
@@ -204,9 +224,9 @@ export default async function SelfHostingPage() {
           <h2 id="backend-h" className="text-[30px] font-extrabold tracking-[-0.025em] m-0 mb-2.5">Storage backends</h2>
           <p className="text-base text-zinc-600 dark:text-zinc-400 m-0 mb-7 max-w-[46em]">
             Anything that speaks the S3 API works. RustFS is the default in{" "}
-            <code className="font-mono text-[14.5px] text-primary-700 dark:text-primary-400">compose.yml</code> because hot-to-cold
-            replication is handled by the storage layer, not by the app — CrabS3 never
-            copies bytes between buckets.
+            <code className="font-mono text-[14.5px] text-primary-700 dark:text-primary-400">compose.yml</code> because the cold-storage
+            transition is handled by a lifecycle rule on the bucket itself, not by the app —
+            CrabS3 never copies bytes anywhere.
           </p>
           <ul className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 list-none p-0 m-0">
             {backends.map((b) => (

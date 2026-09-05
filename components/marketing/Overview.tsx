@@ -54,6 +54,14 @@ const faq = [
     q: "Does it work with AWS S3 or MinIO?",
     a: "Yes. Any S3-compatible endpoint works — RustFS, MinIO, Ceph, Wasabi, AWS S3. Only the endpoint and keys change.",
   },
+  {
+    q: "Can I use a free S3 tier?",
+    a: "Yes. CrabS3 does not charge for storage or bandwidth. You pay your S3 provider only.",
+  },
+  {
+    q: "Do I have to run Docker?",
+    a: "No. Alongside Docker Compose, a community-scripts LXC install is available for Proxmox VE — Node.js, PostgreSQL and ClamAV set up directly in the container, no Docker inside it.",
+  },
 ];
 
 const Overview = () => {
@@ -63,7 +71,7 @@ const Overview = () => {
       "@type": "SoftwareApplication",
       name: "CrabS3",
       applicationCategory: "BusinessApplication",
-      operatingSystem: "Any (self-hosted, Docker)",
+      operatingSystem: "Any (self-hosted — Docker or Proxmox VE)",
       description: "Self-hosted file and secret sharing on any S3-compatible storage.",
       url: SITE_URL,
       license: "https://opensource.org/licenses/Apache-2.0",
@@ -94,7 +102,7 @@ const Overview = () => {
         <div>
           <p className="flex items-center gap-2.5 font-mono text-[11.5px] tracking-[0.14em] uppercase text-primary-700 dark:text-primary-400 mb-5 m-0">
             <span aria-hidden="true" className="w-6 h-0.75 bg-primary-500 rounded-full" />
-            <span className="select-none">Open source · Apache-2.0 · Docker</span>
+            <span className="select-none">Open source · Apache-2.0 · Docker or Proxmox VE</span>
           </p>
           <h1 className="text-[40px] md:text-[52px] font-extrabold leading-[1.06] tracking-[-0.035em] m-0 mb-5 text-pretty">
             Send files from your own S3 bucket.
@@ -106,7 +114,7 @@ const Overview = () => {
           </p>
           <div className="flex gap-3 flex-wrap mb-7">
             <Link href="/self-hosting" className="px-6.5 py-3.5 rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[15px] font-bold transition">
-              Deploy in 4 commands
+              Deploy in minutes
             </Link>
             <Link href="/docs" className="px-6.5 py-3.5 rounded-full border-[1.5px] border-cardBorder dark:border-cardBorder-dark bg-card dark:bg-card-dark text-[15px] font-bold transition hover:border-primary-500">
               Read the API docs
@@ -173,7 +181,7 @@ const Overview = () => {
           <ol aria-label="Transfer lifecycle" className="flex items-center gap-3.5 flex-wrap font-mono text-[12.5px] mb-12 px-6 py-5 rounded-[20px] bg-[#332b26] border border-[#453b34] list-none m-0">
             <li className="px-3.5 py-1.75 rounded-full bg-[oklch(66%_0.19_41/0.22)] text-[#f7a072] font-bold">upload</li>
             <li aria-hidden="true" className="text-[#7d7269]">→</li>
-            <li className="px-3.5 py-1.75 rounded-full bg-[#453b34] text-[#e0d8d2]">hot bucket</li>
+            <li className="px-3.5 py-1.75 rounded-full bg-[#453b34] text-[#e0d8d2]">bucket</li>
             <li aria-hidden="true" className="text-[#7d7269]">→</li>
             <li className="px-3.5 py-1.75 rounded-full bg-[#453b34] text-[#e0d8d2]">share link</li>
             <li aria-hidden="true" className="text-[#7d7269]">→</li>
@@ -269,8 +277,9 @@ const Overview = () => {
             Your storage. Your rules. Ten minutes.
           </h2>
           <p className="text-[17px] m-0 mb-7 text-[#ffe4d5] max-w-[38em] mx-auto">
-            Clone, fill in a bucket and a Postgres URL,{" "}
-            <code className="font-mono text-[15px] bg-black/20 px-2 py-0.5 rounded-lg">docker compose up -d</code>.
+            Fill in a bucket and a Postgres URL, then{" "}
+            <code className="font-mono text-[15px] bg-black/20 px-2 py-0.5 rounded-lg">docker compose up -d</code>
+            {" "}— or run the Proxmox VE script and skip Docker entirely.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
             <Link href="/self-hosting" className="px-7 py-3.5 rounded-full bg-white text-primary-700 text-[15px] font-extrabold transition hover:bg-[#fff4ee]">
