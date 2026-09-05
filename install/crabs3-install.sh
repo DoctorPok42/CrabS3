@@ -1,256 +1,188 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-# Copyright (c) 2021-2026 community-scripts ORG (adapted)
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: DoctorPok42
-# License: Apache-2.0
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/DoctorPok42/CrabS3
 
-# --- petit système de logging minimal, sans dépendance externe ---
-info() { echo -e "\e[1;34m[INFO]\e[0m $*"; }
-ok()   { echo -e "\e[1;32m[OK]\e[0m $*"; }
-err()  { echo -e "\e[1;31m[ERROR]\e[0m $*" >&2; }
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+verb_ip6
+catch_errors
+setting_up_container
+network_check
+update_os
 
-trap 'err "Installation failed at line $LINENO"; exit 1' ERR
+msg_info "Installing Dependencies"
+$STD apt install -y \
+  build-essential \
+  python3 \
+  openssl \
+  clamav-daemon \
+  clamav-freshclam
+msg_ok "Installed Dependencies"
 
-export DEBIAN_FRONTEND=noninteractive
+NODE_VERSION="22" setup_nodejs
+PG_VERSION="17" setup_postgresql
+PG_DB_NAME="crabs3" PG_DB_USER="crabs3" setup_postgresql_db
 
-info "Updating system"
-apt-get update -y
-apt-get upgrade -y
-ok "System updated"
-
-# ---- Docker Engine + Compose plugin ----
-info "Installing Docker Engine"
-apt-get install -y ca-certificates curl gnupg
-install -m 0755 -d /etc/apt/keyrings
-
-OS_ID=$(. /etc/os-release && echo "$ID")
-case "$OS_ID" in
-  ubuntu) DOCKER_REPO_BASE="https://download.docker.com/linux/ubuntu" ;;
-  debian) DOCKER_REPO_BASE="https://download.docker.com/linux/debian" ;;
-  *)
-    err "Unsupported OS for Docker install: ${OS_ID}"
-    exit 1
-    ;;
-esac
-
-curl -fsSL "${DOCKER_REPO_BASE}/gpg" -o /etc/apt/keyrings/docker.asc
-chmod a+r /etc/apt/keyrings/docker.asc
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] ${DOCKER_REPO_BASE} \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-apt-get update -y
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-ok "Docker Engine installed"
-
-# ---- Collecte des paramètres essentiels ----
-info "Preparing configuration"
-mkdir -p /opt/crabs3
-cd /opt/crabs3
-
-DB_PASSWORD=$(openssl rand -hex 16)
-JWT_SECRET=$(openssl rand -hex 32)
-UPLOAD_TOKEN_SECRET=$(openssl rand -hex 32)
-CRON_SECRET=$(openssl rand -hex 32)
-
-read -rp "DockerHub image [doctorpok/crabs3]: " CRABS3_IMAGE
-CRABS3_IMAGE="${CRABS3_IMAGE:-doctorpok/crabs3}"
-
-read -rp "S3 Hot endpoint (ex: http://192.168.1.100:9000): " S3_ENDPOINT
-read -rp "S3 Hot access key: " S3_ACCESS_KEY_ID
-read -rp "S3 Hot secret key: " S3_SECRET_ACCESS_KEY
-read -rp "S3 Hot bucket name [crabs3]: " S3_BUCKET_NAME
-S3_HOT_BUCKET_NAME="${S3_HOT_BUCKET_NAME:-crabs3}"
-
-read -rp "Public base URL (ex: https://transfer.example.com): " BASE_URL
-
-read -rp "Admin email [admin@crabs3.local]: " SEED_ADMIN_EMAIL
-SEED_ADMIN_EMAIL="${SEED_ADMIN_EMAIL:-admin@crabs3.local}"
-ok "Configuration collected"
-
-# ---- docker-compose.yml ----
-info "Writing docker-compose.yml"
-cat <<EOF > /opt/crabs3/docker-compose.yml
-services:
-  db:
-    image: postgres:latest
-    container_name: crabs3-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: crabs3
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: crabs3
-    volumes:
-      - db-data:/var/lib/postgresql
-    networks:
-      - crabs3-network
-
-  clamav:
-    image: clamav/clamav:stable
-    container_name: crabs3-clamav
-    restart: unless-stopped
-    environment:
-      - CLAMAV_NO_FRESHCLAMD=false
-      - CLAMAV_NO_CLAMD=false
-      - CLAMD_CONF_ScanArchive=true
-      - CLAMD_CONF_MaxFileSize=104857600
-      - CLAMD_CONF_MaxScanSize=419430400
-    volumes:
-      - clamav-data:/var/lib/clamav
-    networks:
-      - crabs3-network
-    healthcheck:
-      test: ["CMD", "clamdcheck.sh"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
-
-  web:
-    image: ${CRABS3_IMAGE}:latest
-    container_name: crabs3
-    restart: unless-stopped
-    depends_on:
-      - db
-      - clamav
-    ports:
-      - "3000:3000"
-    environment:
-      - S3_ENDPOINT=${S3_ENDPOINT}
-      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
-      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
-      - S3_REGION=us-east-1
-      - DATABASE_URL=postgresql://crabs3:${DB_PASSWORD}@db:5432/crabs3
-      - NEXT_PUBLIC_BASE_URL=${BASE_URL}
-      - CLAMAV_HOST=clamav
-      - CLAMAV_PORT=3310
-      - JWT_SECRET=${JWT_SECRET}
-      - UPLOAD_TOKEN_SECRET=${UPLOAD_TOKEN_SECRET}
-      - EXPIRED_FILE_POLICY=cold
-      - LOG_MIN_LEVEL=INFO
-      - CRON_SECRET=${CRON_SECRET}
-    networks:
-      - crabs3-network
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-
-  cron:
-    image: ${CRABS3_IMAGE}-cron:latest
-    container_name: crabs3-cron
-    restart: unless-stopped
-    depends_on:
-      - web
-    environment:
-      CRON_SECRET: ${CRON_SECRET}
-      APP_INTERNAL_URL: http://web:3000
-    networks:
-      - crabs3-network
-
-networks:
-  crabs3-network:
-    driver: bridge
-
-volumes:
-  db-data:
-  clamav-data:
+msg_info "Configuring ClamAV"
+# The app talks to clamd over TCP (INSTREAM), Debian only ships the Unix socket by default.
+cat <<EOF >>/etc/clamav/clamd.conf
+TCPSocket 3310
+TCPAddr 127.0.0.1
 EOF
-ok "docker-compose.yml written"
+# Defaults are far too small for a file-transfer app (25M); raise them to match
+# what CrabS3 is actually designed to move.
+sed -i \
+  -e 's/^MaxFileSize .*/MaxFileSize 100M/' \
+  -e 's/^MaxScanSize .*/MaxScanSize 400M/' \
+  -e 's/^StreamMaxLength .*/StreamMaxLength 400M/' \
+  /etc/clamav/clamd.conf
+systemctl stop clamav-freshclam 2>/dev/null || true
+# clamav-daemon.socket refuses to start until a virus database exists, so fetch
+# one now instead of racing the background updater.
+if $STD freshclam; then
+  systemctl enable -q --now clamav-freshclam
+  systemctl enable -q --now clamav-daemon
+else
+  msg_warn "ClamAV database download failed - it will retry in the background; uploads will skip scanning until it succeeds"
+  systemctl enable -q clamav-freshclam
+  systemctl start clamav-freshclam 2>/dev/null || true
+fi
+msg_ok "Configured ClamAV"
 
-# ---- Lancement ----
-info "Pulling images and starting CrabS3"
-docker compose pull
-docker compose up -d
-ok "CrabS3 started"
+if [[ -z "${var_s3_endpoint:-}" ]]; then
+  read -r -p "${TAB3}S3 endpoint URL (e.g. http://192.168.1.50:9000): " var_s3_endpoint
+fi
+if [[ -z "${var_s3_access_key:-}" ]]; then
+  read -r -p "${TAB3}S3 access key: " var_s3_access_key
+fi
+if [[ -z "${var_s3_secret_key:-}" ]]; then
+  read -r -p "${TAB3}S3 secret key: " var_s3_secret_key
+fi
+var_s3_bucket="${var_s3_bucket:-crabs3}"
+var_admin_email="${var_admin_email:-admin@crabs3.local}"
 
-info "Waiting for web container to be healthy"
-until [ "$(docker inspect -f '{{.State.Health.Status}}' crabs3 2>/dev/null)" = "healthy" ]; do
-  sleep 5
-done
-ok "Web container healthy"
+fetch_and_deploy_gh_branch "crabs3" "DoctorPok42/CrabS3"
 
-info "Running database migrations"
-docker compose exec -T web npx prisma migrate deploy
-ok "Migrations applied"
+msg_info "Configuring CrabS3"
+cat <<EOF >/opt/crabs3/.env
+DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}
+NEXT_PUBLIC_BASE_URL=http://${LOCAL_IP}:3000
+NEXT_PUBLIC_SITE_URL=http://${LOCAL_IP}:3000
+# This install has no TLS in front by default, so the session cookie must not
+# be marked Secure or browsers silently drop it after login. If you put a
+# reverse proxy with a real certificate in front of this container, switch
+# this to true and update the two URLs above to https://.
+COOKIE_SECURE=false
+JWT_SECRET=$(openssl rand -hex 32)
+CRON_SECRET=$(openssl rand -hex 32)
+LOG_MIN_LEVEL=INFO
+EXPIRED_FILE_POLICY=cold
 
-# ---- Seed admin ----
-info "Seeding admin user"
-docker compose cp - web:/app/seed-admin.mjs <<'SEED_SCRIPT_EOF'
-import { PrismaClient } from "./app/generated/prisma/index.js";
-import bcrypt from "bcrypt";
-import crypto from "crypto";
+S3_ENDPOINT=${var_s3_endpoint}
+S3_ACCESS_KEY_ID=${var_s3_access_key}
+S3_SECRET_ACCESS_KEY=${var_s3_secret_key}
+S3_BUCKET_NAME=${var_s3_bucket}
+S3_REGION=us-east-1
 
-const prisma = new PrismaClient();
+CLAMAV_HOST=127.0.0.1
+CLAMAV_PORT=3310
 
-function generatePassword(length = 20) {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%^&*";
-  return Array.from(crypto.randomFillSync(new Uint32Array(length)))
-    .map((n) => alphabet[n % alphabet.length])
-    .join("");
-}
+SEED_ADMIN_EMAIL=${var_admin_email}
+SEED_ADMIN_NAME=Admin
 
-async function main() {
-  const existingAdmin = await prisma.users.findFirst({ where: { isAdmin: true } });
-  if (existingAdmin) {
-    console.log(`SKIP: an admin already exists (${existingAdmin.email})`);
-    return;
-  }
+# Optional: outgoing mail for share/expiry notifications
+#SMTP_HOST=
+#SMTP_USER=
+#SMTP_PASS=
+#SMTP_FROM=CrabS3 <noreply@example.com>
+EOF
+chmod 600 /opt/crabs3/.env
+msg_ok "Configured CrabS3"
 
-  const email = process.env.SEED_ADMIN_EMAIL || "admin@crabs3.local";
-  const password = generatePassword();
-  const passwordHash = await bcrypt.hash(password, 12);
+msg_info "Building CrabS3 (Patience)"
+cd /opt/crabs3 || exit
+$STD npm ci
+set -a
+# shellcheck source=/dev/null
+source /opt/crabs3/.env
+set +a
+$STD npx prisma generate
+$STD npx prisma migrate deploy
+$STD npm run build
+msg_ok "Built CrabS3"
 
-  const user = await prisma.users.create({
-    data: { name: "Admin", email, passwordHash, isAdmin: true },
-  });
-
-  console.log(`ADMIN_EMAIL=${email}`);
-  console.log(`ADMIN_PASSWORD=${password}`);
-  console.log(`ADMIN_ID=${user.id}`);
-}
-
-main()
-  .catch((err) => {
-    console.error("Seed failed:", err);
-    process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
-SEED_SCRIPT_EOF
-
-SEED_OUTPUT=$(docker compose exec -T -e SEED_ADMIN_EMAIL="${SEED_ADMIN_EMAIL}" web node seed-admin.mjs)
-docker compose exec -T web rm -f /app/seed-admin.mjs
+msg_info "Seeding admin account"
+# install/seed-admin.mjs in the repo is now the fixed, canonical version
+SEED_OUTPUT=$(npx tsx /opt/crabs3/install/seed-admin.mjs)
+rm -f /opt/crabs3/install/seed-admin.mjs
 
 if echo "$SEED_OUTPUT" | grep -q "^ADMIN_EMAIL="; then
   ADMIN_EMAIL_OUT=$(echo "$SEED_OUTPUT" | grep "^ADMIN_EMAIL=" | cut -d= -f2-)
   ADMIN_PASSWORD_OUT=$(echo "$SEED_OUTPUT" | grep "^ADMIN_PASSWORD=" | cut -d= -f2-)
-
-  cat <<EOF > /opt/crabs3/.admin-credentials.txt
-CrabS3 — Admin account (generated at first install)
-Email:    ${ADMIN_EMAIL_OUT}
-Password: ${ADMIN_PASSWORD_OUT}
-
-⚠️  Change this password after first login. This file is not regenerated
-    on updates; delete it once you've stored the credentials securely.
-EOF
-  chmod 600 /opt/crabs3/.admin-credentials.txt
-  ok "Admin user created — credentials saved to /opt/crabs3/.admin-credentials.txt"
+  msg_ok "Seeded admin account"
 else
-  ok "Admin user already existed — skipped"
+  msg_ok "Admin account already present"
 fi
 
-# ---- Sauvegarde des secrets générés ----
-cat <<EOF > /opt/crabs3/.generated-secrets.txt
-DB_PASSWORD=${DB_PASSWORD}
-JWT_SECRET=${JWT_SECRET}
-UPLOAD_TOKEN_SECRET=${UPLOAD_TOKEN_SECRET}
-CRON_SECRET=${CRON_SECRET}
-EOF
-chmod 600 /opt/crabs3/.generated-secrets.txt
+msg_info "Creating Service"
+cat <<EOF >/etc/systemd/system/crabs3.service
+[Unit]
+Description=CrabS3
+Wants=network-online.target
+After=network-online.target postgresql.service clamav-daemon.service
 
-ok "CrabS3 installation complete"
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/crabs3
+EnvironmentFile=/opt/crabs3/.env
+ExecStart=/opt/crabs3/node_modules/.bin/next start -p 3000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now crabs3
+msg_ok "Created Service"
+
+msg_info "Creating Cron Service"
+cat <<EOF >/etc/systemd/system/crabs3-cron.service
+[Unit]
+Description=CrabS3 expiry and cleanup job
+After=network.target crabs3.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/crabs3/.env
+ExecStart=/usr/bin/curl -sf -X POST -H "X-Cron-Secret: \${CRON_SECRET}" http://127.0.0.1:3000/api/cron/check-expired
+EOF
+cat <<EOF >/etc/systemd/system/crabs3-cron.timer
+[Unit]
+Description=Run CrabS3 expiry and cleanup job hourly
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+systemctl enable -q --now crabs3-cron.timer
+msg_ok "Created Cron Service"
+
+if [[ -n "${ADMIN_EMAIL_OUT:-}" ]]; then
+  echo -e "\n  First admin account (save this, it will not be shown again):"
+  echo -e "    Email:    ${ADMIN_EMAIL_OUT}"
+  echo -e "    Password: ${ADMIN_PASSWORD_OUT}\n"
+fi
+if [[ -z "${var_s3_endpoint}" ]]; then
+  msg_warn "No S3 credentials were provided - edit /opt/crabs3/.env and 'systemctl restart crabs3' before using CrabS3"
+fi
+
+motd_ssh
+customize
+cleanup_lxc

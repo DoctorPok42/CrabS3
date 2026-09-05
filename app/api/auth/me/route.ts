@@ -54,9 +54,14 @@ export async function DELETE(request: Request) {
       prisma.folders.deleteMany({ where: { user_id: session.user.id } }),
     ]);
 
+    const secureCookie = process.env.COOKIE_SECURE
+      ? process.env.COOKIE_SECURE === "true"
+      : process.env.NODE_ENV === "production";
+
     const cookieStore = await cookies();
     cookieStore.set("session", "", {
       httpOnly: true,
+      secure: secureCookie,
       sameSite: "lax",
       expires: new Date(0),
     });

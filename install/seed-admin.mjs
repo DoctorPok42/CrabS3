@@ -1,8 +1,10 @@
-import { PrismaClient } from "./app/generated/prisma/index.js";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../prisma/app/generated/prisma/client";
 import bcrypt from "bcrypt";
 import crypto from "node:crypto";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 function generatePassword(length = 20) {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%^&*";

@@ -19,10 +19,14 @@ export async function createSession(userId: number, email: string, isAdmin: bool
     data: { userId, expires_at: expiresAt, email, isAdmin },
   });
 
+  const secureCookie = process.env.COOKIE_SECURE
+    ? process.env.COOKIE_SECURE === "true"
+    : process.env.NODE_ENV === "production";
+
   const cookieStore = await cookies();
   cookieStore.set("session", session.token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookie,
     sameSite: "lax",
     expires: expiresAt,
     path: "/",
@@ -75,9 +79,13 @@ export async function getSession() {
       await prisma.session.delete({ where: { token } });
     }
 
+    const secureCookie = process.env.COOKIE_SECURE
+      ? process.env.COOKIE_SECURE === "true"
+      : process.env.NODE_ENV === "production";
+
     cookieStore.set("session", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookie,
       sameSite: "lax",
       expires: new Date(0),
     });
