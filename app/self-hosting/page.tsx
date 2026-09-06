@@ -34,7 +34,7 @@ curl -i http://localhost:3000/api/health`;
 const seedCmd = `docker compose exec -T web npx tsx install/seed-admin.mjs
 # prints ADMIN_EMAIL and ADMIN_PASSWORD once — save them, they are not stored anywhere`;
 
-const proxmoxCmd = `bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/crabs3.sh)"`;
+const proxmoxCmd = `bash -c "$(curl -fsSL https://raw.githubusercontent.com/DoctorPok42/CrabS3/main/ct/crabs3.sh)"`;
 
 const envGroups = [
   {

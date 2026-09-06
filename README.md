@@ -60,7 +60,7 @@ Prefer the published image? `docker pull doctorpok/crabs3:latest`, then point `c
 A [community-scripts](https://community-scripts.org) LXC install is also available — bare-metal (no Docker inside the container), Node.js/PostgreSQL/ClamAV set up automatically:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/crabs3.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/DoctorPok42/CrabS3/main/ct/crabs3.sh)"
 ```
 
 > Pending review at [community-scripts/ProxmoxVED](https://github.com/community-scripts/ProxmoxVED) — until it's merged, swap the URL above for your own fork/branch.
