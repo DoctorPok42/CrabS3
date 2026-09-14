@@ -23,7 +23,8 @@ export const formatDate = (date: string): string => {
   ];
 
   const now = Date.now();
-  const diff = now - new Date(date).getTime();
+  const dateTime = new Date(date).getTime();
+  const diff = Math.abs(now - dateTime);
 
   for (const { unit, value } of times) {
     const amount = Math.floor(diff / value);

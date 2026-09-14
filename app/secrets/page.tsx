@@ -9,7 +9,7 @@ import { Button, Input, PopupStatus } from "@/components"
 const SecretPage = () => {
   const [secret, setSecret] = useState<string>("")
   const [maxSeen, setMaxSeen] = useState<number>(1)
-  const [expireAfter, setExpireAfter] = useState<"1" | "7" | "14" | "21" | "30">("7")
+  const [expireAfter, setExpireAfter] = useState<"1" | "7" | "14" | "21" | "30">("1")
   const [password, setPassword] = useState<string>("")
   const [uploading, setUploading] = useState<boolean>(false)
   const [popupStatus, setPopupStatus] = useState<{ message: string, type: "success" | "error" | "info", fileId?: string, fileType: "secret" } | null>(null)
@@ -47,7 +47,7 @@ const SecretPage = () => {
       setUploading(false)
       setSecret("")
       setMaxSeen(1)
-      setExpireAfter("7")
+      setExpireAfter("1")
       setPassword("")
     }
   }

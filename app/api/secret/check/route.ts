@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: 'Secret has expired' }), { status: 410 });
     }
 
-    if (secret.view_count! >= secret.max_views) {
+    if (secret.view_count! > secret.max_views) {
       return new Response(JSON.stringify({ error: 'Secret has been viewed too many times' }), { status: 410 });
     }
 
