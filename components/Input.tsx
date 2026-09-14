@@ -24,7 +24,7 @@ const Input = ({ label, id, type, name, placeholder, class: inputClass, value, o
         {label}
       </label>
       <div className='h-11.5 px-2 text-[15px] bg-input dark:bg-input-dark hover:bg-[#f4f4f6] dark:hover:bg-[#25272c] border-[1.5px] border-[#e9ebed] dark:border-[#383a42] rounded-2xl text-zinc-700! dark:text-[#d2d5da]! transition duration-300 inputClass'>
-        {icon && <FontAwesomeIcon icon={icon} className='text-zinc-700 dark:text-[#d2d5da] ml-1' size='sm' />}
+        {icon && <FontAwesomeIcon icon={icon} className='text-zinc-700 dark:text-[#d2d5da] ml-1 w-3.75' size='xs' />}
         <input
           id={id}
           type={type}

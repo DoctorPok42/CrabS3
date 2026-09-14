@@ -22,8 +22,55 @@ export async function sendAllActiveCommunications(userId: number, payload: Disco
   if (!communications || communications.length === 0) return;
 
   for (const communication of communications) {
-    await webhookService.getInstance(communication.type as WebHookType).sendWebHook(communication.url, payload);
+    const responseWebhook = await webhookService.getInstance(communication.type as WebHookType).sendWebHook(communication.url, payload);
+    (async () => {
+      let title = "";
+      if (communication.type === "discord") {
+        title = (payload as DiscordWebHookPayload).embeds?.[0]?.title || (payload as DiscordWebHookPayload).content || "No title";
+      } else if (communication.type === "slack") {
+        title = (payload as SlackWebHookPayload).text || "No title";
+      } else if (communication.type === "teams") {
+        title = (payload as TeamsWebHookPayload).text || "No title";
+      }
+
+      await prisma.webhooks_logs.create({
+        data: {
+          user_id: userId,
+          type: communication.type,
+          title,
+          status: responseWebhook ? 200 : 500
+        }
+      })
+    })();
   }
+}
+
+export async function sendOneCommunication(userId: number, type: WebHookType, payload: DiscordWebHookPayload | SlackWebHookPayload | TeamsWebHookPayload) {
+  const user = await getActiveCommunication(userId);
+  if (!user) return;
+
+  const communication = user.communications.find(c => c.type === type);
+  if (!communication) return;
+
+  const responseWebhook = await webhookService.getInstance(type).sendWebHook(communication.url, payload);
+  (async () => {
+    let title = "";
+    if (type === "discord") {
+      title = (payload as DiscordWebHookPayload).embeds?.[0]?.title || (payload as DiscordWebHookPayload).content || "No title";
+    } else if (type === "slack") {
+      title = (payload as SlackWebHookPayload).text || "No title";
+    } else if (type === "teams") {
+      title = (payload as TeamsWebHookPayload).text || "No title";
+    }
+    await prisma.webhooks_logs.create({
+      data: {
+        user_id: userId,
+        type,
+        title,
+        status: responseWebhook ? 200 : 500
+      }
+    })
+  })();
 }
 
 export async function createCommunication(userId: number, type: WebHookType, url: string) {

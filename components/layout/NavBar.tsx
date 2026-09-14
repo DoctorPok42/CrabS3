@@ -66,7 +66,7 @@ const NavBar = ({ user }: NavBarProps) => {
                 href={link.href}
                 className={`flex font-semibold gap-4 items-center px-3.5 py-2.5 rounded-full group hover:text-uploadColor hover:bg-uploadBg dark:hover:bg-uploadBg-dark transition ${link.href === pathname ? "text-uploadColor! opacity-90! bg-uploadBg dark:bg-uploadBg-dark" : ""} text-gray-700 dark:text-gray-300`}
               >
-                <FontAwesomeIcon icon={link.icon} className={` ${link.href === pathname ? "text-uploadColor opacity-90!" : "text-[#444850]"} group-hover:text-uploadColor w-3`} />
+                <FontAwesomeIcon icon={link.icon} className={` ${link.href === pathname ? "text-uploadColor opacity-90!" : "text-[#444850]"} group-hover:text-uploadColor w-3.75`} />
                 {link.name}
               </Link>
             )

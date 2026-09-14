@@ -135,7 +135,7 @@ class WebHookService {
     }
   }
 
-  public async sendWebHook(url: string, payload: WebHookPayload): Promise<void> {
+  public async sendWebHook(url: string, payload: WebHookPayload) {
     try {
       const response = await fetch(url, {
         method: 'POST',
@@ -145,10 +145,14 @@ class WebHookService {
         body: JSON.stringify(this.constructBody(payload)),
       });
       if (!response.ok) {
-        throw new Error(`Failed to send webhook: ${response.statusText}`);
+        console.error(`Failed to send webhook. Status: ${response.status}, StatusText: ${response.statusText}`);
+        return null;
       }
+
+      return response;
     } catch (error) {
       console.error('Error sending webhook:', error);
+      return null;
     }
   }
 }
