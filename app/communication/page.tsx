@@ -242,7 +242,7 @@ const Communication = () => {
             {latestCommunicationLogs?.map((log, index) => (
               <div key={index + 0} className={`flex flex-col gap-2.5 max-w-150 py-3 px-3.5 rounded-[14px] bg-input dark:bg-input-dark`}>
                 <div className="flex h-6 gap-3">
-                  <div className={`py-1 px-2.5 text-[10.5px] uppercase tracking-[0.03em] shrink-0 font-extrabold rounded-full bg-[#403355]`}>
+                  <div className={`text-white py-1 px-2.5 text-[10.5px] uppercase tracking-[0.03em] shrink-0 font-extrabold rounded-full bg-[#403355]`}>
                     {log.type}
                   </div>
                   <span className="text-[14px] font-semibold">{log.title}</span>

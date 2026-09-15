@@ -55,6 +55,8 @@ The interface is on **<http://localhost:3000>**. Health check: `GET /api/health`
 
 Prefer the published image? `docker pull doctorpok/crabs3:latest`, then point `compose.yml` at it instead of `build: .`.
 
+See the full doc by DeepWiki: [https://deepwiki.com/DoctorPok42/CrabS3](https://deepwiki.com/DoctorPok42/CrabS3)
+
 ### Proxmox VE
 
 A [community-scripts](https://community-scripts.org) LXC install is also available — bare-metal (no Docker inside the container), Node.js/PostgreSQL/ClamAV set up automatically:
@@ -63,8 +65,6 @@ A [community-scripts](https://community-scripts.org) LXC install is also availab
 COMMUNITY_SCRIPTS_URL="https://raw.githubusercontent.com/DoctorPok42/CrabS3/main" \
   bash -c "$(curl -fsSL https://raw.githubusercontent.com/DoctorPok42/CrabS3/main/ct/crabs3.sh)"
 ```
-
-> Pending review at [community-scripts/ProxmoxVED](https://github.com/community-scripts/ProxmoxVED) — until it's merged, swap the URL above for your own fork/branch.
 
 You'll be prompted for your S3 endpoint and keys during install (or export `var_s3_endpoint`, `var_s3_access_key`, `var_s3_secret_key`, `var_s3_bucket`, `var_admin_email` beforehand for an unattended run). Everything else lives in `/opt/crabs3/.env` — edit and `systemctl restart crabs3` to apply. There's no TLS in front by default; see `COOKIE_SECURE` below before exposing it past your LAN.
 
