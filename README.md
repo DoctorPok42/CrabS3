@@ -99,7 +99,7 @@ Everything is environment variables — put them in `.env`, or manage them in Do
 | Variable | Example |
 | --- | --- |
 | `DATABASE_URL` | `postgresql://user:password@db:5432/crabs3` |
-| `NEXT_PUBLIC_BASE_URL` | `https://files.example.com` — used in share links and emails |
+| `BASE_URL` | `https://files.example.com` — used in share links and emails |
 | `JWT_SECRET` | a long random string |
 | `COOKIE_SECURE` | `true`/`false` — defaults to `NODE_ENV === "production"` if unset. Set `false` when serving plain HTTP with no reverse proxy in front, or browsers silently drop the session cookie after login |
 | `LOG_MIN_LEVEL` | `DEBUG` · `INFO` · `WARN` · `ERROR` |

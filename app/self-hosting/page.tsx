@@ -42,7 +42,7 @@ const envGroups = [
     name: "Application",
     rows: [
       { key: "DATABASE_URL", desc: "Postgres connection string", example: "postgresql://user:pw@db:5432/crabs3" },
-      { key: "NEXT_PUBLIC_BASE_URL", desc: "Public origin used in share links and emails", example: "https://files.example.com" },
+      { key: "BASE_URL", desc: "Public origin used in share links and emails", example: "https://files.example.com" },
       { key: "JWT_SECRET", desc: "Signs sessions — long and random", example: "openssl rand -hex 32" },
       { key: "COOKIE_SECURE", desc: "Defaults to NODE_ENV==='production' if unset. Set false with no TLS in front, or the session cookie is silently dropped after login", example: "true | false" },
       { key: "LOG_MIN_LEVEL", desc: "Lowest level written to the audit log", example: "INFO" },

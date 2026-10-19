@@ -69,7 +69,7 @@ fetch_and_deploy_gh_branch "crabs3" "DoctorPok42/CrabS3"
 msg_info "Configuring CrabS3"
 cat <<EOF >/opt/crabs3/.env
 DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}
-NEXT_PUBLIC_BASE_URL=http://${LOCAL_IP}:3000
+BASE_URL=http://${LOCAL_IP}:3000
 NEXT_PUBLIC_SITE_URL=http://${LOCAL_IP}:3000
 # This install has no TLS in front by default, so the session cookie must not
 # be marked Secure or browsers silently drop it after login. If you put a

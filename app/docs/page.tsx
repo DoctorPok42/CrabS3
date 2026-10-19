@@ -250,7 +250,7 @@ export default async function DocsPage() {
 
           <dl className="flex gap-3 flex-wrap mb-11 m-0">
             {[
-              { k: "Base URL", v: "{NEXT_PUBLIC_BASE_URL}/api" },
+              { k: "Base URL", v: "{BASE_URL}/api" },
               { k: "Auth", v: "Session cookie (JWT)" },
               { k: "Health probe", v: "GET /api/health" },
             ].map((item) => (
