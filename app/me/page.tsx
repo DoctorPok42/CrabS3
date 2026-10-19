@@ -247,6 +247,9 @@ const Me = () => {
                   errorCorrectionLevel: "H",
                   scale: 6,
                   quality: 0.8,
+                  color: {
+                    light: "#fdfbfa"
+                  }
                 }}
               />
               <p className="text-zinc-500 dark:text-zinc-400">

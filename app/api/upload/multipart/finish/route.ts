@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { getIp } from "@/lib/ip";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import prisma from "@/lib/prisma";
 import { sendAllActiveCommunications } from "@/lib/webhook";
 import { log } from "@/services/log.service";
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
               { name: "Folder Name", value: `\`${folderName}\``, inline: true },
               { name: "File Count", value: files.length.toString(), inline: true },
               { name: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n"), inline: false },
-              { name: "Download Link", value: `${process.env.NEXT_PUBLIC_BASE_URL}/file/${folderId}`, inline: false },
+              { name: "Download Link", value: `${getPublicBaseUrl()}/file/${folderId}`, inline: false },
               { name: "Sender Email", value: session.user.email, inline: true },
               { name: "IP Address", value: getIp(request), inline: true },
             ],
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
                     { title: "Folder Name", value: `\`${folderName}\`` },
                     { title: "File Count", value: files.length.toString() },
                     { title: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n") },
-                    { title: "Download Link", value: `${process.env.NEXT_PUBLIC_BASE_URL}/file/${folderId}` },
+                    { title: "Download Link", value: `${getPublicBaseUrl()}/file/${folderId}` },
                     { title: "Sender Email", value: session.user.email },
                     { title: "IP Address", value: getIp(request) },
                   ],
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
               { type: "mrkdwn", text: `*Folder Name:*\n\`${folderName}\`` },
               { type: "mrkdwn", text: `*File Count:*\n${files.length}` },
               { type: "mrkdwn", text: `*Files ID:*\n${files.map((f) => `\`${f.id}\``).join("\n")}` },
-              { type: "mrkdwn", text: `*Download Link:*\n${process.env.NEXT_PUBLIC_BASE_URL}/file/${folderId}` },
+              { type: "mrkdwn", text: `*Download Link:*\n${getPublicBaseUrl()}/file/${folderId}` },
               { type: "mrkdwn", text: `*Sender Email:*\n${session.user.email}` },
               { type: "mrkdwn", text: `*IP Address:*\n${getIp(request)}` },
             ],
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
               { title: "Folder Name", value: `\`${folderName}\`` },
               { title: "File Count", value: files.length.toString() },
               { title: "Files ID", value: files.map((f) => `\`${f.id}\``).join("\n") },
-              { title: "Download Link", value: `${process.env.NEXT_PUBLIC_BASE_URL}/file/${folderId}` },
+              { title: "Download Link", value: `${getPublicBaseUrl()}/file/${folderId}` },
               { title: "Sender Email", value: session.user.email },
               { title: "IP Address", value: getIp(request) },
             ],

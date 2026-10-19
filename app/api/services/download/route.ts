@@ -1,4 +1,5 @@
 import { getIp } from "@/lib/ip";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import prisma from "@/lib/prisma";
 import { checkTokenService } from "@/lib/service";
 import { log } from "@/services/log.service";
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
       })();
 
       return Response.json({
-        url: process.env["NEXT_PUBLIC_BASE_URL"] + `/file/${folerId}`,
+        url: `${getPublicBaseUrl()}/file/${folerId}`,
       });
     } else if (linkType === "direct") {
       (async () => {

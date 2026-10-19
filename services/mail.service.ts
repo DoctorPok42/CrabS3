@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import { Settings } from "@/services/settings.service";
 
 async function notificationsAllowed(event: "upload" | "download" | "recipient"): Promise<boolean> {
@@ -48,7 +49,7 @@ export async function sendNotificationEmail(to: string, fileId: string) {
   if (!(await notificationsAllowed("upload"))) return;
 
   const from = process.env.SMTP_FROM || "<EMAIL>";
-  const downloadLink = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/file/${fileId}`;
+  const downloadLink = `${getPublicBaseUrl()}/file/${fileId}`;
 
   try {
     await transporter.sendMail({
@@ -127,7 +128,7 @@ export async function sendDownloadNotificationEmail(to: string, fileId: string) 
   }
 
   const from = process.env.SMTP_FROM || "<EMAIL>";
-  const downloadLink = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/file/${fileId}`;
+  const downloadLink = `${getPublicBaseUrl()}/file/${fileId}`;
 
   try {
     await transporter.sendMail({
@@ -206,7 +207,7 @@ export async function sendRecipientNotificationEmail(to: string, fileId: string,
   }
 
   const from = process.env.SMTP_FROM || "<EMAIL>";
-  const downloadLink = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/file/${fileId}`;
+  const downloadLink = `${getPublicBaseUrl()}/file/${fileId}`;
 
   try {
     await transporter.sendMail({
@@ -279,7 +280,7 @@ export async function sendRecipientNotificationEmail(to: string, fileId: string,
 
 export async function sendInvitationEmail(email: string, token: string) {
   const from = process.env.SMTP_FROM || "<EMAIL>";
-  const link = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/signup?token=${token}`;
+  const link = `${getPublicBaseUrl()}/auth/signup?token=${token}`;
 
   try {
     await transporter.sendMail({
