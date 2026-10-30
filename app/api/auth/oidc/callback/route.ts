@@ -33,8 +33,12 @@ function tokenMaxAge(value: unknown, unitInSeconds: number): number {
     : DEFAULT_TOKEN_MAX_AGE;
 }
 
+function publicUrl(path: string, requestUrl: string): URL {
+  return new URL(path, process.env.OIDC_REDIRECT_URI ?? requestUrl);
+}
+
 function redirectToLogin(requestUrl: string, error: string, next: string | undefined) {
-  const loginUrl = new URL("/auth/login", requestUrl);
+  const loginUrl = publicUrl("/auth/login", requestUrl);
   loginUrl.searchParams.set("error", error);
   if (isSafeNext(next ?? null)) loginUrl.searchParams.set("next", next ?? "");
   return Response.redirect(loginUrl);
@@ -173,7 +177,7 @@ export async function GET(request: Request) {
     });
 
     const redirectPath = isSafeNext(next ?? null) ? (next ?? "/") : "/";
-    return Response.redirect(new URL(redirectPath, request.url));
+    return Response.redirect(publicUrl(redirectPath, request.url));
   } catch (error) {
     console.error("OIDC callback failed:", error);
     return Response.json({ error: "OIDC authentication failed" }, { status: 401 });

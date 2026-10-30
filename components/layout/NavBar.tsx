@@ -29,12 +29,13 @@ const NavBar = ({ user }: NavBarProps) => {
   ]
 
   const logout = async () => {
-    const response = await fetch("/api/auth/logout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-user-id": String(user?.id) },
-    })
-    const data = await response.json() as { logoutUrl?: string | null }
-    window.location.href = data.logoutUrl || "/auth/login"
+    let logoutUrl: string | null | undefined
+
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" })
+      if (response.ok) ({ logoutUrl } = await response.json() as { logoutUrl?: string | null })
+    } catch { }
+    window.location.href = logoutUrl || "/auth/login"
   }
 
   const ignoredPaths = ["auth", "file", "secret", "docs", "self-hosted"]
