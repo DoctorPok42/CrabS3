@@ -33,6 +33,27 @@ function tokenMaxAge(value: unknown, unitInSeconds: number): number {
     : DEFAULT_TOKEN_MAX_AGE;
 }
 
+function tokenExpiration(value: unknown): Date | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? new Date(Date.now() + value * 1000)
+    : undefined;
+}
+
+function oidcSessionExpiration(
+  tokens: { expires_in?: number; refresh_expires_in?: number },
+  identityClaims: { exp?: number },
+): Date | undefined {
+  const refreshExpiration = tokenExpiration(tokens.refresh_expires_in);
+  if (refreshExpiration) return refreshExpiration;
+
+  if (typeof identityClaims.exp === "number" && Number.isFinite(identityClaims.exp)) {
+    const idTokenExpiration = new Date(identityClaims.exp * 1000);
+    if (idTokenExpiration.getTime() > Date.now()) return idTokenExpiration;
+  }
+
+  return tokenExpiration(tokens.expires_in);
+}
+
 function publicUrl(path: string, requestUrl: string): URL {
   return new URL(path, process.env.OIDC_REDIRECT_URI ?? requestUrl);
 }
@@ -143,7 +164,12 @@ export async function GET(request: Request) {
       });
     }
 
-    await createSession(user.id, user.email, user.isAdmin);
+    await createSession(
+      user.id,
+      user.email,
+      user.isAdmin,
+      oidcSessionExpiration(tokens, identity.claims),
+    );
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
